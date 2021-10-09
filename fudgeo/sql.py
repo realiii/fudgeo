@@ -28,7 +28,7 @@ CREATE_FEATURE_TABLE = """
 CREATE_TABLE = """
     CREATE TABLE {name} (
         fid INTEGER not null 
-        primary key autoincrement,  
+        primary key autoincrement  
         {other_fields})
 """
 

@@ -25,7 +25,7 @@ from fudgeo.sql import (
     INSERT_GPKG_GEOM_COL, INSERT_GPKG_SRS, TABLE_EXISTS)
 
 
-FIELDS = tuple['Field', ...]
+FIELDS = Union[tuple['Field', ...], list['Field']]
 
 
 COMMA_SPACE = ', '
@@ -81,6 +81,14 @@ class GeoPackage:
     # End init built-in
 
     @property
+    def path(self) -> Path:
+        """
+        Path
+        """
+        return self._path
+    # End path property
+
+    @property
     def connection(self) -> Connection:
         """
         Connection
@@ -95,6 +103,8 @@ class GeoPackage:
         Create a new GeoPackage
         """
         path = Path(path).with_suffix(GPKG_EXT)
+        if path.is_file():
+            raise ValueError(f'GeoPackage already exists: {path}')
         if not path.parent.is_dir():
             raise ValueError(f'Folder does not exist: {path.parent}')
         if flavor == GPKGFlavors.esri:
@@ -181,7 +191,7 @@ class BaseTable:
 
 class Table(BaseTable):
     """
-    GeoPackage Non-Spatial Table
+    GeoPackage Table
     """
     @classmethod
     def create(cls, geopackage: GeoPackage, name: str, fields: FIELDS,
@@ -189,7 +199,7 @@ class Table(BaseTable):
         """
         Create a regular non-spatial table in the geopackage
         """
-        cols = COMMA_SPACE.join(repr(f) for f in fields)
+        cols = f', {", ".join(repr(f) for f in fields)}' if fields else ''
         connection = geopackage.connection
         connection.execute(
             CREATE_TABLE.format(name=name, other_fields=cols))
@@ -213,7 +223,7 @@ class FeatureClass(BaseTable):
         """
         Create Feature Class
         """
-        cols = f',{COMMA_SPACE.join(repr(f) for f in fields)}' if fields else ''
+        cols = f', {", ".join(repr(f) for f in fields)}' if fields else ''
         connection = geopackage.connection
         connection.execute(CREATE_FEATURE_TABLE.format(
             name=name,  feature_type=shape_type, other_fields=cols))
@@ -234,7 +244,7 @@ class SpatialReferenceSystem:
     """
     Spatial Reference System
     """
-    def __init__(self, name: str, organization: str, org_coordsys_id: int,
+    def __init__(self, name: str, organization: str, org_coord_sys_id: int,
                  definition: str, description: str = '') -> None:
         """
         Initialize the SpatialReferenceSystem class
@@ -242,8 +252,8 @@ class SpatialReferenceSystem:
         super(SpatialReferenceSystem, self).__init__()
         self.name: str = name
         self.organization: str = organization
-        self.org_coordsys_id: int = org_coordsys_id
-        self._srs_id: int = org_coordsys_id
+        self.org_coord_sys_id: int = org_coord_sys_id
+        self._srs_id: int = org_coord_sys_id
         self.definition: str = definition
         self.description: str = description
     # End init built-in
@@ -251,24 +261,21 @@ class SpatialReferenceSystem:
     @property
     def srs_id(self) -> int:
         """
-        The SpatialReferenceSystem ID
+        Spatial Reference System ID
         """
         return self._srs_id
 
     @srs_id.setter
     def srs_id(self, value: int) -> None:
-        """
-        Set the value of the srs id
-        """
         self._srs_id = value
     # End srs_id property
 
     def as_record(self) -> tuple[str, int, str, int, str, str]:
         """
-        Record of the Spatial Reference
+        Record of the Spatial Reference System
         """
         return (self.name, self.srs_id, self.organization,
-                self.org_coordsys_id, self.definition, self.description)
+                self.org_coord_sys_id, self.definition, self.description)
     # End as_record method
 # End SpatialReferenceSystem class
 
@@ -288,14 +295,14 @@ class Field:
         self.size: Optional[int] = size
     # End init built-in
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
         String representation
         """
-        if (self.size and
-                self.data_type in (SQLFieldType.blob, SQLFieldType.text)):
-            return '{0} {1}{2}'.format(self.name, self.data_type, self.size)
-        return '{0} {1}'.format(self.name, self.data_type)
+        types = SQLFieldType.blob, SQLFieldType.text
+        if self.size and self.data_type in types:
+            return f'{self.name} {self.data_type}{self.size}'
+        return f'{self.name} {self.data_type}'
     # End repr built-in
 # End Field class
 
