@@ -5,6 +5,7 @@ Geopackage
 
 
 from datetime import datetime
+from math import nan
 from os import PathLike
 from pathlib import Path
 from sqlite3 import (
@@ -22,7 +23,8 @@ from fudgeo.geometry import (
 from fudgeo.sql import (
     CHECK_SRS_EXISTS, CREATE_FEATURE_TABLE, CREATE_TABLE,
     DEFAULT_EPSG_RECS, DEFAULT_ESRI_RECS, INSERT_GPKG_CONTENTS_SHORT,
-    INSERT_GPKG_GEOM_COL, INSERT_GPKG_SRS, TABLE_EXISTS)
+    INSERT_GPKG_GEOM_COL, INSERT_GPKG_SRS, SELECT_EXTENT, SELECT_HAS_ZM,
+    SELECT_SRS, TABLE_EXISTS, UPDATE_EXTENT)
 
 
 FIELDS = Union[tuple['Field', ...], list['Field']]
@@ -237,6 +239,62 @@ class FeatureClass(BaseTable):
         connection.commit()
         return cls(geopackage=geopackage, name=name)
     # End create method
+
+    @property
+    def spatial_reference_system(self) -> 'SpatialReferenceSystem':
+        """
+        Spatial Reference System
+        """
+        cursor = self.geopackage.connection.execute(
+            SELECT_SRS, (self.name,))
+        return SpatialReferenceSystem(*cursor.fetchone())
+    # End spatial_reference_system property
+
+    @property
+    def has_z(self) -> bool:
+        """
+        Has Z
+        """
+        cursor = self.geopackage.connection.execute(
+            SELECT_HAS_ZM, (self.name,))
+        z, _ = cursor.fetchone()
+        return bool(z)
+    # End has_z property
+
+    @property
+    def has_m(self) -> bool:
+        """
+        Has M
+        """
+        cursor = self.geopackage.connection.execute(
+            SELECT_HAS_ZM, (self.name,))
+        _, m = cursor.fetchone()
+        return bool(m)
+    # End has_m property
+
+    @property
+    def extent(self) -> tuple[float, float, float, float]:
+        """
+        Extent property
+        """
+        empty = nan, nan, nan, nan
+        cursor = self.geopackage.connection.execute(SELECT_EXTENT, (self.name,))
+        if not (result := cursor.fetchone()):
+            return empty
+        if None in result:
+            return empty
+        return result
+
+    @extent.setter
+    def extent(self, value: tuple[float, float, float, float]) -> None:
+        if not isinstance(value, (tuple, list)):  # pragma: nocover
+            raise ValueError('Please supply a tuple or list of values')
+        if not len(value) == 4:  # pragma: nocover
+            raise ValueError('The tuple/list of values must have four values')
+        connection = self.geopackage.connection
+        connection.execute(UPDATE_EXTENT, tuple([*value, self.name]))
+        connection.commit()
+    # End extent property
 # End FeatureClass class
 
 
