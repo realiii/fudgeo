@@ -70,12 +70,12 @@ class GeoPackage:
     """
     GeoPackage
     """
-    def __init__(self, path: Path) -> None:
+    def __init__(self, path: Union[PathLike, str]) -> None:
         """
         Initialize the GeoPackage class
         """
         super().__init__()
-        self._path: Path = path
+        self._path: Path = Path(path)
         self._conn: Connection = connect(
             str(path), isolation_level='EXCLUSIVE',
             detect_types=PARSE_DECLTYPES | PARSE_COLNAMES)
@@ -202,12 +202,10 @@ class Table(BaseTable):
         Create a regular non-spatial table in the geopackage
         """
         cols = f', {", ".join(repr(f) for f in fields)}' if fields else ''
-        connection = geopackage.connection
-        connection.execute(
-            CREATE_TABLE.format(name=name, other_fields=cols))
-        values = name, DataType.attributes, name, description, _now(), None
-        connection.execute(INSERT_GPKG_CONTENTS_SHORT, values)
-        connection.commit()
+        with geopackage.connection as conn:
+            conn.execute(CREATE_TABLE.format(name=name, other_fields=cols))
+            conn.execute(INSERT_GPKG_CONTENTS_SHORT, (
+                name, DataType.attributes, name, description, _now(), None))
         return cls(geopackage=geopackage, name=name)
     # End create_table method
 # End Table class
@@ -226,17 +224,16 @@ class FeatureClass(BaseTable):
         Create Feature Class
         """
         cols = f', {", ".join(repr(f) for f in fields)}' if fields else ''
-        connection = geopackage.connection
-        connection.execute(CREATE_FEATURE_TABLE.format(
-            name=name,  feature_type=shape_type, other_fields=cols))
-        if not geopackage.check_srs_exists(srs.srs_id):
-            connection.execute(INSERT_GPKG_SRS, srs.as_record())
-        values = (name, SHAPE, shape_type, srs.srs_id,
-                  int(z_enabled), int(m_enabled))
-        connection.execute(INSERT_GPKG_GEOM_COL, values)
-        values = name, DataType.features, name, description, _now(), srs.srs_id
-        connection.execute(INSERT_GPKG_CONTENTS_SHORT, values)
-        connection.commit()
+        with geopackage.connection as conn:
+            conn.execute(CREATE_FEATURE_TABLE.format(
+                name=name, feature_type=shape_type, other_fields=cols))
+            if not geopackage.check_srs_exists(srs.srs_id):
+                conn.execute(INSERT_GPKG_SRS, srs.as_record())
+            conn.execute(INSERT_GPKG_GEOM_COL,
+                         (name, SHAPE, shape_type, srs.srs_id,
+                          int(z_enabled), int(m_enabled)))
+            conn.execute(INSERT_GPKG_CONTENTS_SHORT, (
+                name, DataType.features, name, description, _now(), srs.srs_id))
         return cls(geopackage=geopackage, name=name)
     # End create method
 
@@ -245,8 +242,7 @@ class FeatureClass(BaseTable):
         """
         Spatial Reference System
         """
-        cursor = self.geopackage.connection.execute(
-            SELECT_SRS, (self.name,))
+        cursor = self.geopackage.connection.execute(SELECT_SRS, (self.name,))
         return SpatialReferenceSystem(*cursor.fetchone())
     # End spatial_reference_system property
 
@@ -291,9 +287,8 @@ class FeatureClass(BaseTable):
             raise ValueError('Please supply a tuple or list of values')
         if not len(value) == 4:  # pragma: nocover
             raise ValueError('The tuple/list of values must have four values')
-        connection = self.geopackage.connection
-        connection.execute(UPDATE_EXTENT, tuple([*value, self.name]))
-        connection.commit()
+        with self.geopackage.connection as conn:
+            conn.execute(UPDATE_EXTENT, tuple([*value, self.name]))
     # End extent property
 # End FeatureClass class
 
