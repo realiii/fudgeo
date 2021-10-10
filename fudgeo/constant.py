@@ -11,7 +11,8 @@ DOUBLE = tuple[float, float]
 TRIPLE = tuple[float, float, float]
 QUADRUPLE = tuple[float, float, float, float]
 
-SRS_ID = '_srs_id'
+WGS84 = 4326
+SRS_ID = 'srs_id'
 
 GP_MAGIC = b'GP'
 EMPTY = b''
