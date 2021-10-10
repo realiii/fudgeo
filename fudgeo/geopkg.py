@@ -70,12 +70,12 @@ class GeoPackage:
     """
     GeoPackage
     """
-    def __init__(self, path: Path) -> None:
+    def __init__(self, path: Union[PathLike, str]) -> None:
         """
         Initialize the GeoPackage class
         """
         super().__init__()
-        self._path: Path = path
+        self._path: Path = Path(path)
         self._conn: Connection = connect(
             str(path), isolation_level='EXCLUSIVE',
             detect_types=PARSE_DECLTYPES | PARSE_COLNAMES)
