@@ -11,13 +11,14 @@ from struct import pack, unpack
 
 from fudgeo.constant import (
     BYTE_UINT, COUNT_UNIT, DOUBLE, EMPTY, GP_MAGIC, QUADRUPLE, SRS_ID, TRIPLE,
-    WKB_LINESTRING_M_PRE, WKB_LINESTRING_PRE, WKB_LINESTRING_ZM_PRE,
+    WGS84, WKB_LINESTRING_M_PRE, WKB_LINESTRING_PRE, WKB_LINESTRING_ZM_PRE,
     WKB_LINESTRING_Z_PRE, WKB_MULTI_LINESTRING_M_PRE, WKB_MULTI_LINESTRING_PRE,
     WKB_MULTI_LINESTRING_ZM_PRE, WKB_MULTI_LINESTRING_Z_PRE,
     WKB_MULTI_POINT_M_PRE, WKB_MULTI_POINT_PRE, WKB_MULTI_POINT_ZM_PRE,
     WKB_MULTI_POINT_Z_PRE, WKB_MULTI_POLYGON_PRE, WKB_MULTI_POLYGON_Z_PRE,
     WKB_POINT_M_PRE, WKB_POINT_PRE, WKB_POINT_ZM_PRE, WKB_POINT_Z_PRE,
     WKB_POLYGON_PRE, WKB_POLYGON_Z_PRE)
+
 
 __all__ = ['Point', 'PointZ', 'PointM', 'PointZM', 'MultiPoint', 'MultiPointZ',
            'MultiPointM', 'MultiPointZM', 'LineString', 'LineStringZ',
@@ -108,12 +109,12 @@ class AbstractGeometry:
     """
     __slots__ = [SRS_ID]
 
-    def __init__(self) -> None:
+    def __init__(self, srs_id: int) -> None:
         """
         Initialize the Point class
         """
         super().__init__()
-        self._srs_id: int = 4326
+        self.srs_id: int = srs_id
     # End init built-in
 
     @staticmethod
@@ -124,11 +125,20 @@ class AbstractGeometry:
         return EMPTY.join(args)
     # End _joiner method
 
+    @staticmethod
+    def _unpack_srs_id(value: bytes) -> int:
+        """
+        Unpack SRS ID
+        """
+        _, _, _, srs_id = unpack('<2s2bi', value[:8])
+        return srs_id
+    # End  method
+
     def _make_header(self) -> bytes:
         """
         Make Header
         """
-        return pack('<2s2bi', GP_MAGIC, 0, 1, self._srs_id)
+        return pack('<2s2bi', GP_MAGIC, 0, 1, self.srs_id)
     # End _make_header method
 
     @abstractmethod
@@ -172,11 +182,11 @@ class Point(AbstractGeometry):
     """
     __slots__ = ['x', 'y']
 
-    def __init__(self, *, x: float, y: float) -> None:
+    def __init__(self, *, x: float, y: float, srs_id: int = WGS84) -> None:
         """
         Initialize the Point class
         """
-        super().__init__()
+        super().__init__(srs_id=srs_id)
         self.x: float = x
         self.y: float = y
     # End init built-in
@@ -187,6 +197,8 @@ class Point(AbstractGeometry):
         """
         if not isinstance(other, Point):  # pragma: nocover
             return NotImplemented
+        if self.srs_id != other.srs_id:
+            return False
         return (self.x, self.y) == (other.x, other.y)
     # End eq built-in
 
@@ -221,8 +233,9 @@ class Point(AbstractGeometry):
         """
         From Geopackage
         """
+        srs_id = cls._unpack_srs_id(value)
         x, y = cls._unpack(value[8:])
-        return cls(x=x, y=y)
+        return cls(x=x, y=y, srs_id=srs_id)
     # End from_gpkg method
 # End Point class
 
@@ -233,11 +246,12 @@ class PointZ(AbstractGeometry):
     """
     __slots__ = ['x', 'y', 'z']
 
-    def __init__(self, *, x: float, y: float, z: float) -> None:
+    def __init__(self, *, x: float, y: float, z: float,
+                 srs_id: int = WGS84) -> None:
         """
         Initialize the PointZ class
         """
-        super().__init__()
+        super().__init__(srs_id=srs_id)
         self.x: float = x
         self.y: float = y
         self.z: float = z
@@ -249,6 +263,8 @@ class PointZ(AbstractGeometry):
         """
         if not isinstance(other, PointZ):  # pragma: nocover
             return NotImplemented
+        if self.srs_id != other.srs_id:
+            return False
         return (self.x, self.y, self.z) == (other.x, other.y, other.z)
     # End eq built-in
 
@@ -283,8 +299,9 @@ class PointZ(AbstractGeometry):
         """
         From Geopackage
         """
+        srs_id = cls._unpack_srs_id(value)
         x, y, z = cls._unpack(value[8:])
-        return cls(x=x, y=y, z=z)
+        return cls(x=x, y=y, z=z, srs_id=srs_id)
     # End from_gpkg method
 # End PointZ class
 
@@ -295,11 +312,12 @@ class PointM(AbstractGeometry):
     """
     __slots__ = ['x', 'y', 'm']
 
-    def __init__(self, *, x: float, y: float, m: float) -> None:
+    def __init__(self, *, x: float, y: float, m: float,
+                 srs_id: int = WGS84) -> None:
         """
         Initialize the PointM class
         """
-        super().__init__()
+        super().__init__(srs_id=srs_id)
         self.x: float = x
         self.y: float = y
         self.m: float = m
@@ -311,6 +329,8 @@ class PointM(AbstractGeometry):
         """
         if not isinstance(other, PointM):  # pragma: nocover
             return NotImplemented
+        if self.srs_id != other.srs_id:
+            return False
         return (self.x, self.y, self.m) == (other.x, other.y, other.m)
     # End eq built-in
 
@@ -345,8 +365,9 @@ class PointM(AbstractGeometry):
         """
         From Geopackage
         """
+        srs_id = cls._unpack_srs_id(value)
         x, y, m = cls._unpack(value[8:])
-        return cls(x=x, y=y, m=m)
+        return cls(x=x, y=y, m=m, srs_id=srs_id)
     # End from_gpkg method
 # End PointM class
 
@@ -357,11 +378,12 @@ class PointZM(AbstractGeometry):
     """
     __slots__ = ['x', 'y', 'z', 'm']
 
-    def __init__(self, *, x: float, y: float, z: float, m: float) -> None:
+    def __init__(self, *, x: float, y: float, z: float, m: float,
+                 srs_id: int = WGS84) -> None:
         """
         Initialize the PointZM class
         """
-        super().__init__()
+        super().__init__(srs_id=srs_id)
         self.x: float = x
         self.y: float = y
         self.z: float = z
@@ -374,6 +396,8 @@ class PointZM(AbstractGeometry):
         """
         if not isinstance(other, PointZM):  # pragma: nocover
             return NotImplemented
+        if self.srs_id != other.srs_id:
+            return False
         return (self.x, self.y, self.z, self.m) == (
             other.x, other.y, other.z, other.m)
     # End eq built-in
@@ -409,8 +433,9 @@ class PointZM(AbstractGeometry):
         """
         From Geopackage
         """
+        srs_id = cls._unpack_srs_id(value)
         x, y, z, m = cls._unpack(value[8:])
-        return cls(x=x, y=y, z=z, m=m)
+        return cls(x=x, y=y, z=z, m=m, srs_id=srs_id)
     # End from_gpkg method
 # End PointZM class
 
@@ -421,11 +446,11 @@ class MultiPoint(AbstractGeometry):
     """
     __slots__ = 'points'
 
-    def __init__(self, coordinates: list[DOUBLE]) -> None:
+    def __init__(self, coordinates: list[DOUBLE], srs_id: int = WGS84) -> None:
         """
         Initialize the MultiPoint class
         """
-        super().__init__()
+        super().__init__(srs_id=srs_id)
         self.points: list[Point] = [Point(x=x, y=y) for x, y in coordinates]
     # End init built-in
 
@@ -435,6 +460,8 @@ class MultiPoint(AbstractGeometry):
         """
         if not isinstance(other, MultiPoint):  # pragma: nocover
             return NotImplemented
+        if self.srs_id != other.srs_id:
+            return False
         return self.points == other.points
     # End eq built-in
 
@@ -461,8 +488,9 @@ class MultiPoint(AbstractGeometry):
         """
         From Geopackage
         """
+        srs_id = cls._unpack_srs_id(value)
         # noinspection PyTypeChecker
-        return cls(_unpack_points(value[8:], dimension=2))
+        return cls(_unpack_points(value[8:], dimension=2), srs_id=srs_id)
     # End from_gpkg method
 # End MultiPoint class
 
@@ -473,11 +501,11 @@ class MultiPointZ(AbstractGeometry):
     """
     __slots__ = 'points'
 
-    def __init__(self, coordinates: list[TRIPLE]) -> None:
+    def __init__(self, coordinates: list[TRIPLE], srs_id: int = WGS84) -> None:
         """
         Initialize the MultiPointZ class
         """
-        super().__init__()
+        super().__init__(srs_id=srs_id)
         self.points: list[PointZ] = [
             PointZ(x=x, y=y, z=z) for x, y, z in coordinates]
     # End init built-in
@@ -488,6 +516,8 @@ class MultiPointZ(AbstractGeometry):
         """
         if not isinstance(other, MultiPointZ):  # pragma: nocover
             return NotImplemented
+        if self.srs_id != other.srs_id:
+            return False
         return self.points == other.points
     # End eq built-in
 
@@ -514,8 +544,9 @@ class MultiPointZ(AbstractGeometry):
         """
         From Geopackage
         """
+        srs_id = cls._unpack_srs_id(value)
         # noinspection PyTypeChecker
-        return cls(_unpack_points(value[8:], dimension=3))
+        return cls(_unpack_points(value[8:], dimension=3), srs_id=srs_id)
     # End from_gpkg method
 # End MultiPointZ class
 
@@ -526,11 +557,11 @@ class MultiPointM(AbstractGeometry):
     """
     __slots__ = 'points'
 
-    def __init__(self, coordinates: list[TRIPLE]) -> None:
+    def __init__(self, coordinates: list[TRIPLE], srs_id: int = WGS84) -> None:
         """
         Initialize the MultiPointM class
         """
-        super().__init__()
+        super().__init__(srs_id=srs_id)
         self.points: list[PointM] = [
             PointM(x=x, y=y, m=m) for x, y, m in coordinates]
     # End init built-in
@@ -541,6 +572,8 @@ class MultiPointM(AbstractGeometry):
         """
         if not isinstance(other, MultiPointM):  # pragma: nocover
             return NotImplemented
+        if self.srs_id != other.srs_id:
+            return False
         return self.points == other.points
     # End eq built-in
 
@@ -567,8 +600,9 @@ class MultiPointM(AbstractGeometry):
         """
         From Geopackage
         """
+        srs_id = cls._unpack_srs_id(value)
         # noinspection PyTypeChecker
-        return cls(_unpack_points(value[8:], dimension=3))
+        return cls(_unpack_points(value[8:], dimension=3), srs_id=srs_id)
     # End from_gpkg method
 # End MultiPointM class
 
@@ -579,11 +613,12 @@ class MultiPointZM(AbstractGeometry):
     """
     __slots__ = 'points'
 
-    def __init__(self, coordinates: list[QUADRUPLE]) -> None:
+    def __init__(self, coordinates: list[QUADRUPLE],
+                 srs_id: int = WGS84) -> None:
         """
         Initialize the MultiPointZM class
         """
-        super().__init__()
+        super().__init__(srs_id=srs_id)
         self.points: list[PointZM] = [
             PointZM(x=x, y=y, z=z, m=m) for x, y, z, m in coordinates]
     # End init built-in
@@ -594,6 +629,8 @@ class MultiPointZM(AbstractGeometry):
         """
         if not isinstance(other, MultiPointZM):  # pragma: nocover
             return NotImplemented
+        if self.srs_id != other.srs_id:
+            return False
         return self.points == other.points
     # End eq built-in
 
@@ -620,8 +657,9 @@ class MultiPointZM(AbstractGeometry):
         """
         From Geopackage
         """
+        srs_id = cls._unpack_srs_id(value)
         # noinspection PyTypeChecker
-        return cls(_unpack_points(value[8:], dimension=4))
+        return cls(_unpack_points(value[8:], dimension=4), srs_id=srs_id)
     # End from_gpkg method
 # End MultiPointZM class
 
@@ -632,11 +670,11 @@ class LineString(AbstractGeometry):
     """
     __slots__ = 'points'
 
-    def __init__(self, coordinates: list[DOUBLE]) -> None:
+    def __init__(self, coordinates: list[DOUBLE], srs_id: int = WGS84) -> None:
         """
         Initialize the LineString class
         """
-        super().__init__()
+        super().__init__(srs_id=srs_id)
         self.points: list[Point] = [Point(x=x, y=y) for x, y in coordinates]
     # End init built-in
 
@@ -646,6 +684,8 @@ class LineString(AbstractGeometry):
         """
         if not isinstance(other, LineString):  # pragma: nocover
             return NotImplemented
+        if self.srs_id != other.srs_id:
+            return False
         return self.points == other.points
     # End eq built-in
 
@@ -672,8 +712,9 @@ class LineString(AbstractGeometry):
         """
         From Geopackage
         """
+        srs_id = cls._unpack_srs_id(value)
         # noinspection PyTypeChecker
-        return cls(_unpack_line(value[8:], dimension=2))
+        return cls(_unpack_line(value[8:], dimension=2), srs_id=srs_id)
     # End from_gpkg method
 # End LineString class
 
@@ -684,11 +725,11 @@ class LineStringZ(AbstractGeometry):
     """
     __slots__ = 'points'
 
-    def __init__(self, coordinates: list[TRIPLE]) -> None:
+    def __init__(self, coordinates: list[TRIPLE], srs_id: int = WGS84) -> None:
         """
         Initialize the LineStringZ class
         """
-        super().__init__()
+        super().__init__(srs_id=srs_id)
         self.points: list[PointZ] = [
             PointZ(x=x, y=y, z=z) for x, y, z in coordinates]
     # End init built-in
@@ -699,6 +740,8 @@ class LineStringZ(AbstractGeometry):
         """
         if not isinstance(other, LineStringZ):  # pragma: nocover
             return NotImplemented
+        if self.srs_id != other.srs_id:
+            return False
         return self.points == other.points
     # End eq built-in
 
@@ -725,8 +768,9 @@ class LineStringZ(AbstractGeometry):
         """
         From Geopackage
         """
+        srs_id = cls._unpack_srs_id(value)
         # noinspection PyTypeChecker
-        return cls(_unpack_line(value[8:], dimension=3))
+        return cls(_unpack_line(value[8:], dimension=3), srs_id=srs_id)
     # End from_gpkg method
 # End LineStringZ class
 
@@ -737,11 +781,11 @@ class LineStringM(AbstractGeometry):
     """
     __slots__ = 'points'
 
-    def __init__(self, coordinates: list[TRIPLE]) -> None:
+    def __init__(self, coordinates: list[TRIPLE], srs_id: int = WGS84) -> None:
         """
         Initialize the LineStringM class
         """
-        super().__init__()
+        super().__init__(srs_id=srs_id)
         self.points: list[PointM] = [
             PointM(x=x, y=y, m=m) for x, y, m in coordinates]
     # End init built-in
@@ -752,6 +796,8 @@ class LineStringM(AbstractGeometry):
         """
         if not isinstance(other, LineStringM):  # pragma: nocover
             return NotImplemented
+        if self.srs_id != other.srs_id:
+            return False
         return self.points == other.points
     # End eq built-in
 
@@ -778,8 +824,9 @@ class LineStringM(AbstractGeometry):
         """
         From Geopackage
         """
+        srs_id = cls._unpack_srs_id(value)
         # noinspection PyTypeChecker
-        return cls(_unpack_line(value[8:], dimension=3))
+        return cls(_unpack_line(value[8:], dimension=3), srs_id=srs_id)
     # End from_gpkg method
 # End LineStringM class
 
@@ -790,11 +837,12 @@ class LineStringZM(AbstractGeometry):
     """
     __slots__ = 'points'
 
-    def __init__(self, coordinates: list[QUADRUPLE]) -> None:
+    def __init__(self, coordinates: list[QUADRUPLE],
+                 srs_id: int = WGS84) -> None:
         """
         Initialize the LineStringZM class
         """
-        super().__init__()
+        super().__init__(srs_id=srs_id)
         self.points: list[PointZM] = [
             PointZM(x=x, y=y, z=z, m=m) for x, y, z, m in coordinates]
     # End init built-in
@@ -805,6 +853,8 @@ class LineStringZM(AbstractGeometry):
         """
         if not isinstance(other, LineStringZM):  # pragma: nocover
             return NotImplemented
+        if self.srs_id != other.srs_id:
+            return False
         return self.points == other.points
     # End eq built-in
 
@@ -831,8 +881,9 @@ class LineStringZM(AbstractGeometry):
         """
         From Geopackage
         """
+        srs_id = cls._unpack_srs_id(value)
         # noinspection PyTypeChecker
-        return cls(_unpack_line(value[8:], dimension=4))
+        return cls(_unpack_line(value[8:], dimension=4), srs_id=srs_id)
     # End from_gpkg method
 # End LineStringZM class
 
@@ -843,11 +894,12 @@ class MultiLineString(AbstractGeometry):
     """
     __slots__ = 'lines'
 
-    def __init__(self, coordinates: list[list[DOUBLE]]) -> None:
+    def __init__(self, coordinates: list[list[DOUBLE]],
+                 srs_id: int = WGS84) -> None:
         """
         Initialize the MultiLineString class
         """
-        super().__init__()
+        super().__init__(srs_id=srs_id)
         self.lines: list[LineString] = [
             LineString(coords) for coords in coordinates]
     # End init built-in
@@ -858,6 +910,8 @@ class MultiLineString(AbstractGeometry):
         """
         if not isinstance(other, MultiLineString):  # pragma: nocover
             return NotImplemented
+        if self.srs_id != other.srs_id:
+            return False
         return self.lines == other.lines
     # End eq built-in
 
@@ -884,8 +938,9 @@ class MultiLineString(AbstractGeometry):
         """
         From Geopackage
         """
+        srs_id = cls._unpack_srs_id(value)
         # noinspection PyTypeChecker
-        return cls(_unpack_lines(value[8:], dimension=2))
+        return cls(_unpack_lines(value[8:], dimension=2), srs_id=srs_id)
     # End from_gpkg method
 # End MultiLineString class
 
@@ -896,11 +951,12 @@ class MultiLineStringZ(AbstractGeometry):
     """
     __slots__ = 'lines'
 
-    def __init__(self, coordinates: list[list[TRIPLE]]) -> None:
+    def __init__(self, coordinates: list[list[TRIPLE]],
+                 srs_id: int = WGS84) -> None:
         """
         Initialize the MultiLineStringZ class
         """
-        super().__init__()
+        super().__init__(srs_id=srs_id)
         self.lines: list[LineStringZ] = [
             LineStringZ(coords) for coords in coordinates]
     # End init built-in
@@ -911,6 +967,8 @@ class MultiLineStringZ(AbstractGeometry):
         """
         if not isinstance(other, MultiLineStringZ):  # pragma: nocover
             return NotImplemented
+        if self.srs_id != other.srs_id:
+            return False
         return self.lines == other.lines
     # End eq built-in
 
@@ -937,8 +995,9 @@ class MultiLineStringZ(AbstractGeometry):
         """
         From Geopackage
         """
+        srs_id = cls._unpack_srs_id(value)
         # noinspection PyTypeChecker
-        return cls(_unpack_lines(value[8:], dimension=3))
+        return cls(_unpack_lines(value[8:], dimension=3), srs_id=srs_id)
     # End from_gpkg method
 # End MultiLineStringZ class
 
@@ -949,11 +1008,12 @@ class MultiLineStringM(AbstractGeometry):
     """
     __slots__ = 'lines'
 
-    def __init__(self, coordinates: list[list[TRIPLE]]) -> None:
+    def __init__(self, coordinates: list[list[TRIPLE]],
+                 srs_id: int = WGS84) -> None:
         """
         Initialize the MultiLineStringM class
         """
-        super().__init__()
+        super().__init__(srs_id=srs_id)
         self.lines: list[LineStringM] = [
             LineStringM(coords) for coords in coordinates]
     # End init built-in
@@ -964,6 +1024,8 @@ class MultiLineStringM(AbstractGeometry):
         """
         if not isinstance(other, MultiLineStringM):  # pragma: nocover
             return NotImplemented
+        if self.srs_id != other.srs_id:
+            return False
         return self.lines == other.lines
     # End eq built-in
 
@@ -990,8 +1052,9 @@ class MultiLineStringM(AbstractGeometry):
         """
         From Geopackage
         """
+        srs_id = cls._unpack_srs_id(value)
         # noinspection PyTypeChecker
-        return cls(_unpack_lines(value[8:], dimension=3))
+        return cls(_unpack_lines(value[8:], dimension=3), srs_id=srs_id)
     # End from_gpkg method
 # End MultiLineStringM class
 
@@ -1002,11 +1065,12 @@ class MultiLineStringZM(AbstractGeometry):
     """
     __slots__ = 'lines'
 
-    def __init__(self, coordinates: list[list[QUADRUPLE]]) -> None:
+    def __init__(self, coordinates: list[list[QUADRUPLE]],
+                 srs_id: int = WGS84) -> None:
         """
         Initialize the MultiLineStringZM class
         """
-        super().__init__()
+        super().__init__(srs_id=srs_id)
         self.lines: list[LineStringZM] = [
             LineStringZM(coords) for coords in coordinates]
     # End init built-in
@@ -1017,6 +1081,8 @@ class MultiLineStringZM(AbstractGeometry):
         """
         if not isinstance(other, MultiLineStringZM):  # pragma: nocover
             return NotImplemented
+        if self.srs_id != other.srs_id:
+            return False
         return self.lines == other.lines
     # End eq built-in
 
@@ -1043,8 +1109,9 @@ class MultiLineStringZM(AbstractGeometry):
         """
         From Geopackage
         """
+        srs_id = cls._unpack_srs_id(value)
         # noinspection PyTypeChecker
-        return cls(_unpack_lines(value[8:], dimension=4))
+        return cls(_unpack_lines(value[8:], dimension=4), srs_id=srs_id)
     # End from_gpkg method
 # End MultiLineStringZM class
 
@@ -1055,11 +1122,12 @@ class LinearRing(AbstractGeometry):
     """
     __slots__ = 'points'
 
-    def __init__(self, coordinates: list[DOUBLE]) -> None:
+    def __init__(self, coordinates: list[DOUBLE],
+                 srs_id: int = WGS84) -> None:
         """
         Initialize the LinearRing class
         """
-        super().__init__()
+        super().__init__(srs_id=srs_id)
         self.points: list[Point] = [Point(x=x, y=y) for x, y in coordinates]
     # End init built-in
 
@@ -1069,6 +1137,8 @@ class LinearRing(AbstractGeometry):
         """
         if not isinstance(other, LinearRing):  # pragma: nocover
             return NotImplemented
+        if self.srs_id != other.srs_id:
+            return False
         return self.points == other.points
     # End eq built-in
 
@@ -1113,11 +1183,11 @@ class LinearRingZ(AbstractGeometry):
     """
     __slots__ = 'points'
 
-    def __init__(self, coordinates: list[TRIPLE]) -> None:
+    def __init__(self, coordinates: list[TRIPLE], srs_id: int = WGS84) -> None:
         """
         Initialize the LinearRing class
         """
-        super().__init__()
+        super().__init__(srs_id=srs_id)
         self.points: list[PointZ] = [
             PointZ(x=x, y=y, z=z) for x, y, z in coordinates]
     # End init built-in
@@ -1128,6 +1198,8 @@ class LinearRingZ(AbstractGeometry):
         """
         if not isinstance(other, LinearRingZ):  # pragma: nocover
             return NotImplemented
+        if self.srs_id != other.srs_id:
+            return False
         return self.points == other.points
     # End eq built-in
 
@@ -1172,11 +1244,12 @@ class Polygon(AbstractGeometry):
     """
     __slots__ = 'rings'
 
-    def __init__(self, coordinates: list[list[DOUBLE]]) -> None:
+    def __init__(self, coordinates: list[list[DOUBLE]],
+                 srs_id: int = WGS84) -> None:
         """
         Initialize the Polygon class
         """
-        super().__init__()
+        super().__init__(srs_id=srs_id)
         self.rings: list[LinearRing] = [
             LinearRing(coords) for coords in coordinates]
     # End init built-in
@@ -1187,6 +1260,8 @@ class Polygon(AbstractGeometry):
         """
         if not isinstance(other, Polygon):  # pragma: nocover
             return NotImplemented
+        if self.srs_id != other.srs_id:
+            return False
         return self.rings == other.rings
     # End eq built-in
 
@@ -1213,8 +1288,10 @@ class Polygon(AbstractGeometry):
         """
         From Geopackage
         """
+        srs_id = cls._unpack_srs_id(value)
         # noinspection PyTypeChecker
-        return cls(_unpack_lines(value[8:], dimension=2, is_ring=True))
+        return cls(_unpack_lines(
+            value[8:], dimension=2, is_ring=True), srs_id=srs_id)
     # End from_gpkg method
 # End Polygon class
 
@@ -1225,11 +1302,12 @@ class PolygonZ(AbstractGeometry):
     """
     __slots__ = 'rings'
 
-    def __init__(self, coordinates: list[list[TRIPLE]]) -> None:
+    def __init__(self, coordinates: list[list[TRIPLE]],
+                 srs_id: int = WGS84) -> None:
         """
         Initialize the PolygonZ class
         """
-        super().__init__()
+        super().__init__(srs_id=srs_id)
         self.rings: list[LinearRingZ] = [
             LinearRingZ(coords) for coords in coordinates]
     # End init built-in
@@ -1240,6 +1318,8 @@ class PolygonZ(AbstractGeometry):
         """
         if not isinstance(other, PolygonZ):  # pragma: nocover
             return NotImplemented
+        if self.srs_id != other.srs_id:
+            return False
         return self.rings == other.rings
     # End eq built-in
 
@@ -1266,8 +1346,10 @@ class PolygonZ(AbstractGeometry):
         """
         From Geopackage
         """
+        srs_id = cls._unpack_srs_id(value)
         # noinspection PyTypeChecker
-        return cls(_unpack_lines(value[8:], dimension=3, is_ring=True))
+        return cls(_unpack_lines(
+            value[8:], dimension=3, is_ring=True), srs_id=srs_id)
     # End from_gpkg method
 # End PolygonZ class
 
@@ -1278,11 +1360,12 @@ class MultiPolygon(AbstractGeometry):
     """
     __slots__ = 'polygons'
 
-    def __init__(self, coordinates: list[list[list[DOUBLE]]]) -> None:
+    def __init__(self, coordinates: list[list[list[DOUBLE]]],
+                 srs_id: int = WGS84) -> None:
         """
         Initialize the MultiPolygon class
         """
-        super().__init__()
+        super().__init__(srs_id=srs_id)
         self.polygons: list[Polygon] = [
             Polygon(coords) for coords in coordinates]
     # End init built-in
@@ -1293,6 +1376,8 @@ class MultiPolygon(AbstractGeometry):
         """
         if not isinstance(other, MultiPolygon):  # pragma: nocover
             return NotImplemented
+        if self.srs_id != other.srs_id:
+            return False
         return self.polygons == other.polygons
     # End eq built-in
 
@@ -1319,8 +1404,9 @@ class MultiPolygon(AbstractGeometry):
         """
         From Geopackage
         """
+        srs_id = cls._unpack_srs_id(value)
         # noinspection PyTypeChecker
-        return cls(_unpack_polygons(value[8:], dimension=2))
+        return cls(_unpack_polygons(value[8:], dimension=2), srs_id=srs_id)
     # End from_gpkg method
 # End MultiPolygon class
 
@@ -1331,11 +1417,12 @@ class MultiPolygonZ(AbstractGeometry):
     """
     __slots__ = 'polygons'
 
-    def __init__(self, coordinates: list[list[list[TRIPLE]]]) -> None:
+    def __init__(self, coordinates: list[list[list[TRIPLE]]],
+                 srs_id: int = WGS84) -> None:
         """
         Initialize the MultiPolygon class
         """
-        super().__init__()
+        super().__init__(srs_id=srs_id)
         self.polygons: list[PolygonZ] = [
             PolygonZ(coords) for coords in coordinates]
     # End init built-in
@@ -1346,6 +1433,8 @@ class MultiPolygonZ(AbstractGeometry):
         """
         if not isinstance(other, MultiPolygonZ):  # pragma: nocover
             return NotImplemented
+        if self.srs_id != other.srs_id:
+            return False
         return self.polygons == other.polygons
     # End eq built-in
 
@@ -1372,8 +1461,9 @@ class MultiPolygonZ(AbstractGeometry):
         """
         From Geopackage
         """
+        srs_id = cls._unpack_srs_id(value)
         # noinspection PyTypeChecker
-        return cls(_unpack_polygons(value[8:], dimension=3))
+        return cls(_unpack_polygons(value[8:], dimension=3), srs_id=srs_id)
     # End from_gpkg method
 # End MultiPolygonZ class
 
