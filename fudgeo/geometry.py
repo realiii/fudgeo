@@ -5,7 +5,7 @@ Geometry
 
 
 from abc import abstractmethod
-from functools import reduce
+from functools import cache, reduce
 from operator import add
 from struct import pack, unpack
 
@@ -103,6 +103,15 @@ def _get_count_and_data(value: bytes, is_ring: bool = False) \
 # End _get_count_and_data function
 
 
+@cache
+def _make_header_with_srs_id(srs_id: int) -> bytes:
+    """
+    Cached Header Creation
+    """
+    return pack('<2s2bi', GP_MAGIC, 0, 1, srs_id)
+# End _make_header_with_srs_id function
+
+
 class AbstractGeometry:
     """
     Abstract Geometry
@@ -138,7 +147,7 @@ class AbstractGeometry:
         """
         Make Header
         """
-        return pack('<2s2bi', GP_MAGIC, 0, 1, self.srs_id)
+        return _make_header_with_srs_id(self.srs_id)
     # End _make_header method
 
     @abstractmethod
