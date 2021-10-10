@@ -199,14 +199,14 @@ def test_insert_point_rows(setup_geopackage):
     assert isinstance(fc, FeatureClass)
     count = 10000
     rows = random_points_and_attrs(count, srs.srs_id)
-    conn = gpkg.connection
-    conn.executemany(INSERT_ROWS, rows)
-    conn.commit()
-    cursor = conn.execute("""SELECT count(fid) from test1""")
-    row_count, = cursor.fetchone()
+    with gpkg.connection as conn:
+        conn.executemany(INSERT_ROWS, rows)
+        cursor = conn.execute("""SELECT count(fid) from test1""")
+        row_count, = cursor.fetchone()
     assert row_count == count
-    cursor = conn.execute("""SELECT SHAPE FROM test1 LIMIT 10""")
-    points = [rec[0] for rec in cursor.fetchall()]
+    with gpkg.connection as conn:
+        cursor = conn.execute("""SELECT SHAPE FROM test1 LIMIT 10""")
+        points = [rec[0] for rec in cursor.fetchall()]
     assert all([isinstance(pt, Point) for pt in points])
     assert all(pt.srs_id == srs.srs_id for pt in points)
     assert all(isnan(v) for v in fc.extent)
@@ -216,12 +216,10 @@ def test_insert_point_rows(setup_geopackage):
 
 
 def _insert_shape_and_fetch(gpkg, geom):
-    connection = gpkg.connection
-    connection.execute(INSERT_SHAPE, (geom,))
-    connection.commit()
-    cursor = connection.execute(
-        SELECT_FID_SHAPE.format(geom.__class__.__name__))
-    return cursor.fetchall()
+    with gpkg.connection as conn:
+        conn.execute(INSERT_SHAPE, (geom,))
+        cursor = conn.execute(SELECT_FID_SHAPE.format(geom.__class__.__name__))
+        return cursor.fetchall()
 
 
 @mark.parametrize('rings', [
