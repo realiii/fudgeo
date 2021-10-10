@@ -242,8 +242,7 @@ class FeatureClass(BaseTable):
         """
         Spatial Reference System
         """
-        cursor = self.geopackage.connection.execute(
-            SELECT_SRS, (self.name,))
+        cursor = self.geopackage.connection.execute(SELECT_SRS, (self.name,))
         return SpatialReferenceSystem(*cursor.fetchone())
     # End spatial_reference_system property
 
