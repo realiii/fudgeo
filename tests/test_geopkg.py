@@ -11,7 +11,11 @@ from string import ascii_uppercase, digits
 from pytest import fixture, mark, raises
 
 from fudgeo.enumeration import GeometryType, SQLFieldType
-from fudgeo.geometry import Point
+from fudgeo.geometry import (
+    LineString, LineStringM, LineStringZ, LineStringZM, MultiLineString,
+    MultiPoint,
+    MultiPolygon,
+    Point, Polygon)
 from fudgeo.geopkg import (
     FeatureClass, Field, GeoPackage, SpatialReferenceSystem, Table)
 
@@ -35,6 +39,9 @@ INSERT_ROWS = """
     INSERT INTO test1 (SHAPE, int_fld, text_fld, test_fld_size, test_bool) 
     VALUES (?, ?, ?, ?, ?)
 """
+
+INSERT_SHAPE = """INSERT INTO test1 (SHAPE) VALUES (?)"""
+SELECT_FID_SHAPE = """SELECT fid, SHAPE "[{}]" FROM test1"""
 
 
 @fixture
@@ -179,7 +186,7 @@ def test_create_feature_class_options(setup_geopackage, name, geom, has_z, has_m
     assert fc.spatial_reference_system.srs_id == 32623
     assert fc.has_z is has_z
     assert fc.has_m is has_m
-# End test_create_feature_class_options method
+# End test_create_feature_class_options function
 
 
 def test_insert_point_rows(setup_geopackage):
@@ -205,7 +212,169 @@ def test_insert_point_rows(setup_geopackage):
     assert all(isnan(v) for v in fc.extent)
     fc.extent = (300000, 1, 700000, 4000000)
     assert (300000, 1, 700000, 4000000) == fc.extent
-# End test_insert_point_rows method
+# End test_insert_point_rows function
+
+
+def _insert_shape_and_fetch(gpkg, geom):
+    connection = gpkg.connection
+    connection.execute(INSERT_SHAPE, (geom,))
+    connection.commit()
+    cursor = connection.execute(
+        SELECT_FID_SHAPE.format(geom.__class__.__name__))
+    return cursor.fetchall()
+
+
+@mark.parametrize('rings', [
+    [[(300000, 1), (300000, 4000000), (700000, 4000000), (700000, 1), (300000, 1)]],
+    [[(300000, 1), (300000, 4000000), (700000, 4000000), (700000, 1), (300000, 1)],
+     [(400000, 100000), (600000, 100000), (600000, 3900000), (400000, 3900000), (400000, 100000)]],
+])
+def test_insert_poly(setup_geopackage, rings):
+    """
+    Test create a feature class and insert a polygon
+    """
+    _, gpkg, srs, fields = setup_geopackage
+    gpkg.create_feature_class(
+        'test1', srs, fields=fields, shape_type=GeometryType.polygon)
+    geom = Polygon(rings, srs.srs_id)
+    result = _insert_shape_and_fetch(gpkg, geom)
+    assert len(result) == 1
+    _, poly = result[0]
+    assert isinstance(poly, Polygon)
+    assert poly == geom
+# End test_insert_poly function
+
+
+def test_insert_multi_poly(setup_geopackage):
+    """
+    Test create a feature class with "multi polygons"
+    """
+    _, gpkg, srs, fields = setup_geopackage
+    gpkg.create_feature_class(
+        'test1', srs, fields=fields, shape_type=GeometryType.multi_polygon)
+    polys = [[[(300000, 1), (300000, 4000000), (700000, 4000000), (700000, 1),
+               (300000, 1)]],
+             [[(100000, 1000000), (100000, 2000000), (200000, 2000000),
+               (200000, 1000000), (100000, 1000000)]]]
+    geom = MultiPolygon(polys, srs_id=srs.srs_id)
+    result = _insert_shape_and_fetch(gpkg, geom)
+    assert len(result) == 1
+    _, poly = result[0]
+    assert isinstance(poly, MultiPolygon)
+    assert poly == geom
+# End test_insert_multi_poly function
+
+
+def test_insert_lines(setup_geopackage):
+    """
+    Test insert a line
+    """
+    _, gpkg, srs, fields = setup_geopackage
+    gpkg.create_feature_class(
+        'test1', srs, fields=fields, shape_type=GeometryType.linestring)
+    coords = [(300000, 1), (300000, 4000000), (700000, 4000000), (700000, 1)]
+    geom = LineString(coords, srs_id=srs.srs_id)
+    result = _insert_shape_and_fetch(gpkg, geom)
+    assert len(result) == 1
+    _, line = result[0]
+    assert isinstance(line, LineString)
+    assert line == geom
+# End test_insert_lines function
+
+
+def test_insert_multi_point(setup_geopackage):
+    """
+    Test insert a multi point
+    """
+    _, gpkg, srs, fields = setup_geopackage
+    gpkg.create_feature_class(
+        'test1', srs, fields=fields, shape_type=GeometryType.multi_point)
+    multipoints = [(300000, 1), (300000, 4000000)]
+    geom = MultiPoint(multipoints, srs_id=srs.srs_id)
+    result = _insert_shape_and_fetch(gpkg, geom)
+    assert len(result) == 1
+    _, line = result[0]
+    assert isinstance(line, MultiPoint)
+    assert line == geom
+# End test_insert_multi_point function
+
+
+def test_insert_lines_z(setup_geopackage):
+    """
+    Test insert a line with Z
+    """
+    _, gpkg, srs, fields = setup_geopackage
+    gpkg.create_feature_class(
+        'test1', srs, fields=fields, shape_type=GeometryType.linestring,
+        z_enabled=True)
+    coords = [(300000, 1, 10), (300000, 4000000, 20), (700000, 4000000, 30),
+              (700000, 1, 40)]
+    geom = LineStringZ(coords, srs_id=srs.srs_id)
+    result = _insert_shape_and_fetch(gpkg, geom)
+    assert len(result) == 1
+    _, line = result[0]
+    assert isinstance(line, LineStringZ)
+    assert line == geom
+# End test_insert_lines_z function
+
+
+def test_insert_lines_m(setup_geopackage):
+    """
+    Test insert a line with M
+    """
+    _, gpkg, srs, fields = setup_geopackage
+    gpkg.create_feature_class(
+        'test1', srs, fields=fields, shape_type=GeometryType.linestring,
+        m_enabled=True)
+    coords = [(300000, 1, 10), (300000, 4000000, 20), (700000, 4000000, 30),
+              (700000, 1, 40)]
+    geom = LineStringM(coords, srs_id=srs.srs_id)
+    result = _insert_shape_and_fetch(gpkg, geom)
+    assert len(result) == 1
+    _, line = result[0]
+    assert isinstance(line, LineStringM)
+    assert line == geom
+# End test_insert_lines_m function
+
+
+def test_insert_lines_zm(setup_geopackage):
+    """
+    Test insert a line with ZM
+    """
+    _, gpkg, srs, fields = setup_geopackage
+    fc = gpkg.create_feature_class(
+        'test1', srs, fields=fields, shape_type=GeometryType.linestring,
+        z_enabled=True, m_enabled=True)
+    coords = [(300000, 1, 10, 0), (300000, 4000000, 20, 1000),
+              (700000, 4000000, 30, 2000), (700000, 1, 40, 3000)]
+    geom = LineStringZM(coords, srs_id=srs.srs_id)
+    result = _insert_shape_and_fetch(gpkg, geom)
+    assert len(result) == 1
+    _, line = result[0]
+    assert isinstance(line, LineStringZM)
+    assert line == geom
+# End test_insert_lines_zm function
+
+
+def test_insert_multi_lines(setup_geopackage):
+    """
+    Test insert multi lines
+    """
+    _, gpkg, srs, fields = setup_geopackage
+    fc = gpkg.create_feature_class(
+        'test1', srs, fields=fields,
+        shape_type=GeometryType.multi_linestring,
+        z_enabled=True, m_enabled=True)
+    coords = [[(300000, 1), (300000, 4000000), (700000, 4000000), (700000, 1)],
+              [(600000, 100000), (600000, 3900000), (400000, 3900000),
+               (400000, 100000)]]
+    geom = MultiLineString(coords, srs_id=srs.srs_id)
+    result = _insert_shape_and_fetch(gpkg, geom)
+    assert len(result) == 1
+    _, line = result[0]
+    assert isinstance(line, MultiLineString)
+    assert line == geom
+# End test_insert_multi_lines function
 
 
 if __name__ == '__main__':
