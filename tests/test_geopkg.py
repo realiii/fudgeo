@@ -340,7 +340,7 @@ def test_insert_lines_zm(setup_geopackage):
     Test insert a line with ZM
     """
     _, gpkg, srs, fields = setup_geopackage
-    fc = gpkg.create_feature_class(
+    gpkg.create_feature_class(
         'test1', srs, fields=fields, shape_type=GeometryType.linestring,
         z_enabled=True, m_enabled=True)
     coords = [(300000, 1, 10, 0), (300000, 4000000, 20, 1000),
@@ -359,7 +359,7 @@ def test_insert_multi_lines(setup_geopackage):
     Test insert multi lines
     """
     _, gpkg, srs, fields = setup_geopackage
-    fc = gpkg.create_feature_class(
+    gpkg.create_feature_class(
         'test1', srs, fields=fields,
         shape_type=GeometryType.multi_linestring,
         z_enabled=True, m_enabled=True)
