@@ -53,6 +53,40 @@ CHECK_SRS_EXISTS = """
 """
 
 
+SELECT_SRS = """
+    SELECT gpkg_spatial_ref_sys.srs_name,
+           gpkg_spatial_ref_sys.organization,
+           gpkg_spatial_ref_sys.organization_coordsys_id,
+           gpkg_spatial_ref_sys.definition,
+           gpkg_spatial_ref_sys.description
+    FROM gpkg_contents LEFT JOIN gpkg_spatial_ref_sys ON 
+            gpkg_contents.srs_id = gpkg_spatial_ref_sys.srs_id
+    WHERE gpkg_contents.table_name = ?
+"""
+
+
+SELECT_HAS_ZM = """
+    SELECT gpkg_geometry_columns.z,gpkg_geometry_columns.m
+    FROM gpkg_contents LEFT JOIN gpkg_geometry_columns ON 
+            gpkg_contents.table_name = gpkg_geometry_columns.table_name
+    WHERE gpkg_contents.table_name = ?
+"""
+
+
+UPDATE_EXTENT = """    
+    UPDATE gpkg_contents 
+    SET min_x=?, min_y=?, max_x=?, max_y=? 
+    WHERE table_name = ?
+"""
+
+
+SELECT_EXTENT = """
+    SELECT min_x, min_y, max_x, max_y
+    FROM gpkg_contents
+    WHERE table_name = ?
+"""
+
+
 DEFAULT_SRS_RECS = (
     ('Undefined Cartesian SRS', -1, 'NONE', -1, 'undefined',
      'undefined cartesian coordinate reference system'),
