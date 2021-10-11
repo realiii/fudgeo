@@ -87,6 +87,10 @@ SELECT_EXTENT = """
 """
 
 
+SELECT_TABLES_BY_TYPE = (
+    """SELECT table_name FROM gpkg_contents WHERE data_type = ?""")
+
+
 DEFAULT_SRS_RECS = (
     ('Undefined Cartesian SRS', -1, 'NONE', -1, 'undefined',
      'undefined cartesian coordinate reference system'),

@@ -11,7 +11,7 @@ from pathlib import Path
 from sqlite3 import (
     Connection, PARSE_COLNAMES, PARSE_DECLTYPES, connect, register_adapter,
     register_converter)
-from typing import Optional, Union
+from typing import Optional, Type, Union
 
 from fudgeo.enumeration import (
     DataType, GPKGFlavors, GeometryType, SQLFieldType)
@@ -24,7 +24,7 @@ from fudgeo.sql import (
     CHECK_SRS_EXISTS, CREATE_FEATURE_TABLE, CREATE_TABLE,
     DEFAULT_EPSG_RECS, DEFAULT_ESRI_RECS, INSERT_GPKG_CONTENTS_SHORT,
     INSERT_GPKG_GEOM_COL, INSERT_GPKG_SRS, SELECT_EXTENT, SELECT_HAS_ZM,
-    SELECT_SRS, TABLE_EXISTS, UPDATE_EXTENT)
+    SELECT_SRS, SELECT_TABLES_BY_TYPE, TABLE_EXISTS, UPDATE_EXTENT)
 
 
 FIELDS = Union[tuple['Field', ...], list['Field']]
@@ -170,9 +170,36 @@ class GeoPackage:
         """
         fields = self._validate_inputs(fields, name)
         return Table.create(
-            geopackage=self, name=name, fields=fields,
-            description=description)
+            geopackage=self, name=name, fields=fields, description=description)
     # End create_feature_class method
+
+    @property
+    def tables(self) -> dict[str, 'Table']:
+        """
+        Tables in the GeoPackage
+        """
+        # noinspection PyTypeChecker
+        return self._get_table_objects(Table, DataType.attributes)
+    # End tables property
+
+    @property
+    def feature_classes(self) -> dict[str, 'FeatureClass']:
+        """
+        Feature Classes in the GeoPackage
+        """
+        # noinspection PyTypeChecker
+        return self._get_table_objects(FeatureClass, DataType.features)
+    # End feature_classes property
+
+    def _get_table_objects(self, cls: Type['BaseTable'],
+                           data_type: str) -> dict[str, 'BaseTable']:
+        """
+        Get Table Objects
+        """
+        cursor = self.connection.execute(
+            SELECT_TABLES_BY_TYPE, (data_type,))
+        return {name: cls(self, name) for name, in cursor.fetchall()}
+    # End _get_table_objects method
 # End GeoPackage class
 
 

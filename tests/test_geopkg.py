@@ -63,6 +63,18 @@ def setup_geopackage(tmp_path):
 # End setup_geopackage function
 
 
+@fixture
+def fields():
+    """
+    Fields
+    """
+    return [Field('AAA', SQLFieldType.integer),
+            Field('BBB', SQLFieldType.text, size=10),
+            Field('CCC', SQLFieldType.text),
+            Field('DDD', SQLFieldType.double)]
+# End fields function
+
+
 def random_points_and_attrs(count, srs_id):
     """
     Generate Random Points and attrs (Use some UTM Zone)
@@ -107,16 +119,12 @@ def test_create_geopackage(tmp_path):
 # End test_create_geopackage function
 
 
-def test_create_table(tmp_path):
+def test_create_table(tmp_path, fields):
     """
     Create Table
     """
     path = tmp_path / 'tbl'
     geo = GeoPackage.create(path)
-    fields = [Field('AAA', SQLFieldType.integer),
-              Field('BBB', SQLFieldType.text, size=10),
-              Field('CCC', SQLFieldType.text),
-              Field('DDD', SQLFieldType.double)]
     name = 'TTT'
     table = geo.create_table(name, fields)
     assert isinstance(table, Table)
@@ -132,16 +140,12 @@ def test_create_table(tmp_path):
 # End test_create_table function
 
 
-def test_create_feature_class(tmp_path):
+def test_create_feature_class(tmp_path, fields):
     """
     Create Feature Class
     """
     path = tmp_path / 'fc'
     geo = GeoPackage.create(path)
-    fields = [Field('AAA', SQLFieldType.integer),
-              Field('BBB', SQLFieldType.text, size=10),
-              Field('CCC', SQLFieldType.text),
-              Field('DDD', SQLFieldType.double)]
     name = 'FFF'
     srs = SpatialReferenceSystem(
         'WGS_1984_UTM_Zone_23N', 'EPSG', 32623, WGS_1984_UTM_Zone_23N)
@@ -157,6 +161,27 @@ def test_create_feature_class(tmp_path):
     geo.connection.close()
     path.unlink(missing_ok=True)
 # End test_create_feature_class function
+
+
+def test_tables_and_feature_classes(tmp_path, fields):
+    """
+    Test tables and feature classes
+    """
+    path = tmp_path / 'list'
+    geo = GeoPackage.create(path)
+    srs = SpatialReferenceSystem(
+        'WGS_1984_UTM_Zone_23N', 'EPSG', 32623, WGS_1984_UTM_Zone_23N)
+    for c in 'ABC':
+        geo.create_feature_class(c, srs=srs, fields=fields)
+    assert set(geo.feature_classes) == set('ABC')
+    assert isinstance(geo.feature_classes['A'], FeatureClass)
+    for c in 'DEF':
+        geo.create_table(c, fields=fields)
+    assert set(geo.tables) == set('DEF')
+    assert isinstance(geo.tables['F'], Table)
+    geo.connection.close()
+    path.unlink(missing_ok=True)
+# End test_tables_and_feature_classes function
 
 
 @mark.parametrize('name, geom, has_z, has_m', [
