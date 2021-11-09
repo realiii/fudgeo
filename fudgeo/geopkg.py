@@ -39,7 +39,7 @@ def _now() -> str:
     """
     Formatted Now
     """
-    return datetime.now().strftime('%Y-%m-%dT%H:%M:%fZ')
+    return datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%fZ')
 # End _now method
 
 

@@ -1,3 +1,7 @@
+PRAGMA application_id=0x47504b47;
+PRAGMA user_version=10200;
+
+
 CREATE TABLE gpkg_spatial_ref_sys (
     srs_name                 TEXT    NOT NULL,
     srs_id                   INTEGER NOT NULL PRIMARY KEY,
@@ -12,7 +16,7 @@ CREATE TABLE gpkg_contents (
     data_type   TEXT     NOT NULL,
     identifier  TEXT UNIQUE,
     description TEXT              DEFAULT '',
-    last_change DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    last_change DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%S.%fZ', 'now')),
     min_x       DOUBLE,
     min_y       DOUBLE,
     max_x       DOUBLE,
