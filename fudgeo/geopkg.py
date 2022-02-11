@@ -21,10 +21,12 @@ from fudgeo.geometry import (
     MultiLineString, MultiLineStringZ, MultiLineStringM, MultiLineStringZM,
     Polygon, PolygonZ, MultiPolygon, MultiPolygonZ)
 from fudgeo.sql import (
-    CHECK_SRS_EXISTS, CREATE_FEATURE_TABLE, CREATE_TABLE,
-    DEFAULT_EPSG_RECS, DEFAULT_ESRI_RECS, INSERT_GPKG_CONTENTS_SHORT,
-    INSERT_GPKG_GEOM_COL, INSERT_GPKG_SRS, SELECT_EXTENT, SELECT_HAS_ZM,
-    SELECT_SRS, SELECT_TABLES_BY_TYPE, TABLE_EXISTS, UPDATE_EXTENT)
+    CHECK_SRS_EXISTS, CREATE_FEATURE_TABLE, CREATE_TABLE, DEFAULT_EPSG_RECS,
+    DEFAULT_ESRI_RECS, GPKG_OGR_CONTENTS_DELETE_TRIGGER,
+    GPKG_OGR_CONTENTS_INSERT_TRIGGER, INSERT_GPKG_CONTENTS_SHORT,
+    INSERT_GPKG_GEOM_COL, INSERT_GPKG_OGR_CONTENTS, INSERT_GPKG_SRS,
+    SELECT_EXTENT, SELECT_HAS_ZM, SELECT_SRS, SELECT_TABLES_BY_TYPE,
+    TABLE_EXISTS, UPDATE_EXTENT)
 
 
 FIELDS = Union[tuple['Field', ...], list['Field']]
@@ -233,6 +235,9 @@ class Table(BaseTable):
             conn.execute(CREATE_TABLE.format(name=name, other_fields=cols))
             conn.execute(INSERT_GPKG_CONTENTS_SHORT, (
                 name, DataType.attributes, name, description, _now(), None))
+            conn.execute(INSERT_GPKG_OGR_CONTENTS, (name, 0))
+            conn.execute(GPKG_OGR_CONTENTS_INSERT_TRIGGER.format(name))
+            conn.execute(GPKG_OGR_CONTENTS_DELETE_TRIGGER.format(name))
         return cls(geopackage=geopackage, name=name)
     # End create_table method
 # End Table class
@@ -261,6 +266,9 @@ class FeatureClass(BaseTable):
                           int(z_enabled), int(m_enabled)))
             conn.execute(INSERT_GPKG_CONTENTS_SHORT, (
                 name, DataType.features, name, description, _now(), srs.srs_id))
+            conn.execute(INSERT_GPKG_OGR_CONTENTS, (name, 0))
+            conn.execute(GPKG_OGR_CONTENTS_INSERT_TRIGGER.format(name))
+            conn.execute(GPKG_OGR_CONTENTS_DELETE_TRIGGER.format(name))
         return cls(geopackage=geopackage, name=name)
     # End create method
 
