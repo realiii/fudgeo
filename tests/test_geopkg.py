@@ -135,6 +135,10 @@ def test_create_table(tmp_path, fields):
     assert count == 0
     table = geo.create_table('ANOTHER')
     assert isinstance(table, Table)
+    cursor = geo.connection.execute(
+        """SELECT count(type) FROM sqlite_master WHERE type = 'trigger'""")
+    count, = cursor.fetchone()
+    assert count == 4
     geo.connection.close()
     path.unlink(missing_ok=True)
 # End test_create_table function
@@ -158,6 +162,10 @@ def test_create_feature_class(tmp_path, fields):
     assert count == 0
     table = geo.create_feature_class('ANOTHER', srs=srs)
     assert isinstance(table, FeatureClass)
+    cursor = geo.connection.execute(
+        """SELECT count(type) FROM sqlite_master WHERE type = 'trigger'""")
+    count, = cursor.fetchone()
+    assert count == 4
     geo.connection.close()
     path.unlink(missing_ok=True)
 # End test_create_feature_class function
