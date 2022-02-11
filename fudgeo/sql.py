@@ -11,6 +11,27 @@ INSERT_GPKG_CONTENTS_SHORT = """
 """
 
 
+INSERT_GPKG_OGR_CONTENTS = """
+    INSERT INTO gpkg_ogr_contents (table_name, feature_count) VALUES (?, ?)
+"""
+
+
+GPKG_OGR_CONTENTS_INSERT_TRIGGER = """
+    CREATE TRIGGER trigger_insert_feature_count_{0}
+    AFTER INSERT ON {0}
+    BEGIN UPDATE gpkg_ogr_contents SET feature_count = feature_count + 1 
+          WHERE lower(table_name) = lower('{0}'); END;
+"""
+
+
+GPKG_OGR_CONTENTS_DELETE_TRIGGER = """
+    CREATE TRIGGER trigger_delete_feature_count_{0}
+    AFTER DELETE ON {0}
+    BEGIN UPDATE gpkg_ogr_contents SET feature_count = feature_count - 1 
+          WHERE lower(table_name) = lower('{0}'); END;
+"""
+
+
 INSERT_GPKG_GEOM_COL = """
     INSERT INTO gpkg_geometry_columns (
         table_name, column_name, geometry_type_name, srs_id, z, m) 
