@@ -5,11 +5,12 @@ Constants
 
 
 from struct import pack
+from typing import Tuple
 
 
-DOUBLE = tuple[float, float]
-TRIPLE = tuple[float, float, float]
-QUADRUPLE = tuple[float, float, float, float]
+DOUBLE = Tuple[float, float]
+TRIPLE = Tuple[float, float, float]
+QUADRUPLE = Tuple[float, float, float, float]
 
 WGS84 = 4326
 SRS_ID = 'srs_id'

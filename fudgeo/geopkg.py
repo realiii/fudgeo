@@ -11,7 +11,7 @@ from pathlib import Path
 from sqlite3 import (
     Connection, PARSE_COLNAMES, PARSE_DECLTYPES, connect, register_adapter,
     register_converter)
-from typing import Optional, Type, Union
+from typing import Dict, List, Optional, Tuple, Type, Union
 
 from fudgeo.enumeration import (
     DataType, GPKGFlavors, GeometryType, SQLFieldType)
@@ -29,7 +29,7 @@ from fudgeo.sql import (
     TABLE_EXISTS, UPDATE_EXTENT)
 
 
-FIELDS = Union[tuple['Field', ...], list['Field']]
+FIELDS = Union[Tuple['Field', ...], List['Field']]
 
 
 COMMA_SPACE = ', '
@@ -176,7 +176,7 @@ class GeoPackage:
     # End create_feature_class method
 
     @property
-    def tables(self) -> dict[str, 'Table']:
+    def tables(self) -> Dict[str, 'Table']:
         """
         Tables in the GeoPackage
         """
@@ -185,7 +185,7 @@ class GeoPackage:
     # End tables property
 
     @property
-    def feature_classes(self) -> dict[str, 'FeatureClass']:
+    def feature_classes(self) -> Dict[str, 'FeatureClass']:
         """
         Feature Classes in the GeoPackage
         """
@@ -194,7 +194,7 @@ class GeoPackage:
     # End feature_classes property
 
     def _get_table_objects(self, cls: Type['BaseTable'],
-                           data_type: str) -> dict[str, 'BaseTable']:
+                           data_type: str) -> Dict[str, 'BaseTable']:
         """
         Get Table Objects
         """
@@ -304,20 +304,21 @@ class FeatureClass(BaseTable):
     # End has_m property
 
     @property
-    def extent(self) -> tuple[float, float, float, float]:
+    def extent(self) -> Tuple[float, float, float, float]:
         """
         Extent property
         """
         empty = nan, nan, nan, nan
         cursor = self.geopackage.connection.execute(SELECT_EXTENT, (self.name,))
-        if not (result := cursor.fetchone()):
+        result = cursor.fetchone()
+        if not result:
             return empty
         if None in result:
             return empty
         return result
 
     @extent.setter
-    def extent(self, value: tuple[float, float, float, float]) -> None:
+    def extent(self, value: Tuple[float, float, float, float]) -> None:
         if not isinstance(value, (tuple, list)):  # pragma: nocover
             raise ValueError('Please supply a tuple or list of values')
         if not len(value) == 4:  # pragma: nocover
@@ -358,7 +359,7 @@ class SpatialReferenceSystem:
         self._srs_id = value
     # End srs_id property
 
-    def as_record(self) -> tuple[str, int, str, int, str, str]:
+    def as_record(self) -> Tuple[str, int, str, int, str, str]:
         """
         Record of the Spatial Reference System
         """
