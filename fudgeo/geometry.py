@@ -5,9 +5,10 @@ Geometry
 
 
 from abc import abstractmethod
-from functools import cache, reduce
+from functools import lru_cache, reduce
 from operator import add
 from struct import pack, unpack
+from typing import List, Tuple
 
 from fudgeo.constant import (
     BYTE_UINT, COUNT_UNIT, DOUBLE, EMPTY, GP_MAGIC, QUADRUPLE, SRS_ID, TRIPLE,
@@ -28,18 +29,18 @@ __all__ = ['Point', 'PointZ', 'PointM', 'PointZM', 'MultiPoint', 'MultiPointZ',
 
 
 def _unpack_line(value: bytes, dimension: int,
-                 is_ring: bool = False) -> list[tuple[float, ...]]:
+                 is_ring: bool = False) -> List[Tuple[float, ...]]:
     """
     Unpack Values for LineString
     """
     count, data = _get_count_and_data(value, is_ring=is_ring)
     total = dimension * count
-    values: tuple[float, ...] = unpack(f'<{total}d', data)
+    values: Tuple[float, ...] = unpack(f'<{total}d', data)
     return [values[i:i + dimension] for i in range(0, total, dimension)]
 # End _unpack_line function
 
 
-def _unpack_points(value: bytes, dimension: int) -> list[tuple[float, ...]]:
+def _unpack_points(value: bytes, dimension: int) -> List[Tuple[float, ...]]:
     """
     Unpack Values for Multi Point
     """
@@ -48,13 +49,13 @@ def _unpack_points(value: bytes, dimension: int) -> list[tuple[float, ...]]:
     count, data = _get_count_and_data(value)
     total = dimension * count
     data = [data[i + offset:i + size] for i in range(0, len(data), size)]
-    values: tuple[float, ...] = unpack(f'<{total}d', reduce(add, data))
+    values: Tuple[float, ...] = unpack(f'<{total}d', reduce(add, data))
     return [values[i:i + dimension] for i in range(0, total, dimension)]
 # End _unpack_points function
 
 
 def _unpack_lines(value: bytes, dimension: int, is_ring: bool = False) \
-        -> list[list[tuple[float, ...]]]:
+        -> List[List[Tuple[float, ...]]]:
     """
     Unpack Values for Multi LineString and Polygons
     """
@@ -66,7 +67,7 @@ def _unpack_lines(value: bytes, dimension: int, is_ring: bool = False) \
         *_, length = unpack(unit, data[last_end:last_end + offset])
         end = last_end + offset + (size * length)
         # noinspection PyTypeChecker
-        points: list[tuple[float, ...]] = _unpack_line(
+        points: List[Tuple[float, ...]] = _unpack_line(
             data[last_end:end], dimension, is_ring=is_ring)
         last_end = end
         lines.append(points)
@@ -75,7 +76,7 @@ def _unpack_lines(value: bytes, dimension: int, is_ring: bool = False) \
 
 
 def _unpack_polygons(value: bytes, dimension: int) \
-        -> list[list[list[tuple[float, ...]]]]:
+        -> List[List[List[Tuple[float, ...]]]]:
     """
     Unpack Values for Multi Polygon Type Containing Polygons
     """
@@ -92,7 +93,7 @@ def _unpack_polygons(value: bytes, dimension: int) \
 
 
 def _get_count_and_data(value: bytes, is_ring: bool = False) \
-        -> tuple[int, bytes]:
+        -> Tuple[int, bytes]:
     """
     Get Count from header and return the value portion of the stream
     """
@@ -103,7 +104,7 @@ def _get_count_and_data(value: bytes, is_ring: bool = False) \
 # End _get_count_and_data function
 
 
-@cache
+@lru_cache(maxsize=None)
 def _make_header_with_srs_id(srs_id: int) -> bytes:
     """
     Cached Header Creation
@@ -455,12 +456,12 @@ class MultiPoint(AbstractGeometry):
     """
     __slots__ = 'points'
 
-    def __init__(self, coordinates: list[DOUBLE], srs_id: int = WGS84) -> None:
+    def __init__(self, coordinates: List[DOUBLE], srs_id: int = WGS84) -> None:
         """
         Initialize the MultiPoint class
         """
         super().__init__(srs_id=srs_id)
-        self.points: list[Point] = [Point(x=x, y=y) for x, y in coordinates]
+        self.points: List[Point] = [Point(x=x, y=y) for x, y in coordinates]
     # End init built-in
 
     def __eq__(self, other: 'MultiPoint') -> bool:
@@ -510,12 +511,12 @@ class MultiPointZ(AbstractGeometry):
     """
     __slots__ = 'points'
 
-    def __init__(self, coordinates: list[TRIPLE], srs_id: int = WGS84) -> None:
+    def __init__(self, coordinates: List[TRIPLE], srs_id: int = WGS84) -> None:
         """
         Initialize the MultiPointZ class
         """
         super().__init__(srs_id=srs_id)
-        self.points: list[PointZ] = [
+        self.points: List[PointZ] = [
             PointZ(x=x, y=y, z=z) for x, y, z in coordinates]
     # End init built-in
 
@@ -566,12 +567,12 @@ class MultiPointM(AbstractGeometry):
     """
     __slots__ = 'points'
 
-    def __init__(self, coordinates: list[TRIPLE], srs_id: int = WGS84) -> None:
+    def __init__(self, coordinates: List[TRIPLE], srs_id: int = WGS84) -> None:
         """
         Initialize the MultiPointM class
         """
         super().__init__(srs_id=srs_id)
-        self.points: list[PointM] = [
+        self.points: List[PointM] = [
             PointM(x=x, y=y, m=m) for x, y, m in coordinates]
     # End init built-in
 
@@ -622,13 +623,13 @@ class MultiPointZM(AbstractGeometry):
     """
     __slots__ = 'points'
 
-    def __init__(self, coordinates: list[QUADRUPLE],
+    def __init__(self, coordinates: List[QUADRUPLE],
                  srs_id: int = WGS84) -> None:
         """
         Initialize the MultiPointZM class
         """
         super().__init__(srs_id=srs_id)
-        self.points: list[PointZM] = [
+        self.points: List[PointZM] = [
             PointZM(x=x, y=y, z=z, m=m) for x, y, z, m in coordinates]
     # End init built-in
 
@@ -679,12 +680,12 @@ class LineString(AbstractGeometry):
     """
     __slots__ = 'points'
 
-    def __init__(self, coordinates: list[DOUBLE], srs_id: int = WGS84) -> None:
+    def __init__(self, coordinates: List[DOUBLE], srs_id: int = WGS84) -> None:
         """
         Initialize the LineString class
         """
         super().__init__(srs_id=srs_id)
-        self.points: list[Point] = [Point(x=x, y=y) for x, y in coordinates]
+        self.points: List[Point] = [Point(x=x, y=y) for x, y in coordinates]
     # End init built-in
 
     def __eq__(self, other: 'LineString') -> bool:
@@ -734,12 +735,12 @@ class LineStringZ(AbstractGeometry):
     """
     __slots__ = 'points'
 
-    def __init__(self, coordinates: list[TRIPLE], srs_id: int = WGS84) -> None:
+    def __init__(self, coordinates: List[TRIPLE], srs_id: int = WGS84) -> None:
         """
         Initialize the LineStringZ class
         """
         super().__init__(srs_id=srs_id)
-        self.points: list[PointZ] = [
+        self.points: List[PointZ] = [
             PointZ(x=x, y=y, z=z) for x, y, z in coordinates]
     # End init built-in
 
@@ -790,12 +791,12 @@ class LineStringM(AbstractGeometry):
     """
     __slots__ = 'points'
 
-    def __init__(self, coordinates: list[TRIPLE], srs_id: int = WGS84) -> None:
+    def __init__(self, coordinates: List[TRIPLE], srs_id: int = WGS84) -> None:
         """
         Initialize the LineStringM class
         """
         super().__init__(srs_id=srs_id)
-        self.points: list[PointM] = [
+        self.points: List[PointM] = [
             PointM(x=x, y=y, m=m) for x, y, m in coordinates]
     # End init built-in
 
@@ -846,13 +847,13 @@ class LineStringZM(AbstractGeometry):
     """
     __slots__ = 'points'
 
-    def __init__(self, coordinates: list[QUADRUPLE],
+    def __init__(self, coordinates: List[QUADRUPLE],
                  srs_id: int = WGS84) -> None:
         """
         Initialize the LineStringZM class
         """
         super().__init__(srs_id=srs_id)
-        self.points: list[PointZM] = [
+        self.points: List[PointZM] = [
             PointZM(x=x, y=y, z=z, m=m) for x, y, z, m in coordinates]
     # End init built-in
 
@@ -903,13 +904,13 @@ class MultiLineString(AbstractGeometry):
     """
     __slots__ = 'lines'
 
-    def __init__(self, coordinates: list[list[DOUBLE]],
+    def __init__(self, coordinates: List[List[DOUBLE]],
                  srs_id: int = WGS84) -> None:
         """
         Initialize the MultiLineString class
         """
         super().__init__(srs_id=srs_id)
-        self.lines: list[LineString] = [
+        self.lines: List[LineString] = [
             LineString(coords) for coords in coordinates]
     # End init built-in
 
@@ -960,13 +961,13 @@ class MultiLineStringZ(AbstractGeometry):
     """
     __slots__ = 'lines'
 
-    def __init__(self, coordinates: list[list[TRIPLE]],
+    def __init__(self, coordinates: List[List[TRIPLE]],
                  srs_id: int = WGS84) -> None:
         """
         Initialize the MultiLineStringZ class
         """
         super().__init__(srs_id=srs_id)
-        self.lines: list[LineStringZ] = [
+        self.lines: List[LineStringZ] = [
             LineStringZ(coords) for coords in coordinates]
     # End init built-in
 
@@ -1017,13 +1018,13 @@ class MultiLineStringM(AbstractGeometry):
     """
     __slots__ = 'lines'
 
-    def __init__(self, coordinates: list[list[TRIPLE]],
+    def __init__(self, coordinates: List[List[TRIPLE]],
                  srs_id: int = WGS84) -> None:
         """
         Initialize the MultiLineStringM class
         """
         super().__init__(srs_id=srs_id)
-        self.lines: list[LineStringM] = [
+        self.lines: List[LineStringM] = [
             LineStringM(coords) for coords in coordinates]
     # End init built-in
 
@@ -1074,13 +1075,13 @@ class MultiLineStringZM(AbstractGeometry):
     """
     __slots__ = 'lines'
 
-    def __init__(self, coordinates: list[list[QUADRUPLE]],
+    def __init__(self, coordinates: List[List[QUADRUPLE]],
                  srs_id: int = WGS84) -> None:
         """
         Initialize the MultiLineStringZM class
         """
         super().__init__(srs_id=srs_id)
-        self.lines: list[LineStringZM] = [
+        self.lines: List[LineStringZM] = [
             LineStringZM(coords) for coords in coordinates]
     # End init built-in
 
@@ -1131,13 +1132,13 @@ class LinearRing(AbstractGeometry):
     """
     __slots__ = 'points'
 
-    def __init__(self, coordinates: list[DOUBLE],
+    def __init__(self, coordinates: List[DOUBLE],
                  srs_id: int = WGS84) -> None:
         """
         Initialize the LinearRing class
         """
         super().__init__(srs_id=srs_id)
-        self.points: list[Point] = [Point(x=x, y=y) for x, y in coordinates]
+        self.points: List[Point] = [Point(x=x, y=y) for x, y in coordinates]
     # End init built-in
 
     def __eq__(self, other: 'LinearRing') -> bool:
@@ -1192,12 +1193,12 @@ class LinearRingZ(AbstractGeometry):
     """
     __slots__ = 'points'
 
-    def __init__(self, coordinates: list[TRIPLE], srs_id: int = WGS84) -> None:
+    def __init__(self, coordinates: List[TRIPLE], srs_id: int = WGS84) -> None:
         """
         Initialize the LinearRing class
         """
         super().__init__(srs_id=srs_id)
-        self.points: list[PointZ] = [
+        self.points: List[PointZ] = [
             PointZ(x=x, y=y, z=z) for x, y, z in coordinates]
     # End init built-in
 
@@ -1253,13 +1254,13 @@ class Polygon(AbstractGeometry):
     """
     __slots__ = 'rings'
 
-    def __init__(self, coordinates: list[list[DOUBLE]],
+    def __init__(self, coordinates: List[List[DOUBLE]],
                  srs_id: int = WGS84) -> None:
         """
         Initialize the Polygon class
         """
         super().__init__(srs_id=srs_id)
-        self.rings: list[LinearRing] = [
+        self.rings: List[LinearRing] = [
             LinearRing(coords) for coords in coordinates]
     # End init built-in
 
@@ -1311,13 +1312,13 @@ class PolygonZ(AbstractGeometry):
     """
     __slots__ = 'rings'
 
-    def __init__(self, coordinates: list[list[TRIPLE]],
+    def __init__(self, coordinates: List[List[TRIPLE]],
                  srs_id: int = WGS84) -> None:
         """
         Initialize the PolygonZ class
         """
         super().__init__(srs_id=srs_id)
-        self.rings: list[LinearRingZ] = [
+        self.rings: List[LinearRingZ] = [
             LinearRingZ(coords) for coords in coordinates]
     # End init built-in
 
@@ -1369,13 +1370,13 @@ class MultiPolygon(AbstractGeometry):
     """
     __slots__ = 'polygons'
 
-    def __init__(self, coordinates: list[list[list[DOUBLE]]],
+    def __init__(self, coordinates: List[List[List[DOUBLE]]],
                  srs_id: int = WGS84) -> None:
         """
         Initialize the MultiPolygon class
         """
         super().__init__(srs_id=srs_id)
-        self.polygons: list[Polygon] = [
+        self.polygons: List[Polygon] = [
             Polygon(coords) for coords in coordinates]
     # End init built-in
 
@@ -1426,13 +1427,13 @@ class MultiPolygonZ(AbstractGeometry):
     """
     __slots__ = 'polygons'
 
-    def __init__(self, coordinates: list[list[list[TRIPLE]]],
+    def __init__(self, coordinates: List[List[List[TRIPLE]]],
                  srs_id: int = WGS84) -> None:
         """
         Initialize the MultiPolygon class
         """
         super().__init__(srs_id=srs_id)
-        self.polygons: list[PolygonZ] = [
+        self.polygons: List[PolygonZ] = [
             PolygonZ(coords) for coords in coordinates]
     # End init built-in
 

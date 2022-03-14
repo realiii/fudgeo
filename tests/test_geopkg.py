@@ -59,7 +59,8 @@ def setup_geopackage(tmp_path):
         Field('test_fld_size', SQLFieldType.text, 100),
         Field('test_bool', SQLFieldType.boolean))
     yield path, gpkg, srs, fields
-    path.unlink(missing_ok=True)
+    if path.exists():
+        path.unlink()
 # End setup_geopackage function
 
 
@@ -115,7 +116,8 @@ def test_create_geopackage(tmp_path):
     with raises(ValueError):
         GeoPackage.create(path)
     geo.connection.close()
-    path.unlink(missing_ok=True)
+    if path.exists():
+        path.unlink()
 # End test_create_geopackage function
 
 
@@ -140,7 +142,8 @@ def test_create_table(tmp_path, fields):
     count, = cursor.fetchone()
     assert count == 4
     geo.connection.close()
-    path.unlink(missing_ok=True)
+    if path.exists():
+        path.unlink()
 # End test_create_table function
 
 
@@ -167,7 +170,8 @@ def test_create_feature_class(tmp_path, fields):
     count, = cursor.fetchone()
     assert count == 4
     geo.connection.close()
-    path.unlink(missing_ok=True)
+    if path.exists():
+        path.unlink()
 # End test_create_feature_class function
 
 
@@ -188,7 +192,8 @@ def test_tables_and_feature_classes(tmp_path, fields):
     assert set(geo.tables) == set('DEF')
     assert isinstance(geo.tables['F'], Table)
     geo.connection.close()
-    path.unlink(missing_ok=True)
+    if path.exists():
+        path.unlink()
 # End test_tables_and_feature_classes function
 
 
