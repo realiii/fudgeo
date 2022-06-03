@@ -2,8 +2,7 @@
 """
 Test GeoPackage
 """
-
-
+from datetime import datetime, timedelta
 from math import isnan
 from random import randint, choice
 from string import ascii_uppercase, digits
@@ -13,9 +12,7 @@ from pytest import fixture, mark, raises
 from fudgeo.enumeration import GeometryType, SQLFieldType
 from fudgeo.geometry import (
     LineString, LineStringM, LineStringZ, LineStringZM, MultiLineString,
-    MultiPoint,
-    MultiPolygon,
-    Point, Polygon)
+    MultiPoint, MultiPolygon, Point, Polygon)
 from fudgeo.geopkg import (
     FeatureClass, Field, GeoPackage, SpatialReferenceSystem, Table)
 
@@ -57,7 +54,8 @@ def setup_geopackage(tmp_path):
         Field('int_fld', SQLFieldType.integer),
         Field('text_fld', SQLFieldType.text),
         Field('test_fld_size', SQLFieldType.text, 100),
-        Field('test_bool', SQLFieldType.boolean))
+        Field('test_bool', SQLFieldType.boolean),
+        Field('test_timestamp', SQLFieldType.timestamp))
     yield path, gpkg, srs, fields
     if path.exists():
         path.unlink()
@@ -72,7 +70,8 @@ def fields():
     return [Field('AAA', SQLFieldType.integer),
             Field('BBB', SQLFieldType.text, size=10),
             Field('CCC', SQLFieldType.text),
-            Field('DDD', SQLFieldType.double)]
+            Field('DDD', SQLFieldType.double),
+            Field('EEE', SQLFieldType.timestamp)]
 # End fields function
 
 
@@ -129,19 +128,34 @@ def test_create_table(tmp_path, fields):
     geo = GeoPackage.create(path)
     name = 'TTT'
     table = geo.create_table(name, fields)
+    field_names = ', '.join(f.name for f in fields)
     assert isinstance(table, Table)
     with raises(ValueError):
         geo.create_table(name, fields)
-    cursor = geo.connection.execute(f"""SELECT count(fid) FROM {name}""")
+    conn = geo.connection
+    cursor = conn.execute(f"""SELECT count(fid) FROM {name}""")
     count, = cursor.fetchone()
     assert count == 0
+    now = datetime.now()
+    records = [
+        (1, 'asdf', 'longer than 10 characters', 123.456, now + timedelta(days=1)),
+        (2, 'qwerty', 'not much longer than 10', 987.654, now + timedelta(days=100))]
+    sql = f"""INSERT INTO {name}({field_names}) VALUES (?, ?, ?, ?, ?)"""
+    conn.executemany(sql, records)
+    conn.commit()
+    cursor = conn.execute(f"""SELECT count(fid) FROM {name}""")
+    count, = cursor.fetchone()
+    assert count == 2
+    cursor = conn.execute(f"""SELECT {fields[-1].name} FROM {name}""")
+    value, = cursor.fetchone()
+    assert isinstance(value, datetime)
     table = geo.create_table('ANOTHER')
     assert isinstance(table, Table)
-    cursor = geo.connection.execute(
+    cursor = conn.execute(
         """SELECT count(type) FROM sqlite_master WHERE type = 'trigger'""")
     count, = cursor.fetchone()
     assert count == 4
-    geo.connection.close()
+    conn.close()
     if path.exists():
         path.unlink()
 # End test_create_table function
