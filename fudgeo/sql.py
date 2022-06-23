@@ -16,6 +16,25 @@ INSERT_GPKG_OGR_CONTENTS = """
 """
 
 
+REMOVE_FEATURE_CLASS = """
+    DELETE FROM gpkg_ogr_contents WHERE table_name = '{0}';
+    DELETE FROM gpkg_contents WHERE table_name = '{0}';
+    DELETE FROM gpkg_geometry_columns WHERE table_name = '{0}';
+    DROP TRIGGER IF EXISTS trigger_insert_feature_count_{0};
+    DROP TRIGGER IF EXISTS trigger_delete_feature_count_{0};
+    DROP TABLE IF EXISTS {0};
+"""
+
+
+REMOVE_TABLE = """
+    DELETE FROM gpkg_ogr_contents WHERE table_name = '{0}';
+    DELETE FROM gpkg_contents WHERE table_name = '{0}';
+    DROP TRIGGER IF EXISTS trigger_insert_feature_count_{0};
+    DROP TRIGGER IF EXISTS trigger_delete_feature_count_{0};
+    DROP TABLE IF EXISTS {0};
+"""
+
+
 GPKG_OGR_CONTENTS_INSERT_TRIGGER = """
     CREATE TRIGGER trigger_insert_feature_count_{0}
     AFTER INSERT ON {0}

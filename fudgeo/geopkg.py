@@ -25,7 +25,9 @@ from fudgeo.sql import (
     DEFAULT_ESRI_RECS, GPKG_OGR_CONTENTS_DELETE_TRIGGER,
     GPKG_OGR_CONTENTS_INSERT_TRIGGER, INSERT_GPKG_CONTENTS_SHORT,
     INSERT_GPKG_GEOM_COL, INSERT_GPKG_OGR_CONTENTS, INSERT_GPKG_SRS,
-    SELECT_EXTENT, SELECT_HAS_ZM, SELECT_SRS, SELECT_TABLES_BY_TYPE,
+    REMOVE_FEATURE_CLASS, REMOVE_TABLE, SELECT_EXTENT, SELECT_HAS_ZM,
+    SELECT_SRS,
+    SELECT_TABLES_BY_TYPE,
     TABLE_EXISTS, UPDATE_EXTENT)
 
 
@@ -139,13 +141,14 @@ class GeoPackage:
         return bool(cursor.fetchall())
     # End _check_table_exists method
 
-    def _validate_inputs(self, fields: FIELDS, name: str) -> FIELDS:
+    def _validate_inputs(self, fields: FIELDS, name: str,
+                         overwrite: bool) -> FIELDS:
         """
         Validate Inputs
         """
         if not fields:
             fields = ()
-        if self._check_table_exists(name):
+        if not overwrite and self._check_table_exists(name):
             raise ValueError(f'Table {name} already exists in {self._path}')
         return fields
     # End _validate_inputs method
@@ -153,26 +156,27 @@ class GeoPackage:
     def create_feature_class(self, name: str, srs: 'SpatialReferenceSystem',
                              shape_type: str = GeometryType.point,
                              z_enabled: bool = False, m_enabled: bool = False,
-                             fields: FIELDS = (),
-                             description: str = '') -> 'FeatureClass':
+                             fields: FIELDS = (), description: str = '',
+                             overwrite: bool = False) -> 'FeatureClass':
         """
         Creates a feature class in the GeoPackage per the options given.
         """
-        fields = self._validate_inputs(fields, name)
+        fields = self._validate_inputs(fields, name, overwrite)
         return FeatureClass.create(
             geopackage=self, name=name, shape_type=shape_type, srs=srs,
             z_enabled=z_enabled, m_enabled=m_enabled, fields=fields,
-            description=description)
+            description=description, overwrite=overwrite)
     # End create_feature_class method
 
     def create_table(self, name: str, fields: FIELDS = (),
-                     description: str = '') -> 'Table':
+                     description: str = '', overwrite: bool = False) -> 'Table':
         """
         Creates a feature class in the GeoPackage per the options given.
         """
-        fields = self._validate_inputs(fields, name)
+        fields = self._validate_inputs(fields, name, overwrite)
         return Table.create(
-            geopackage=self, name=name, fields=fields, description=description)
+            geopackage=self, name=name, fields=fields,
+            description=description, overwrite=overwrite)
     # End create_feature_class method
 
     @property
@@ -226,12 +230,14 @@ class Table(BaseTable):
     """
     @classmethod
     def create(cls, geopackage: GeoPackage, name: str, fields: FIELDS,
-               description: str = '') -> 'Table':
+               description: str = '', overwrite: bool = False) -> 'Table':
         """
         Create a regular non-spatial table in the geopackage
         """
         cols = f', {", ".join(repr(f) for f in fields)}' if fields else ''
         with geopackage.connection as conn:
+            if overwrite:
+                conn.executescript(REMOVE_TABLE.format(name))
             conn.execute(CREATE_TABLE.format(name=name, other_fields=cols))
             conn.execute(INSERT_GPKG_CONTENTS_SHORT, (
                 name, DataType.attributes, name, description, _now(), None))
@@ -240,6 +246,14 @@ class Table(BaseTable):
             conn.execute(GPKG_OGR_CONTENTS_DELETE_TRIGGER.format(name))
         return cls(geopackage=geopackage, name=name)
     # End create_table method
+
+    def drop(self) -> None:
+        """
+        Drop table from Geopackage
+        """
+        with self.geopackage.connection as conn:
+            conn.executescript(REMOVE_TABLE.format(self.name))
+    # End drop method
 # End Table class
 
 
@@ -251,12 +265,15 @@ class FeatureClass(BaseTable):
     def create(cls, geopackage: GeoPackage, name: str, shape_type: str,
                srs: 'SpatialReferenceSystem', z_enabled: bool = False,
                m_enabled: bool = False, fields: FIELDS = (),
-               description: str = '') -> 'FeatureClass':
+               description: str = '',
+               overwrite: bool = False) -> 'FeatureClass':
         """
         Create Feature Class
         """
         cols = f', {", ".join(repr(f) for f in fields)}' if fields else ''
         with geopackage.connection as conn:
+            if overwrite:
+                conn.executescript(REMOVE_FEATURE_CLASS.format(name))
             conn.execute(CREATE_FEATURE_TABLE.format(
                 name=name, feature_type=shape_type, other_fields=cols))
             if not geopackage.check_srs_exists(srs.srs_id):
@@ -271,6 +288,14 @@ class FeatureClass(BaseTable):
             conn.execute(GPKG_OGR_CONTENTS_DELETE_TRIGGER.format(name))
         return cls(geopackage=geopackage, name=name)
     # End create method
+
+    def drop(self) -> None:
+        """
+        Drop feature class from Geopackage
+        """
+        with self.geopackage.connection as conn:
+            conn.executescript(REMOVE_FEATURE_CLASS.format(self.name))
+    # End drop method
 
     @property
     def spatial_reference_system(self) -> 'SpatialReferenceSystem':

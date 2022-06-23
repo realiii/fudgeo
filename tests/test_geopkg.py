@@ -161,6 +161,35 @@ def test_create_table(tmp_path, fields):
 # End test_create_table function
 
 
+def test_create_table_drop_table(tmp_path, fields):
+    """
+    Create Table, overwrite Table, and Drop Table
+    """
+    path = tmp_path / 'tbl_drop'
+    geo = GeoPackage.create(path)
+    name = 'TTT_DDD'
+    table = geo.create_table(name, fields)
+    assert isinstance(table, Table)
+    tbl = geo.create_table(name, fields, overwrite=True)
+    conn = geo.connection
+    cursor = conn.execute(f"""SELECT count(fid) FROM {name}""")
+    count, = cursor.fetchone()
+    assert count == 0
+    sql = """SELECT count(type) FROM sqlite_master WHERE type = 'trigger'"""
+    cursor = conn.execute(sql)
+    count, = cursor.fetchone()
+    assert count == 2
+    tbl.drop()
+    assert not geo._check_table_exists(name)
+    cursor = conn.execute(sql)
+    count, = cursor.fetchone()
+    assert count == 0
+    conn.close()
+    if path.exists():
+        path.unlink()
+# End test_create_table_drop_table function
+
+
 def test_create_feature_class(tmp_path, fields):
     """
     Create Feature Class
@@ -187,6 +216,36 @@ def test_create_feature_class(tmp_path, fields):
     if path.exists():
         path.unlink()
 # End test_create_feature_class function
+
+
+def test_create_feature_drop_feature(tmp_path, fields):
+    """
+    Create Feature Class, Overwrite it, and then Drop it
+    """
+    path = tmp_path / 'fc_drop'
+    geo = GeoPackage.create(path)
+    name = 'FFF_DDD'
+    srs = SpatialReferenceSystem(
+        'WGS_1984_UTM_Zone_23N', 'EPSG', 32623, WGS_1984_UTM_Zone_23N)
+    table = geo.create_feature_class(name, srs=srs, fields=fields)
+    assert isinstance(table, FeatureClass)
+    fc = geo.create_feature_class(name, srs=srs, fields=fields, overwrite=True)
+    cursor = geo.connection.execute(f"""SELECT count(fid) FROM {name}""")
+    count, = cursor.fetchone()
+    assert count == 0
+    sql = """SELECT count(type) FROM sqlite_master WHERE type = 'trigger'"""
+    cursor = geo.connection.execute(sql)
+    count, = cursor.fetchone()
+    assert count == 2
+    fc.drop()
+    assert not geo._check_table_exists(name)
+    cursor = geo.connection.execute(sql)
+    count, = cursor.fetchone()
+    assert count == 0
+    geo.connection.close()
+    if path.exists():
+        path.unlink()
+# End test_create_feature_drop_feature function
 
 
 def test_tables_and_feature_classes(tmp_path, fields):
