@@ -12,7 +12,7 @@ with open(join(dirname(__file__), 'README.md')) as readme:
 
 setup(
     name='fudgeo',
-    version='0.1.1',
+    version='0.1.2',
     author='Integrated Informatics Inc.',
     author_email='gis@integrated-informatics.com',
     description='GeoPackage support from Python.  fudgeo is a simple package '
