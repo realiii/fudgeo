@@ -23,9 +23,10 @@ The `fudgeo` library is compatible with Python 3.7 to 3.10.
 
 `fudgeo` can be used to: 
 * Create a new empty GeoPackage or Open an existing GeoPackage.
-* Create new Feature Classes and Tables
+* Create new Feature Classes and Tables (optional overwrite)
 * Insert feature (geometry and attributes) into a Feature Class.
 * Insert rows into a Table (in the normal SQLite way)
+* Drop Feature Classes and Tables
 
 
 ### Create an Empty GeoPackage / Open GeoPackage
