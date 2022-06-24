@@ -4,7 +4,7 @@ Geopackage
 """
 
 
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from math import nan
 from os import PathLike
 from pathlib import Path
@@ -53,6 +53,38 @@ def _adapt_geometry(val) -> bytes:
 # End _adapt_geometry function
 
 
+def _convert_datetime(val: bytes) -> datetime:
+    """
+    Heavily Influenced by convert_timestamp from ../sqlite3/dbapi2.py,
+    Added in support for timezone handling although the practice should
+    be to resolve to UTC.
+    """
+    colon = b':'
+    dash = b'-'
+    dt, tm = val.split(b' ')
+    year, month, day = map(int, dt.split(dash))
+    tm, *micro = tm.split(b'.')
+    tz = []
+    factor = 0
+    for token, scale in zip((b'+', dash), (1, -1)):
+        if token in tm:
+            tm, *tz = tm.split(token)
+            factor = scale
+            break
+    hours, minutes, seconds = map(int, tm.split(colon))
+    micro = int('{:0<6.6}'.format(micro[0].decode())) if micro else 0
+    if tz:
+        tz_hr, *tz_min = map(int, tz[0].split(colon))
+        tz_min = tz_min[0] if tz_min else 0
+        tzinfo = timezone(timedelta(
+            hours=factor * tz_hr, minutes=factor * tz_min))
+    else:
+        tzinfo = None
+    return datetime(year, month, day, hours, minutes, seconds,
+                    micro, tzinfo=tzinfo)
+# End _convert_datetime function
+
+
 def _register_geometry():
     """
     Register adapters and converters for geometry / geopackage
@@ -82,6 +114,7 @@ class GeoPackage:
             str(path), isolation_level='EXCLUSIVE',
             detect_types=PARSE_DECLTYPES | PARSE_COLNAMES)
         _register_geometry()
+        register_converter('datetime', _convert_datetime)
     # End init built-in
 
     @property
