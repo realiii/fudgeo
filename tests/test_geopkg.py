@@ -2,7 +2,7 @@
 """
 Test GeoPackage
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from math import isnan
 from random import randint, choice
 from string import ascii_uppercase, digits
@@ -14,7 +14,8 @@ from fudgeo.geometry import (
     LineString, LineStringM, LineStringZ, LineStringZM, MultiLineString,
     MultiPoint, MultiPolygon, Point, Polygon)
 from fudgeo.geopkg import (
-    FeatureClass, Field, GeoPackage, SpatialReferenceSystem, Table)
+    FeatureClass, Field, GeoPackage, SpatialReferenceSystem, Table,
+    _convert_datetime)
 
 WGS_1984_UTM_Zone_23N = (
     """PROJCS["WGS_1984_UTM_Zone_23N",
@@ -71,7 +72,8 @@ def fields():
             Field('BBB', SQLFieldType.text, size=10),
             Field('CCC', SQLFieldType.text),
             Field('DDD', SQLFieldType.double),
-            Field('EEE', SQLFieldType.timestamp)]
+            Field('EEE', SQLFieldType.datetime),
+            Field('FFF', SQLFieldType.timestamp)]
 # End fields function
 
 
@@ -138,9 +140,9 @@ def test_create_table(tmp_path, fields):
     assert count == 0
     now = datetime.now()
     records = [
-        (1, 'asdf', 'longer than 10 characters', 123.456, now + timedelta(days=1)),
-        (2, 'qwerty', 'not much longer than 10', 987.654, now + timedelta(days=100))]
-    sql = f"""INSERT INTO {name}({field_names}) VALUES (?, ?, ?, ?, ?)"""
+        (1, 'asdf', 'longer than 10 characters', 123.456, now + timedelta(days=1), now + timedelta(days=2)),
+        (2, 'qwerty', 'not much longer than 10', 987.654, now + timedelta(days=100), now + timedelta(days=200))]
+    sql = f"""INSERT INTO {name}({field_names}) VALUES (?, ?, ?, ?, ?, ?)"""
     conn.executemany(sql, records)
     conn.commit()
     cursor = conn.execute(f"""SELECT count(fid) FROM {name}""")
@@ -149,6 +151,11 @@ def test_create_table(tmp_path, fields):
     cursor = conn.execute(f"""SELECT {fields[-1].name} FROM {name}""")
     value, = cursor.fetchone()
     assert isinstance(value, datetime)
+    assert value == now + timedelta(days=2)
+    cursor = conn.execute(f"""SELECT {fields[-2].name} FROM {name}""")
+    value, = cursor.fetchone()
+    assert isinstance(value, datetime)
+    assert value == now + timedelta(days=1)
     table = geo.create_table('ANOTHER')
     assert isinstance(table, Table)
     cursor = conn.execute(
@@ -484,6 +491,22 @@ def test_insert_multi_lines(setup_geopackage):
     assert isinstance(line, MultiLineString)
     assert line == geom
 # End test_insert_multi_lines function
+
+
+@mark.parametrize('val, expected', [
+    (b'1977-06-15 03:18:54', datetime(1977, 6, 15, 3, 18, 54, 0)),
+    (b'1977-06-15 03:18:54.123456', datetime(1977, 6, 15, 3, 18, 54, 123456)),
+    (b'2000-06-06 11:43:37+00:00', datetime(2000, 6, 6, 11, 43, 37, 0, tzinfo=timezone.utc)),
+    (b'2000-06-06 11:43:37+01:00', datetime(2000, 6, 6, 11, 43, 37, 0, tzinfo=timezone(timedelta(hours=1)))),
+    (b'2000-06-06 11:43:37+02:30', datetime(2000, 6, 6, 11, 43, 37, 0, tzinfo=timezone(timedelta(hours=2, minutes=30)))),
+    (b'2000-06-06 11:43:37-05:15', datetime(2000, 6, 6, 11, 43, 37, 0, tzinfo=timezone(timedelta(seconds=-18900)))),
+])
+def test_convert_datetime(val, expected):
+    """
+    Test the datetime converter
+    """
+    assert _convert_datetime(val) == expected
+# End test_convert_datetime function
 
 
 if __name__ == '__main__':

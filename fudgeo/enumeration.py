@@ -53,6 +53,7 @@ class SQLFieldType(GeometryType):
     blob = 'BLOB'
     date = 'DATE'
     timestamp = 'TIMESTAMP'
+    datetime = 'DATETIME'
 # End SQLFieldType class
 
 
