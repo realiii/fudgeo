@@ -139,8 +139,10 @@ def test_create_table(tmp_path, fields):
     count, = cursor.fetchone()
     assert count == 0
     now = datetime.now()
+    eee_datetime = now + timedelta(days=1)
+    fff_datetime = now + timedelta(days=2)
     records = [
-        (1, 'asdf', 'longer than 10 characters', 123.456, now + timedelta(days=1), now + timedelta(days=2)),
+        (1, 'asdf', 'longer than 10 characters', 123.456, eee_datetime, fff_datetime),
         (2, 'qwerty', 'not much longer than 10', 987.654, now + timedelta(days=100), now + timedelta(days=200))]
     sql = f"""INSERT INTO {name}({field_names}) VALUES (?, ?, ?, ?, ?, ?)"""
     conn.executemany(sql, records)
@@ -148,14 +150,15 @@ def test_create_table(tmp_path, fields):
     cursor = conn.execute(f"""SELECT count(fid) FROM {name}""")
     count, = cursor.fetchone()
     assert count == 2
-    cursor = conn.execute(f"""SELECT {fields[-1].name} FROM {name}""")
+    *_, eee, fff = fields
+    cursor = conn.execute(f"""SELECT {eee.name} FROM {name}""")
     value, = cursor.fetchone()
     assert isinstance(value, datetime)
-    assert value == now + timedelta(days=2)
-    cursor = conn.execute(f"""SELECT {fields[-2].name} FROM {name}""")
+    assert value == eee_datetime
+    cursor = conn.execute(f"""SELECT {fff.name} FROM {name}""")
     value, = cursor.fetchone()
     assert isinstance(value, datetime)
-    assert value == now + timedelta(days=1)
+    assert value == fff_datetime
     table = geo.create_table('ANOTHER')
     assert isinstance(table, Table)
     cursor = conn.execute(
