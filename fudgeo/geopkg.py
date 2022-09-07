@@ -61,7 +61,15 @@ def _convert_datetime(val: bytes) -> datetime:
     """
     colon = b':'
     dash = b'-'
-    dt, tm = val.split(b' ')
+    # To split timestamps like that b'2022-09-06T13:50:33'
+    for separator in (b' ', b'T'):
+        try:
+            dt, tm = val.split(separator)
+            break
+        except ValueError:
+            pass
+    else:
+        raise Exception(f"Could not split datetime: '{val}'")
     year, month, day = map(int, dt.split(dash))
     tm, *micro = tm.split(b'.')
     tz = []
