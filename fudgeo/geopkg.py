@@ -26,8 +26,8 @@ from fudgeo.sql import (
     GPKG_OGR_CONTENTS_INSERT_TRIGGER, INSERT_GPKG_CONTENTS_SHORT,
     INSERT_GPKG_GEOM_COL, INSERT_GPKG_OGR_CONTENTS, INSERT_GPKG_SRS,
     REMOVE_FEATURE_CLASS, REMOVE_TABLE, SELECT_EXTENT, SELECT_GEOMETRY_COLUMN,
-    SELECT_HAS_ZM, SELECT_SRS, SELECT_TABLES_BY_TYPE, TABLE_EXISTS,
-    UPDATE_EXTENT)
+    SELECT_GEOMETRY_TYPE, SELECT_HAS_ZM, SELECT_SRS, SELECT_TABLES_BY_TYPE,
+    TABLE_EXISTS, UPDATE_EXTENT)
 
 
 FIELDS = Union[Tuple['Field', ...], List['Field']]
@@ -360,6 +360,16 @@ class FeatureClass(BaseTable):
             SELECT_GEOMETRY_COLUMN, (self.name,))
         return self._check_result(cursor)
     # End geometry_column_name property
+
+    @property
+    def geometry_type(self) -> Optional[str]:
+        """
+        Geometry Type
+        """
+        cursor = self.geopackage.connection.execute(
+            SELECT_GEOMETRY_TYPE, (self.name,))
+        return self._check_result(cursor)
+    # End geometry_type property
 
     @property
     def spatial_reference_system(self) -> 'SpatialReferenceSystem':

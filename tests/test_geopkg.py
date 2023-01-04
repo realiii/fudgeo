@@ -280,19 +280,21 @@ def test_tables_and_feature_classes(tmp_path, fields):
 # End test_tables_and_feature_classes function
 
 
-@mark.parametrize('name, geom, has_z, has_m', [
-    ('test_points', GeometryType.point, False, False),
-    ('test_points_z', GeometryType.point, True, False),
-    ('test_points_m', GeometryType.point, False, True),
-    ('test_points_zm', GeometryType.point, True, True),
-    ('test_lines', GeometryType.linestring, False, False),
-    ('test_lines_z', GeometryType.linestring, True, False),
-    ('test_lines_m', GeometryType.linestring, False, True),
-    ('test_lines_zm', GeometryType.linestring, True, True),
-    ('test_polygons', GeometryType.polygon, False, False),
-    ('test_polygons_z', GeometryType.polygon, True, False),
+@mark.parametrize('name, geom, has_z, has_m, type_', [
+    ('test_points', GeometryType.point, False, False, 'Point'),
+    ('test_points_z', GeometryType.point, True, False, 'PointZ'),
+    ('test_points_m', GeometryType.point, False, True, 'PointM'),
+    ('test_points_zm', GeometryType.point, True, True, 'PointZM'),
+    ('test_lines', GeometryType.linestring, False, False, 'LineString'),
+    ('test_lines_z', GeometryType.linestring, True, False, 'LineStringZ'),
+    ('test_lines_m', GeometryType.linestring, False, True, 'LineStringM'),
+    ('test_lines_zm', GeometryType.linestring, True, True, 'LineStringZM'),
+    ('test_polygons', GeometryType.polygon, False, False, 'Polygon'),
+    ('test_polygons_z', GeometryType.polygon, True, False, 'PolygonZ'),
+    ('test_polygons_m', GeometryType.polygon, False, True, 'PolygonM'),
+    ('test_polygons_zm', GeometryType.polygon, True, True, 'PolygonZM'),
 ])
-def test_create_feature_class_options(setup_geopackage, name, geom, has_z, has_m):
+def test_create_feature_class_options(setup_geopackage, name, geom, has_z, has_m, type_):
     """
     Test creating feature classes with different shape options
     """
@@ -309,6 +311,7 @@ def test_create_feature_class_options(setup_geopackage, name, geom, has_z, has_m
     assert fc.has_z is has_z
     assert fc.has_m is has_m
     assert fc.geometry_column_name == SHAPE
+    assert fc.geometry_type == type_
 # End test_create_feature_class_options function
 
 
