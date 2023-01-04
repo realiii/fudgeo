@@ -116,7 +116,7 @@ SELECT_HAS_ZM = """
 
 UPDATE_EXTENT = """    
     UPDATE gpkg_contents 
-    SET min_x=?, min_y=?, max_x=?, max_y=? 
+    SET min_x = ?, min_y = ?, max_x = ?, max_y = ? 
     WHERE table_name = ?
 """
 
