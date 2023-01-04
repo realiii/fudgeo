@@ -120,6 +120,39 @@ SELECT_GEOMETRY_COLUMN = """
 """
 
 
+SELECT_GEOMETRY_TYPE = """
+    SELECT GEOM || Z || M
+    FROM (SELECT CASE
+                     WHEN geometry_type_name == 'POINT'
+                         THEN 'Point'
+                     WHEN geometry_type_name == 'LINESTRING'
+                         THEN 'LineString'
+                     WHEN geometry_type_name == 'POLYGON'
+                         THEN 'Polygon'
+                     WHEN geometry_type_name == 'MULTIPOINT'
+                         THEN 'MultiPoint'
+                     WHEN geometry_type_name == 'MULTILINESTRING'
+                         THEN 'MultiLineString'
+                     WHEN geometry_type_name == 'MULTIPOLYGON'
+                         THEN 'MultiPolygon'
+                     ELSE ''
+                     END AS GEOM,
+                 CASE
+                     WHEN z == 1
+                         THEN 'Z'
+                     ELSE ''
+                     END AS Z,
+                 CASE
+                     WHEN m == 1
+                         THEN 'M'
+                     ELSE ''
+                     END AS M
+          FROM gpkg_geometry_columns
+          WHERE table_name = ?
+  )
+"""
+
+
 UPDATE_EXTENT = """    
     UPDATE gpkg_contents 
     SET min_x = ?, min_y = ?, max_x = ?, max_y = ? 
