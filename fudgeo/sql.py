@@ -107,10 +107,9 @@ SELECT_SRS = """
 
 
 SELECT_HAS_ZM = """
-    SELECT gpkg_geometry_columns.z,gpkg_geometry_columns.m
-    FROM gpkg_contents LEFT JOIN gpkg_geometry_columns ON 
-            gpkg_contents.table_name = gpkg_geometry_columns.table_name
-    WHERE gpkg_contents.table_name = ?
+    SELECT z, m
+    FROM gpkg_geometry_columns
+    WHERE table_name = ?
 """
 
 
