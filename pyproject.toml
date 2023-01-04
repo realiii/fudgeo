@@ -1,6 +1,6 @@
 [project]
 name = "fudgeo"
-version = "0.2.1"
+version = "0.3.0"
 description = """\
     GeoPackage support from Python.  fudgeo is a simple package \
     for creating OGC GeoPackages, Feature Classes, Tables, and \
@@ -16,6 +16,7 @@ classifiers = [
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
