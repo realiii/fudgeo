@@ -9,8 +9,8 @@ from math import nan
 from os import PathLike
 from pathlib import Path
 from sqlite3 import (
-    Connection, PARSE_COLNAMES, PARSE_DECLTYPES, connect, register_adapter,
-    register_converter)
+    Connection, Cursor, PARSE_COLNAMES, PARSE_DECLTYPES, connect,
+    register_adapter, register_converter)
 from typing import Dict, List, Optional, Tuple, Type, Union
 
 from fudgeo.enumeration import (
@@ -337,6 +337,20 @@ class FeatureClass(BaseTable):
             conn.executescript(REMOVE_FEATURE_CLASS.format(self.name))
     # End drop method
 
+    @staticmethod
+    def _check_result(cursor: Cursor) -> Optional[str]:
+        """
+        Check Result
+        """
+        result = cursor.fetchone()
+        if not result:
+            return
+        if None in result:
+            return
+        value, = result
+        return value
+    # End _check_result method
+
     @property
     def geometry_column_name(self) -> Optional[str]:
         """
@@ -344,13 +358,7 @@ class FeatureClass(BaseTable):
         """
         cursor = self.geopackage.connection.execute(
             SELECT_GEOMETRY_COLUMN, (self.name,))
-        result = cursor.fetchone()
-        if not result:
-            return
-        if None in result:
-            return
-        name, = result
-        return name
+        return self._check_result(cursor)
     # End geometry_column_name property
 
     @property
