@@ -298,7 +298,8 @@ def test_create_feature_class_options(setup_geopackage, name, geom, has_z, has_m
     """
     _, gpkg, srs, fields = setup_geopackage
     fc = gpkg.create_feature_class(
-        name, srs=srs, fields=fields, m_enabled=has_m, z_enabled=has_z)
+        name, shape_type=geom, srs=srs, fields=fields,
+        m_enabled=has_m, z_enabled=has_z)
     assert isinstance(fc, FeatureClass)
     conn = gpkg.connection
     cursor = conn.execute(f"""SELECT count(fid) FROM {name}""")
