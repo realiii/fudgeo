@@ -452,7 +452,7 @@ class PointZM(AbstractGeometry):
 
 class MultiPoint(AbstractGeometry):
     """
-    MultiPoint
+    Multi Point
     """
     __slots__ = 'points'
 
@@ -507,7 +507,7 @@ class MultiPoint(AbstractGeometry):
 
 class MultiPointZ(AbstractGeometry):
     """
-    MultiPointZ
+    Multi Point Z
     """
     __slots__ = 'points'
 
@@ -563,7 +563,7 @@ class MultiPointZ(AbstractGeometry):
 
 class MultiPointM(AbstractGeometry):
     """
-    MultiPointM
+    Multi Point M
     """
     __slots__ = 'points'
 
@@ -619,7 +619,7 @@ class MultiPointM(AbstractGeometry):
 
 class MultiPointZM(AbstractGeometry):
     """
-    MultiPointZM
+    Multi Point ZM
     """
     __slots__ = 'points'
 
@@ -1308,7 +1308,7 @@ class Polygon(AbstractGeometry):
 
 class PolygonZ(AbstractGeometry):
     """
-    PolygonZ
+    Polygon Z
     """
     __slots__ = 'rings'
 
@@ -1366,7 +1366,7 @@ class PolygonZ(AbstractGeometry):
 
 class MultiPolygon(AbstractGeometry):
     """
-    MultiPolygon
+    Multi Polygon
     """
     __slots__ = 'polygons'
 
@@ -1423,14 +1423,14 @@ class MultiPolygon(AbstractGeometry):
 
 class MultiPolygonZ(AbstractGeometry):
     """
-    MultiPolygonZ
+    Multi Polygon Z
     """
     __slots__ = 'polygons'
 
     def __init__(self, coordinates: List[List[List[TRIPLE]]],
                  srs_id: int = WGS84) -> None:
         """
-        Initialize the MultiPolygon class
+        Initialize the MultiPolygonZ class
         """
         super().__init__(srs_id=srs_id)
         self.polygons: List[PolygonZ] = [
