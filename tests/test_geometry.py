@@ -16,11 +16,15 @@ from tests.conversion.wkb import (
     _linear_ring_to_wkb, _linear_ring_z_to_wkb,
     multipoint_m_to_wkb_multipoint_m, multipoint_to_wkb_multipoint,
     multipoint_z_to_wkb_multipoint_z, multipoint_zm_to_wkb_multipoint_zm,
-    point_lists_m_to_multi_line_string_m, point_lists_to_multi_line_string,
+    point_lists_m_to_multi_line_string_m, point_lists_m_to_wkb_multipolygon_m,
+    point_lists_m_to_wkb_polygon_m,
+    point_lists_to_multi_line_string,
     point_lists_to_wkb_multipolygon, point_lists_to_wkb_polygon,
     point_lists_z_to_multi_line_string_z, point_lists_z_to_wkb_multipolygon_z,
     point_lists_z_to_wkb_polygon_z, point_lists_zm_to_multi_line_string_zm,
-    point_m_to_wkb_point_m, point_to_wkb_point, point_z_to_wkb_point_z,
+    point_lists_zm_to_wkb_multipolygon_zm, point_lists_zm_to_wkb_polygon_zm,
+    point_m_to_wkb_point_m,
+    point_to_wkb_point, point_z_to_wkb_point_z,
     point_zm_to_wkb_point_zm, points_m_to_wkb_line_string_m,
     points_to_wkb_line_string, points_z_to_wkb_line_string_z,
     points_zm_to_wkb_line_string_zm)
@@ -28,7 +32,10 @@ from fudgeo.geometry import (
     LineString, LineStringM, LineStringZ, LineStringZM, LinearRing, LinearRingZ,
     MultiLineString, MultiLineStringM, MultiLineStringZ, MultiLineStringZM,
     MultiPoint, MultiPointM, MultiPointZ, MultiPointZM, MultiPolygon,
-    MultiPolygonZ, Point, PointM, PointZ, PointZM, Polygon, PolygonZ)
+    MultiPolygonM, MultiPolygonZ, MultiPolygonZM, Point, PointM, PointZ,
+    PointZM, Polygon,
+    PolygonM, PolygonZ,
+    PolygonZM)
 
 
 @fixture(scope='session')
@@ -351,6 +358,38 @@ def test_polygon_z(header):
 # End test_polygon_z function
 
 
+def test_polygon_m(header):
+    """
+    Test polygon M wkb
+    """
+    values = [[(0, 0, 0), (0, 1, 1), (1, 1, 1), (1, 0, 1), (0, 0, 0)],
+              [(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]]
+    poly = PolygonM(values)
+    with raises(AttributeError):
+        poly.attribute = 10
+    assert poly.to_wkb() == point_lists_m_to_wkb_polygon_m(values)
+    assert PolygonM.from_wkb(poly.to_wkb()) == poly
+    assert PolygonM.from_gpkg(poly.to_gpkg()) == poly
+# End test_polygon_m function
+
+
+def test_polygon_zm(header):
+    """
+    Test polygon ZM wkb
+    """
+    values = [[(0, 0, 0, 0), (0, 1, 1, 10), (1, 1, 1, 20),
+               (1, 0, 1, 30), (0, 0, 0, 40)],
+              [(5, 5, 5, 50), (5, 15, 10, 60), (15, 15, 15, 70),
+               (15, 5, 20, 80), (5, 5, 5, 90)]]
+    poly = PolygonZM(values)
+    with raises(AttributeError):
+        poly.attribute = 10
+    assert poly.to_wkb() == point_lists_zm_to_wkb_polygon_zm(values)
+    assert PolygonZM.from_wkb(poly.to_wkb()) == poly
+    assert PolygonZM.from_gpkg(poly.to_gpkg()) == poly
+# End test_polygon_zm function
+
+
 def test_multi_polygon(header):
     """
     Test multi polygon wkb
@@ -381,6 +420,38 @@ def test_multi_polygon_z(header):
     assert MultiPolygonZ.from_wkb(poly.to_wkb()) == poly
     assert MultiPolygonZ.from_gpkg(poly.to_gpkg()) == poly
 # End test_multi_polygon_z function
+
+
+def test_multi_polygon_m(header):
+    """
+    Test multi polygon M wkb
+    """
+    values = [[[(0, 0, 0), (0, 1, 1), (1, 1, 1), (1, 0, 1), (0, 0, 0)]],
+              [[(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]]]
+    poly = MultiPolygonM(values)
+    with raises(AttributeError):
+        poly.attribute = 10
+    assert poly.to_wkb() == point_lists_m_to_wkb_multipolygon_m(values)
+    assert MultiPolygonM.from_wkb(poly.to_wkb()) == poly
+    assert MultiPolygonM.from_gpkg(poly.to_gpkg()) == poly
+# End test_multi_polygon_m function
+
+
+def test_multi_polygon_zm(header):
+    """
+    Test multi polygon ZM wkb
+    """
+    values = [[[(0, 0, 0, 10), (0, 1, 1, 20), (1, 1, 1, 30), (1, 0, 1, 40),
+                (0, 0, 0, 50)]],
+              [[(5, 5, 5, 60), (5, 15, 10, 70), (15, 15, 15, 80),
+                (15, 5, 20, 90), (5, 5, 5, 100)]]]
+    poly = MultiPolygonZM(values)
+    with raises(AttributeError):
+        poly.attribute = 10
+    assert poly.to_wkb() == point_lists_zm_to_wkb_multipolygon_zm(values)
+    assert MultiPolygonZM.from_wkb(poly.to_wkb()) == poly
+    assert MultiPolygonZM.from_gpkg(poly.to_gpkg()) == poly
+# End test_multi_polygon_zm function
 
 
 if __name__ == '__main__':
