@@ -1128,7 +1128,7 @@ class MultiLineStringZM(AbstractGeometry):
 
 class LinearRing(AbstractGeometry):
     """
-    LinearRing
+    Linear Ring
     """
     __slots__ = 'points'
 
@@ -1189,13 +1189,13 @@ class LinearRing(AbstractGeometry):
 
 class LinearRingZ(AbstractGeometry):
     """
-    LinearRingZ
+    Linear Ring Z
     """
     __slots__ = 'points'
 
     def __init__(self, coordinates: List[TRIPLE], srs_id: int = WGS84) -> None:
         """
-        Initialize the LinearRing class
+        Initialize the LinearRingZ class
         """
         super().__init__(srs_id=srs_id)
         self.points: List[PointZ] = [
