@@ -11,6 +11,7 @@ WKB_POINT_PRE = pack(BYTE_UINT, 1, 1)
 WKB_POINTZ_PRE = pack(BYTE_UINT, 1, 1001)
 WKB_POINTM_PRE = pack(BYTE_UINT, 1, 2001)
 WKB_POINTZM_PRE = pack(BYTE_UINT, 1, 3001)
+
 WKB_MULTI_POINT_PRE = pack(BYTE_UINT, 1, 4)
 WKB_MULTI_POINT_Z_PRE = pack(BYTE_UINT, 1, 1004)
 WKB_MULTI_POINT_M_PRE = pack(BYTE_UINT, 1, 2004)
@@ -20,6 +21,7 @@ WKB_LINESTRING_PRE = pack(BYTE_UINT, 1, 2)
 WKB_LINESTRINGZ_PRE = pack(BYTE_UINT, 1, 1002)
 WKB_LINESTRINGM_PRE = pack(BYTE_UINT, 1, 2002)
 WKB_LINESTRINGZM_PRE = pack(BYTE_UINT, 1, 3002)
+
 WKB_MULTI_LINESTRING_PRE = pack(BYTE_UINT, 1, 5)
 WKB_MULTI_LINESTRING_Z_PRE = pack(BYTE_UINT, 1, 1005)
 WKB_MULTI_LINESTRING_M_PRE = pack(BYTE_UINT, 1, 2005)
@@ -27,9 +29,13 @@ WKB_MULTI_LINESTRING_ZM_PRE = pack(BYTE_UINT, 1, 3005)
 
 WKB_POLY_PRE = pack(BYTE_UINT, 1, 3)
 WKB_POLY_Z_PRE = pack(BYTE_UINT, 1, 1003)
+WKB_POLY_M_PRE = pack(BYTE_UINT, 1, 2003)
+WKB_POLY_ZM_PRE = pack(BYTE_UINT, 1, 3003)
 
 WKB_MULTI_POLY_PRE = pack(BYTE_UINT, 1, 6)
 WKB_MULTI_POLY_Z_PRE = pack(BYTE_UINT, 1, 1006)
+WKB_MULTI_POLY_M_PRE = pack(BYTE_UINT, 1, 2006)
+WKB_MULTI_POLY_ZM_PRE = pack(BYTE_UINT, 1, 3006)
 
 
 EMPTY_B = ''
@@ -408,6 +414,44 @@ def point_lists_z_to_wkb_polygon_z(ring_point_lists):
 # End point_lists_z_to_wkb_polygon_z function
 
 
+def point_lists_m_to_wkb_polygon_m(ring_point_lists):
+    """
+    Ring point lists should be lists of points representing poly rings.
+
+    # NOTE!! You MUST close the polygon or ArcMap will be unhappy!
+
+    i.e. [[(x, y), (x, y), ..],[(x, y), (x, y)...]]
+
+    :param ring_point_lists: List of List of Points
+    :type ring_point_lists: list
+    :return: formatted string
+    :rtype: str
+    """
+    return (WKB_POLY_M_PRE + pack('<I', len(ring_point_lists)) +
+            EMPTY_B.join((
+                _linear_ring_m_to_wkb(ring) for ring in ring_point_lists)))
+# End point_lists_m_to_wkb_polygon_m function
+
+
+def point_lists_zm_to_wkb_polygon_zm(ring_point_lists):
+    """
+    Ring point lists should be lists of points representing poly rings.
+
+    # NOTE!! You MUST close the polygon or ArcMap will be unhappy!
+
+    i.e. [[(x, y), (x, y), ..],[(x, y), (x, y)...]]
+
+    :param ring_point_lists: List of List of Points
+    :type ring_point_lists: list
+    :return: formatted string
+    :rtype: str
+    """
+    return (WKB_POLY_ZM_PRE + pack('<I', len(ring_point_lists)) +
+            EMPTY_B.join((
+                _linear_ring_zm_to_wkb(ring) for ring in ring_point_lists)))
+# End point_lists_zm_to_wkb_polygon_zm function
+
+
 def point_lists_to_wkb_multipolygon(polygon_ring_lists):
     """
     This is a list (polygons) which are lists of rings which are lists of points
@@ -446,6 +490,46 @@ def point_lists_z_to_wkb_multipolygon_z(polygon_ring_lists):
         out += point_lists_z_to_wkb_polygon_z(point_list)
     return WKB_MULTI_POLY_Z_PRE + num + out
 # End point_lists_z_to_wkb_multipolygon_z function
+
+
+def point_lists_m_to_wkb_multipolygon_m(polygon_ring_lists):
+    """
+    This is a list (polygons) which are lists of rings which are lists of points
+    Point lists should be lists of points representing poly rings.
+
+    i.e. [[[(x, y), (x, y), ..],[(x, y), (x, y)...]],[etc]]
+
+    :param polygon_ring_lists: List of List of List of points
+    :type polygon_ring_lists: list
+    :return: formatted string
+    :rtype: str
+    """
+    num = pack('<I', len(polygon_ring_lists))
+    out = EMPTY_B
+    for point_list in polygon_ring_lists:
+        out += point_lists_m_to_wkb_polygon_m(point_list)
+    return WKB_MULTI_POLY_M_PRE + num + out
+# End point_lists_m_to_wkb_multipolygon_m function
+
+
+def point_lists_zm_to_wkb_multipolygon_zm(polygon_ring_lists):
+    """
+    This is a list (polygons) which are lists of rings which are lists of points
+    Point lists should be lists of points representing poly rings.
+
+    i.e. [[[(x, y), (x, y), ..],[(x, y), (x, y)...]],[etc]]
+
+    :param polygon_ring_lists: List of List of List of points
+    :type polygon_ring_lists: list
+    :return: formatted string
+    :rtype: str
+    """
+    num = pack('<I', len(polygon_ring_lists))
+    out = EMPTY_B
+    for point_list in polygon_ring_lists:
+        out += point_lists_zm_to_wkb_polygon_zm(point_list)
+    return WKB_MULTI_POLY_ZM_PRE + num + out
+# End point_lists_zm_to_wkb_multipolygon_zm function
 
 
 if __name__ == '__main__':
