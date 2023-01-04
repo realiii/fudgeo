@@ -88,7 +88,8 @@ TABLE_EXISTS = """
 
 
 CHECK_SRS_EXISTS = """
-    SELECT srs_id FROM gpkg_spatial_ref_sys 
+    SELECT srs_id 
+    FROM gpkg_spatial_ref_sys 
     WHERE srs_id = ?
 """
 
