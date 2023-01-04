@@ -5,9 +5,10 @@ Geometry
 
 
 from abc import abstractmethod
-from functools import cache, reduce
+from functools import lru_cache, reduce
 from operator import add
 from struct import pack, unpack
+from typing import List, Tuple
 
 from fudgeo.constant import (
     BYTE_UINT, COUNT_UNIT, DOUBLE, EMPTY, GP_MAGIC, QUADRUPLE, SRS_ID, TRIPLE,
@@ -15,9 +16,10 @@ from fudgeo.constant import (
     WKB_LINESTRING_Z_PRE, WKB_MULTI_LINESTRING_M_PRE, WKB_MULTI_LINESTRING_PRE,
     WKB_MULTI_LINESTRING_ZM_PRE, WKB_MULTI_LINESTRING_Z_PRE,
     WKB_MULTI_POINT_M_PRE, WKB_MULTI_POINT_PRE, WKB_MULTI_POINT_ZM_PRE,
-    WKB_MULTI_POINT_Z_PRE, WKB_MULTI_POLYGON_PRE, WKB_MULTI_POLYGON_Z_PRE,
-    WKB_POINT_M_PRE, WKB_POINT_PRE, WKB_POINT_ZM_PRE, WKB_POINT_Z_PRE,
-    WKB_POLYGON_PRE, WKB_POLYGON_Z_PRE)
+    WKB_MULTI_POINT_Z_PRE, WKB_MULTI_POLYGON_M_PRE, WKB_MULTI_POLYGON_PRE,
+    WKB_MULTI_POLYGON_ZM_PRE, WKB_MULTI_POLYGON_Z_PRE, WKB_POINT_M_PRE,
+    WKB_POINT_PRE, WKB_POINT_ZM_PRE, WKB_POINT_Z_PRE, WKB_POLYGON_M_PRE,
+    WKB_POLYGON_PRE, WKB_POLYGON_ZM_PRE, WKB_POLYGON_Z_PRE)
 
 
 __all__ = ['Point', 'PointZ', 'PointM', 'PointZM', 'MultiPoint', 'MultiPointZ',
@@ -28,18 +30,18 @@ __all__ = ['Point', 'PointZ', 'PointM', 'PointZM', 'MultiPoint', 'MultiPointZ',
 
 
 def _unpack_line(value: bytes, dimension: int,
-                 is_ring: bool = False) -> list[tuple[float, ...]]:
+                 is_ring: bool = False) -> List[Tuple[float, ...]]:
     """
     Unpack Values for LineString
     """
     count, data = _get_count_and_data(value, is_ring=is_ring)
     total = dimension * count
-    values: tuple[float, ...] = unpack(f'<{total}d', data)
+    values: Tuple[float, ...] = unpack(f'<{total}d', data)
     return [values[i:i + dimension] for i in range(0, total, dimension)]
 # End _unpack_line function
 
 
-def _unpack_points(value: bytes, dimension: int) -> list[tuple[float, ...]]:
+def _unpack_points(value: bytes, dimension: int) -> List[Tuple[float, ...]]:
     """
     Unpack Values for Multi Point
     """
@@ -48,13 +50,13 @@ def _unpack_points(value: bytes, dimension: int) -> list[tuple[float, ...]]:
     count, data = _get_count_and_data(value)
     total = dimension * count
     data = [data[i + offset:i + size] for i in range(0, len(data), size)]
-    values: tuple[float, ...] = unpack(f'<{total}d', reduce(add, data))
+    values: Tuple[float, ...] = unpack(f'<{total}d', reduce(add, data))
     return [values[i:i + dimension] for i in range(0, total, dimension)]
 # End _unpack_points function
 
 
 def _unpack_lines(value: bytes, dimension: int, is_ring: bool = False) \
-        -> list[list[tuple[float, ...]]]:
+        -> List[List[Tuple[float, ...]]]:
     """
     Unpack Values for Multi LineString and Polygons
     """
@@ -66,7 +68,7 @@ def _unpack_lines(value: bytes, dimension: int, is_ring: bool = False) \
         *_, length = unpack(unit, data[last_end:last_end + offset])
         end = last_end + offset + (size * length)
         # noinspection PyTypeChecker
-        points: list[tuple[float, ...]] = _unpack_line(
+        points: List[Tuple[float, ...]] = _unpack_line(
             data[last_end:end], dimension, is_ring=is_ring)
         last_end = end
         lines.append(points)
@@ -75,7 +77,7 @@ def _unpack_lines(value: bytes, dimension: int, is_ring: bool = False) \
 
 
 def _unpack_polygons(value: bytes, dimension: int) \
-        -> list[list[list[tuple[float, ...]]]]:
+        -> List[List[List[Tuple[float, ...]]]]:
     """
     Unpack Values for Multi Polygon Type Containing Polygons
     """
@@ -92,7 +94,7 @@ def _unpack_polygons(value: bytes, dimension: int) \
 
 
 def _get_count_and_data(value: bytes, is_ring: bool = False) \
-        -> tuple[int, bytes]:
+        -> Tuple[int, bytes]:
     """
     Get Count from header and return the value portion of the stream
     """
@@ -103,7 +105,7 @@ def _get_count_and_data(value: bytes, is_ring: bool = False) \
 # End _get_count_and_data function
 
 
-@cache
+@lru_cache(maxsize=None)
 def _make_header_with_srs_id(srs_id: int) -> bytes:
     """
     Cached Header Creation
@@ -451,16 +453,16 @@ class PointZM(AbstractGeometry):
 
 class MultiPoint(AbstractGeometry):
     """
-    MultiPoint
+    Multi Point
     """
     __slots__ = 'points'
 
-    def __init__(self, coordinates: list[DOUBLE], srs_id: int = WGS84) -> None:
+    def __init__(self, coordinates: List[DOUBLE], srs_id: int = WGS84) -> None:
         """
         Initialize the MultiPoint class
         """
         super().__init__(srs_id=srs_id)
-        self.points: list[Point] = [Point(x=x, y=y) for x, y in coordinates]
+        self.points: List[Point] = [Point(x=x, y=y) for x, y in coordinates]
     # End init built-in
 
     def __eq__(self, other: 'MultiPoint') -> bool:
@@ -506,16 +508,16 @@ class MultiPoint(AbstractGeometry):
 
 class MultiPointZ(AbstractGeometry):
     """
-    MultiPointZ
+    Multi Point Z
     """
     __slots__ = 'points'
 
-    def __init__(self, coordinates: list[TRIPLE], srs_id: int = WGS84) -> None:
+    def __init__(self, coordinates: List[TRIPLE], srs_id: int = WGS84) -> None:
         """
         Initialize the MultiPointZ class
         """
         super().__init__(srs_id=srs_id)
-        self.points: list[PointZ] = [
+        self.points: List[PointZ] = [
             PointZ(x=x, y=y, z=z) for x, y, z in coordinates]
     # End init built-in
 
@@ -562,16 +564,16 @@ class MultiPointZ(AbstractGeometry):
 
 class MultiPointM(AbstractGeometry):
     """
-    MultiPointM
+    Multi Point M
     """
     __slots__ = 'points'
 
-    def __init__(self, coordinates: list[TRIPLE], srs_id: int = WGS84) -> None:
+    def __init__(self, coordinates: List[TRIPLE], srs_id: int = WGS84) -> None:
         """
         Initialize the MultiPointM class
         """
         super().__init__(srs_id=srs_id)
-        self.points: list[PointM] = [
+        self.points: List[PointM] = [
             PointM(x=x, y=y, m=m) for x, y, m in coordinates]
     # End init built-in
 
@@ -618,17 +620,17 @@ class MultiPointM(AbstractGeometry):
 
 class MultiPointZM(AbstractGeometry):
     """
-    MultiPointZM
+    Multi Point ZM
     """
     __slots__ = 'points'
 
-    def __init__(self, coordinates: list[QUADRUPLE],
+    def __init__(self, coordinates: List[QUADRUPLE],
                  srs_id: int = WGS84) -> None:
         """
         Initialize the MultiPointZM class
         """
         super().__init__(srs_id=srs_id)
-        self.points: list[PointZM] = [
+        self.points: List[PointZM] = [
             PointZM(x=x, y=y, z=z, m=m) for x, y, z, m in coordinates]
     # End init built-in
 
@@ -679,12 +681,12 @@ class LineString(AbstractGeometry):
     """
     __slots__ = 'points'
 
-    def __init__(self, coordinates: list[DOUBLE], srs_id: int = WGS84) -> None:
+    def __init__(self, coordinates: List[DOUBLE], srs_id: int = WGS84) -> None:
         """
         Initialize the LineString class
         """
         super().__init__(srs_id=srs_id)
-        self.points: list[Point] = [Point(x=x, y=y) for x, y in coordinates]
+        self.points: List[Point] = [Point(x=x, y=y) for x, y in coordinates]
     # End init built-in
 
     def __eq__(self, other: 'LineString') -> bool:
@@ -734,12 +736,12 @@ class LineStringZ(AbstractGeometry):
     """
     __slots__ = 'points'
 
-    def __init__(self, coordinates: list[TRIPLE], srs_id: int = WGS84) -> None:
+    def __init__(self, coordinates: List[TRIPLE], srs_id: int = WGS84) -> None:
         """
         Initialize the LineStringZ class
         """
         super().__init__(srs_id=srs_id)
-        self.points: list[PointZ] = [
+        self.points: List[PointZ] = [
             PointZ(x=x, y=y, z=z) for x, y, z in coordinates]
     # End init built-in
 
@@ -790,12 +792,12 @@ class LineStringM(AbstractGeometry):
     """
     __slots__ = 'points'
 
-    def __init__(self, coordinates: list[TRIPLE], srs_id: int = WGS84) -> None:
+    def __init__(self, coordinates: List[TRIPLE], srs_id: int = WGS84) -> None:
         """
         Initialize the LineStringM class
         """
         super().__init__(srs_id=srs_id)
-        self.points: list[PointM] = [
+        self.points: List[PointM] = [
             PointM(x=x, y=y, m=m) for x, y, m in coordinates]
     # End init built-in
 
@@ -846,13 +848,13 @@ class LineStringZM(AbstractGeometry):
     """
     __slots__ = 'points'
 
-    def __init__(self, coordinates: list[QUADRUPLE],
+    def __init__(self, coordinates: List[QUADRUPLE],
                  srs_id: int = WGS84) -> None:
         """
         Initialize the LineStringZM class
         """
         super().__init__(srs_id=srs_id)
-        self.points: list[PointZM] = [
+        self.points: List[PointZM] = [
             PointZM(x=x, y=y, z=z, m=m) for x, y, z, m in coordinates]
     # End init built-in
 
@@ -903,13 +905,13 @@ class MultiLineString(AbstractGeometry):
     """
     __slots__ = 'lines'
 
-    def __init__(self, coordinates: list[list[DOUBLE]],
+    def __init__(self, coordinates: List[List[DOUBLE]],
                  srs_id: int = WGS84) -> None:
         """
         Initialize the MultiLineString class
         """
         super().__init__(srs_id=srs_id)
-        self.lines: list[LineString] = [
+        self.lines: List[LineString] = [
             LineString(coords) for coords in coordinates]
     # End init built-in
 
@@ -960,13 +962,13 @@ class MultiLineStringZ(AbstractGeometry):
     """
     __slots__ = 'lines'
 
-    def __init__(self, coordinates: list[list[TRIPLE]],
+    def __init__(self, coordinates: List[List[TRIPLE]],
                  srs_id: int = WGS84) -> None:
         """
         Initialize the MultiLineStringZ class
         """
         super().__init__(srs_id=srs_id)
-        self.lines: list[LineStringZ] = [
+        self.lines: List[LineStringZ] = [
             LineStringZ(coords) for coords in coordinates]
     # End init built-in
 
@@ -1017,13 +1019,13 @@ class MultiLineStringM(AbstractGeometry):
     """
     __slots__ = 'lines'
 
-    def __init__(self, coordinates: list[list[TRIPLE]],
+    def __init__(self, coordinates: List[List[TRIPLE]],
                  srs_id: int = WGS84) -> None:
         """
         Initialize the MultiLineStringM class
         """
         super().__init__(srs_id=srs_id)
-        self.lines: list[LineStringM] = [
+        self.lines: List[LineStringM] = [
             LineStringM(coords) for coords in coordinates]
     # End init built-in
 
@@ -1074,13 +1076,13 @@ class MultiLineStringZM(AbstractGeometry):
     """
     __slots__ = 'lines'
 
-    def __init__(self, coordinates: list[list[QUADRUPLE]],
+    def __init__(self, coordinates: List[List[QUADRUPLE]],
                  srs_id: int = WGS84) -> None:
         """
         Initialize the MultiLineStringZM class
         """
         super().__init__(srs_id=srs_id)
-        self.lines: list[LineStringZM] = [
+        self.lines: List[LineStringZM] = [
             LineStringZM(coords) for coords in coordinates]
     # End init built-in
 
@@ -1127,17 +1129,17 @@ class MultiLineStringZM(AbstractGeometry):
 
 class LinearRing(AbstractGeometry):
     """
-    LinearRing
+    Linear Ring
     """
     __slots__ = 'points'
 
-    def __init__(self, coordinates: list[DOUBLE],
+    def __init__(self, coordinates: List[DOUBLE],
                  srs_id: int = WGS84) -> None:
         """
         Initialize the LinearRing class
         """
         super().__init__(srs_id=srs_id)
-        self.points: list[Point] = [Point(x=x, y=y) for x, y in coordinates]
+        self.points: List[Point] = [Point(x=x, y=y) for x, y in coordinates]
     # End init built-in
 
     def __eq__(self, other: 'LinearRing') -> bool:
@@ -1188,16 +1190,16 @@ class LinearRing(AbstractGeometry):
 
 class LinearRingZ(AbstractGeometry):
     """
-    LinearRingZ
+    Linear Ring Z
     """
     __slots__ = 'points'
 
-    def __init__(self, coordinates: list[TRIPLE], srs_id: int = WGS84) -> None:
+    def __init__(self, coordinates: List[TRIPLE], srs_id: int = WGS84) -> None:
         """
-        Initialize the LinearRing class
+        Initialize the LinearRingZ class
         """
         super().__init__(srs_id=srs_id)
-        self.points: list[PointZ] = [
+        self.points: List[PointZ] = [
             PointZ(x=x, y=y, z=z) for x, y, z in coordinates]
     # End init built-in
 
@@ -1247,19 +1249,142 @@ class LinearRingZ(AbstractGeometry):
 # End LinearRingZ class
 
 
+class LinearRingM(AbstractGeometry):
+    """
+    Linear Ring M
+    """
+    __slots__ = 'points'
+
+    def __init__(self, coordinates: List[TRIPLE], srs_id: int = WGS84) -> None:
+        """
+        Initialize the LinearRingM class
+        """
+        super().__init__(srs_id=srs_id)
+        self.points: List[PointM] = [
+            PointM(x=x, y=y, m=m) for x, y, m in coordinates]
+    # End init built-in
+
+    def __eq__(self, other: 'LinearRingM') -> bool:
+        """
+        Equals
+        """
+        if not isinstance(other, LinearRingM):  # pragma: nocover
+            return NotImplemented
+        if self.srs_id != other.srs_id:
+            return False
+        return self.points == other.points
+    # End eq built-in
+
+    def to_wkb(self, use_prefix: bool = True) -> bytes:
+        """
+        To WKB
+        """
+        return self._joiner(
+            pack(COUNT_UNIT, len(self.points)),
+            self._joiner(*[pt.to_wkb(False) for pt in self.points]))
+    # End to_wkb method
+
+    @classmethod
+    def from_wkb(cls, wkb: bytes) -> 'LinearRingM':
+        """
+        From WKB
+        """
+        # noinspection PyTypeChecker
+        return cls(_unpack_line(wkb, dimension=3, is_ring=True))
+    # End from_wkb method
+
+    def to_gpkg(self) -> bytes:
+        """
+        To Geopackage
+        """
+        raise NotImplementedError('Linear Rings not supported for Geopackage')
+    # End to_gpkg method
+
+    @classmethod
+    def from_gpkg(cls, value: bytes) -> 'LinearRingM':
+        """
+        From Geopackage
+        """
+        raise NotImplementedError('Linear Rings not supported for Geopackage')
+    # End from_gpkg method
+# End LinearRingM class
+
+
+class LinearRingZM(AbstractGeometry):
+    """
+    Linear Ring ZM
+    """
+    __slots__ = 'points'
+
+    def __init__(self, coordinates: List[QUADRUPLE],
+                 srs_id: int = WGS84) -> None:
+        """
+        Initialize the LinearRingZM class
+        """
+        super().__init__(srs_id=srs_id)
+        self.points: List[PointZM] = [
+            PointZM(x=x, y=y, z=z, m=m) for x, y, z, m in coordinates]
+    # End init built-in
+
+    def __eq__(self, other: 'LinearRingZM') -> bool:
+        """
+        Equals
+        """
+        if not isinstance(other, LinearRingZM):  # pragma: nocover
+            return NotImplemented
+        if self.srs_id != other.srs_id:
+            return False
+        return self.points == other.points
+    # End eq built-in
+
+    def to_wkb(self, use_prefix: bool = True) -> bytes:
+        """
+        To WKB
+        """
+        return self._joiner(
+            pack(COUNT_UNIT, len(self.points)),
+            self._joiner(*[pt.to_wkb(False) for pt in self.points]))
+    # End to_wkb method
+
+    @classmethod
+    def from_wkb(cls, wkb: bytes) -> 'LinearRingZM':
+        """
+        From WKB
+        """
+        # noinspection PyTypeChecker
+        return cls(_unpack_line(wkb, dimension=4, is_ring=True))
+    # End from_wkb method
+
+    def to_gpkg(self) -> bytes:
+        """
+        To Geopackage
+        """
+        raise NotImplementedError('Linear Rings not supported for Geopackage')
+    # End to_gpkg method
+
+    @classmethod
+    def from_gpkg(cls, value: bytes) -> 'LinearRingZM':
+        """
+        From Geopackage
+        """
+        raise NotImplementedError('Linear Rings not supported for Geopackage')
+    # End from_gpkg method
+# End LinearRingZM class
+
+
 class Polygon(AbstractGeometry):
     """
     Polygon
     """
     __slots__ = 'rings'
 
-    def __init__(self, coordinates: list[list[DOUBLE]],
+    def __init__(self, coordinates: List[List[DOUBLE]],
                  srs_id: int = WGS84) -> None:
         """
         Initialize the Polygon class
         """
         super().__init__(srs_id=srs_id)
-        self.rings: list[LinearRing] = [
+        self.rings: List[LinearRing] = [
             LinearRing(coords) for coords in coordinates]
     # End init built-in
 
@@ -1307,17 +1432,17 @@ class Polygon(AbstractGeometry):
 
 class PolygonZ(AbstractGeometry):
     """
-    PolygonZ
+    Polygon Z
     """
     __slots__ = 'rings'
 
-    def __init__(self, coordinates: list[list[TRIPLE]],
+    def __init__(self, coordinates: List[List[TRIPLE]],
                  srs_id: int = WGS84) -> None:
         """
         Initialize the PolygonZ class
         """
         super().__init__(srs_id=srs_id)
-        self.rings: list[LinearRingZ] = [
+        self.rings: List[LinearRingZ] = [
             LinearRingZ(coords) for coords in coordinates]
     # End init built-in
 
@@ -1363,19 +1488,135 @@ class PolygonZ(AbstractGeometry):
 # End PolygonZ class
 
 
+class PolygonM(AbstractGeometry):
+    """
+    Polygon M
+    """
+    __slots__ = 'rings'
+
+    def __init__(self, coordinates: List[List[TRIPLE]],
+                 srs_id: int = WGS84) -> None:
+        """
+        Initialize the PolygonM class
+        """
+        super().__init__(srs_id=srs_id)
+        self.rings: List[LinearRingM] = [
+            LinearRingM(coords) for coords in coordinates]
+    # End init built-in
+
+    def __eq__(self, other: 'PolygonM') -> bool:
+        """
+        Equals
+        """
+        if not isinstance(other, PolygonM):  # pragma: nocover
+            return NotImplemented
+        if self.srs_id != other.srs_id:
+            return False
+        return self.rings == other.rings
+    # End eq built-in
+
+    def to_wkb(self, use_prefix: bool = True) -> bytes:
+        """
+        To WKB
+        """
+        return self._joiner(
+            WKB_POLYGON_M_PRE, pack(COUNT_UNIT, len(self.rings)),
+            self._joiner(*[ring.to_wkb() for ring in self.rings]))
+    # End to_wkb method
+
+    @classmethod
+    def from_wkb(cls, wkb: bytes) -> 'PolygonM':
+        """
+        From WKB
+        """
+        # noinspection PyTypeChecker
+        return cls(_unpack_lines(wkb, dimension=3, is_ring=True))
+    # End from_wkb method
+
+    @classmethod
+    def from_gpkg(cls, value: bytes) -> 'PolygonM':
+        """
+        From Geopackage
+        """
+        srs_id = cls._unpack_srs_id(value)
+        # noinspection PyTypeChecker
+        return cls(_unpack_lines(
+            value[8:], dimension=3, is_ring=True), srs_id=srs_id)
+    # End from_gpkg method
+# End PolygonM class
+
+
+class PolygonZM(AbstractGeometry):
+    """
+    Polygon ZM
+    """
+    __slots__ = 'rings'
+
+    def __init__(self, coordinates: List[List[QUADRUPLE]],
+                 srs_id: int = WGS84) -> None:
+        """
+        Initialize the PolygonZM class
+        """
+        super().__init__(srs_id=srs_id)
+        self.rings: List[LinearRingZM] = [
+            LinearRingZM(coords) for coords in coordinates]
+    # End init built-in
+
+    def __eq__(self, other: 'PolygonZM') -> bool:
+        """
+        Equals
+        """
+        if not isinstance(other, PolygonZM):  # pragma: nocover
+            return NotImplemented
+        if self.srs_id != other.srs_id:
+            return False
+        return self.rings == other.rings
+    # End eq built-in
+
+    def to_wkb(self, use_prefix: bool = True) -> bytes:
+        """
+        To WKB
+        """
+        return self._joiner(
+            WKB_POLYGON_ZM_PRE, pack(COUNT_UNIT, len(self.rings)),
+            self._joiner(*[ring.to_wkb() for ring in self.rings]))
+    # End to_wkb method
+
+    @classmethod
+    def from_wkb(cls, wkb: bytes) -> 'PolygonZM':
+        """
+        From WKB
+        """
+        # noinspection PyTypeChecker
+        return cls(_unpack_lines(wkb, dimension=4, is_ring=True))
+    # End from_wkb method
+
+    @classmethod
+    def from_gpkg(cls, value: bytes) -> 'PolygonZM':
+        """
+        From Geopackage
+        """
+        srs_id = cls._unpack_srs_id(value)
+        # noinspection PyTypeChecker
+        return cls(_unpack_lines(
+            value[8:], dimension=4, is_ring=True), srs_id=srs_id)
+    # End from_gpkg method
+# End PolygonZM class
+
+
 class MultiPolygon(AbstractGeometry):
     """
-    MultiPolygon
+    Multi Polygon
     """
     __slots__ = 'polygons'
 
-    def __init__(self, coordinates: list[list[list[DOUBLE]]],
+    def __init__(self, coordinates: List[List[List[DOUBLE]]],
                  srs_id: int = WGS84) -> None:
         """
         Initialize the MultiPolygon class
         """
         super().__init__(srs_id=srs_id)
-        self.polygons: list[Polygon] = [
+        self.polygons: List[Polygon] = [
             Polygon(coords) for coords in coordinates]
     # End init built-in
 
@@ -1422,17 +1663,17 @@ class MultiPolygon(AbstractGeometry):
 
 class MultiPolygonZ(AbstractGeometry):
     """
-    MultiPolygonZ
+    Multi Polygon Z
     """
     __slots__ = 'polygons'
 
-    def __init__(self, coordinates: list[list[list[TRIPLE]]],
+    def __init__(self, coordinates: List[List[List[TRIPLE]]],
                  srs_id: int = WGS84) -> None:
         """
-        Initialize the MultiPolygon class
+        Initialize the MultiPolygonZ class
         """
         super().__init__(srs_id=srs_id)
-        self.polygons: list[PolygonZ] = [
+        self.polygons: List[PolygonZ] = [
             PolygonZ(coords) for coords in coordinates]
     # End init built-in
 
@@ -1475,6 +1716,120 @@ class MultiPolygonZ(AbstractGeometry):
         return cls(_unpack_polygons(value[8:], dimension=3), srs_id=srs_id)
     # End from_gpkg method
 # End MultiPolygonZ class
+
+
+class MultiPolygonM(AbstractGeometry):
+    """
+    Multi Polygon M
+    """
+    __slots__ = 'polygons'
+
+    def __init__(self, coordinates: List[List[List[TRIPLE]]],
+                 srs_id: int = WGS84) -> None:
+        """
+        Initialize the MultiPolygonM class
+        """
+        super().__init__(srs_id=srs_id)
+        self.polygons: List[PolygonM] = [
+            PolygonM(coords) for coords in coordinates]
+    # End init built-in
+
+    def __eq__(self, other: 'MultiPolygonM') -> bool:
+        """
+        Equals
+        """
+        if not isinstance(other, MultiPolygonM):  # pragma: nocover
+            return NotImplemented
+        if self.srs_id != other.srs_id:
+            return False
+        return self.polygons == other.polygons
+    # End eq built-in
+
+    def to_wkb(self, use_prefix: bool = True) -> bytes:
+        """
+        To WKB
+        """
+        return self._joiner(
+            WKB_MULTI_POLYGON_M_PRE, pack(COUNT_UNIT, len(self.polygons)),
+            self._joiner(*[polygon.to_wkb() for polygon in self.polygons]))
+    # End to_wkb method
+
+    @classmethod
+    def from_wkb(cls, wkb: bytes) -> 'MultiPolygonM':
+        """
+        From WKB
+        """
+        # noinspection PyTypeChecker
+        return cls(_unpack_polygons(wkb, dimension=3))
+    # End from_wkb method
+
+    @classmethod
+    def from_gpkg(cls, value: bytes) -> 'MultiPolygonM':
+        """
+        From Geopackage
+        """
+        srs_id = cls._unpack_srs_id(value)
+        # noinspection PyTypeChecker
+        return cls(_unpack_polygons(value[8:], dimension=3), srs_id=srs_id)
+    # End from_gpkg method
+# End MultiPolygonM class
+
+
+class MultiPolygonZM(AbstractGeometry):
+    """
+    Multi Polygon M
+    """
+    __slots__ = 'polygons'
+
+    def __init__(self, coordinates: List[List[List[QUADRUPLE]]],
+                 srs_id: int = WGS84) -> None:
+        """
+        Initialize the MultiPolygonZM class
+        """
+        super().__init__(srs_id=srs_id)
+        self.polygons: List[PolygonZM] = [
+            PolygonZM(coords) for coords in coordinates]
+    # End init built-in
+
+    def __eq__(self, other: 'MultiPolygonZM') -> bool:
+        """
+        Equals
+        """
+        if not isinstance(other, MultiPolygonZM):  # pragma: nocover
+            return NotImplemented
+        if self.srs_id != other.srs_id:
+            return False
+        return self.polygons == other.polygons
+    # End eq built-in
+
+    def to_wkb(self, use_prefix: bool = True) -> bytes:
+        """
+        To WKB
+        """
+        return self._joiner(
+            WKB_MULTI_POLYGON_ZM_PRE, pack(COUNT_UNIT, len(self.polygons)),
+            self._joiner(*[polygon.to_wkb() for polygon in self.polygons]))
+    # End to_wkb method
+
+    @classmethod
+    def from_wkb(cls, wkb: bytes) -> 'MultiPolygonZM':
+        """
+        From WKB
+        """
+        # noinspection PyTypeChecker
+        return cls(_unpack_polygons(wkb, dimension=4))
+    # End from_wkb method
+
+    @classmethod
+    def from_gpkg(cls, value: bytes) -> 'MultiPolygonZM':
+        """
+        From Geopackage
+        """
+        srs_id = cls._unpack_srs_id(value)
+        # noinspection PyTypeChecker
+        return cls(_unpack_polygons(value[8:], dimension=4), srs_id=srs_id)
+    # End from_gpkg method
+# End MultiPolygonZM class
 
 
 if __name__ == '__main__':

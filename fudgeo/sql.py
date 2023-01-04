@@ -11,6 +11,46 @@ INSERT_GPKG_CONTENTS_SHORT = """
 """
 
 
+INSERT_GPKG_OGR_CONTENTS = """
+    INSERT INTO gpkg_ogr_contents (table_name, feature_count) VALUES (?, ?)
+"""
+
+
+REMOVE_FEATURE_CLASS = """
+    DELETE FROM gpkg_ogr_contents WHERE table_name = '{0}';
+    DELETE FROM gpkg_contents WHERE table_name = '{0}';
+    DELETE FROM gpkg_geometry_columns WHERE table_name = '{0}';
+    DROP TRIGGER IF EXISTS trigger_insert_feature_count_{0};
+    DROP TRIGGER IF EXISTS trigger_delete_feature_count_{0};
+    DROP TABLE IF EXISTS {0};
+"""
+
+
+REMOVE_TABLE = """
+    DELETE FROM gpkg_ogr_contents WHERE table_name = '{0}';
+    DELETE FROM gpkg_contents WHERE table_name = '{0}';
+    DROP TRIGGER IF EXISTS trigger_insert_feature_count_{0};
+    DROP TRIGGER IF EXISTS trigger_delete_feature_count_{0};
+    DROP TABLE IF EXISTS {0};
+"""
+
+
+GPKG_OGR_CONTENTS_INSERT_TRIGGER = """
+    CREATE TRIGGER trigger_insert_feature_count_{0}
+    AFTER INSERT ON {0}
+    BEGIN UPDATE gpkg_ogr_contents SET feature_count = feature_count + 1 
+          WHERE lower(table_name) = lower('{0}'); END;
+"""
+
+
+GPKG_OGR_CONTENTS_DELETE_TRIGGER = """
+    CREATE TRIGGER trigger_delete_feature_count_{0}
+    AFTER DELETE ON {0}
+    BEGIN UPDATE gpkg_ogr_contents SET feature_count = feature_count - 1 
+          WHERE lower(table_name) = lower('{0}'); END;
+"""
+
+
 INSERT_GPKG_GEOM_COL = """
     INSERT INTO gpkg_geometry_columns (
         table_name, column_name, geometry_type_name, srs_id, z, m) 
@@ -48,7 +88,8 @@ TABLE_EXISTS = """
 
 
 CHECK_SRS_EXISTS = """
-    SELECT srs_id FROM gpkg_spatial_ref_sys 
+    SELECT srs_id 
+    FROM gpkg_spatial_ref_sys 
     WHERE srs_id = ?
 """
 
@@ -66,16 +107,55 @@ SELECT_SRS = """
 
 
 SELECT_HAS_ZM = """
-    SELECT gpkg_geometry_columns.z,gpkg_geometry_columns.m
-    FROM gpkg_contents LEFT JOIN gpkg_geometry_columns ON 
-            gpkg_contents.table_name = gpkg_geometry_columns.table_name
-    WHERE gpkg_contents.table_name = ?
+    SELECT z, m
+    FROM gpkg_geometry_columns
+    WHERE table_name = ?
+"""
+
+
+SELECT_GEOMETRY_COLUMN = """
+    SELECT column_name
+    FROM gpkg_geometry_columns
+    WHERE table_name = ?
+"""
+
+
+SELECT_GEOMETRY_TYPE = """
+    SELECT GEOM || Z || M
+    FROM (SELECT CASE
+                     WHEN geometry_type_name == 'POINT'
+                         THEN 'Point'
+                     WHEN geometry_type_name == 'LINESTRING'
+                         THEN 'LineString'
+                     WHEN geometry_type_name == 'POLYGON'
+                         THEN 'Polygon'
+                     WHEN geometry_type_name == 'MULTIPOINT'
+                         THEN 'MultiPoint'
+                     WHEN geometry_type_name == 'MULTILINESTRING'
+                         THEN 'MultiLineString'
+                     WHEN geometry_type_name == 'MULTIPOLYGON'
+                         THEN 'MultiPolygon'
+                     ELSE ''
+                     END AS GEOM,
+                 CASE
+                     WHEN z == 1
+                         THEN 'Z'
+                     ELSE ''
+                     END AS Z,
+                 CASE
+                     WHEN m == 1
+                         THEN 'M'
+                     ELSE ''
+                     END AS M
+          FROM gpkg_geometry_columns
+          WHERE table_name = ?
+  )
 """
 
 
 UPDATE_EXTENT = """    
     UPDATE gpkg_contents 
-    SET min_x=?, min_y=?, max_x=?, max_y=? 
+    SET min_x = ?, min_y = ?, max_x = ?, max_y = ? 
     WHERE table_name = ?
 """
 
@@ -85,6 +165,10 @@ SELECT_EXTENT = """
     FROM gpkg_contents
     WHERE table_name = ?
 """
+
+
+SELECT_TABLES_BY_TYPE = (
+    """SELECT table_name FROM gpkg_contents WHERE data_type = ?""")
 
 
 DEFAULT_SRS_RECS = (

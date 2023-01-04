@@ -16,16 +16,17 @@ For more details on OGC GeoPackages, please see the [OGC web page](http://www.ge
 
 ### Python Compatibility
 
-The `fudgeo` library is compatible with Python 3.9.
+The `fudgeo` library is compatible with Python 3.7 to 3.11.
 
 
 ## Usage
 
 `fudgeo` can be used to: 
 * Create a new empty GeoPackage or Open an existing GeoPackage.
-* Create new Feature Classes and Tables
+* Create new Feature Classes and Tables (optional overwrite)
 * Insert feature (geometry and attributes) into a Feature Class.
 * Insert rows into a Table (in the normal SQLite way)
+* Drop Feature Classes and Tables
 
 
 ### Create an Empty GeoPackage / Open GeoPackage
@@ -190,6 +191,19 @@ cursor = gpkg.connection.execute(
 features = cursor.fetchall()
 ```
 
+or a little more general, accounting for extended geometry types and possibility of the 
+geometry column being something other tha SHAPE:
+
+```python
+from fudgeo.geopkg import FeatureClass
+
+gpkg = GeoPackage(r'c:\data\example.gpkg')
+fc = FeatureClass(geopackage=gpkg, name='test')
+cursor = gpkg.connection.execute(f"""
+    SELECT {fc.geometry_column_name} "[{fc.geometry_type}]", heart_rate 
+    FROM {fc.name}""")
+features = cursor.fetchall()
+```
 
 ## License
 

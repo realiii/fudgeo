@@ -4,14 +4,14 @@ Geopackage
 """
 
 
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from math import nan
 from os import PathLike
 from pathlib import Path
 from sqlite3 import (
-    Connection, PARSE_COLNAMES, PARSE_DECLTYPES, connect, register_adapter,
-    register_converter)
-from typing import Optional, Union
+    Connection, Cursor, PARSE_COLNAMES, PARSE_DECLTYPES, connect,
+    register_adapter, register_converter)
+from typing import Dict, List, Optional, Tuple, Type, Union
 
 from fudgeo.enumeration import (
     DataType, GPKGFlavors, GeometryType, SQLFieldType)
@@ -21,13 +21,16 @@ from fudgeo.geometry import (
     MultiLineString, MultiLineStringZ, MultiLineStringM, MultiLineStringZM,
     Polygon, PolygonZ, MultiPolygon, MultiPolygonZ)
 from fudgeo.sql import (
-    CHECK_SRS_EXISTS, CREATE_FEATURE_TABLE, CREATE_TABLE,
-    DEFAULT_EPSG_RECS, DEFAULT_ESRI_RECS, INSERT_GPKG_CONTENTS_SHORT,
-    INSERT_GPKG_GEOM_COL, INSERT_GPKG_SRS, SELECT_EXTENT, SELECT_HAS_ZM,
-    SELECT_SRS, TABLE_EXISTS, UPDATE_EXTENT)
+    CHECK_SRS_EXISTS, CREATE_FEATURE_TABLE, CREATE_TABLE, DEFAULT_EPSG_RECS,
+    DEFAULT_ESRI_RECS, GPKG_OGR_CONTENTS_DELETE_TRIGGER,
+    GPKG_OGR_CONTENTS_INSERT_TRIGGER, INSERT_GPKG_CONTENTS_SHORT,
+    INSERT_GPKG_GEOM_COL, INSERT_GPKG_OGR_CONTENTS, INSERT_GPKG_SRS,
+    REMOVE_FEATURE_CLASS, REMOVE_TABLE, SELECT_EXTENT, SELECT_GEOMETRY_COLUMN,
+    SELECT_GEOMETRY_TYPE, SELECT_HAS_ZM, SELECT_SRS, SELECT_TABLES_BY_TYPE,
+    TABLE_EXISTS, UPDATE_EXTENT)
 
 
-FIELDS = Union[tuple['Field', ...], list['Field']]
+FIELDS = Union[Tuple['Field', ...], List['Field']]
 
 
 COMMA_SPACE = ', '
@@ -39,7 +42,7 @@ def _now() -> str:
     """
     Formatted Now
     """
-    return datetime.now().strftime('%Y-%m-%dT%H:%M:%fZ')
+    return datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%fZ')
 # End _now method
 
 
@@ -49,6 +52,46 @@ def _adapt_geometry(val) -> bytes:
     """
     return val.to_gpkg()
 # End _adapt_geometry function
+
+
+def _convert_datetime(val: bytes) -> datetime:
+    """
+    Heavily Influenced by convert_timestamp from ../sqlite3/dbapi2.py,
+    Added in support for timezone handling although the practice should
+    be to resolve to UTC.
+    """
+    colon = b':'
+    dash = b'-'
+    # To split timestamps like that b'2022-09-06T13:50:33'
+    for separator in (b' ', b'T'):
+        try:
+            dt, tm = val.split(separator)
+            break
+        except ValueError:
+            pass
+    else:
+        raise Exception(f"Could not split datetime: '{val}'")
+    year, month, day = map(int, dt.split(dash))
+    tm, *micro = tm.split(b'.')
+    tz = []
+    factor = 0
+    for token, scale in zip((b'+', dash), (1, -1)):
+        if token in tm:
+            tm, *tz = tm.split(token)
+            factor = scale
+            break
+    hours, minutes, seconds = map(int, tm.split(colon))
+    micro = int('{:0<6.6}'.format(micro[0].decode())) if micro else 0
+    if tz:
+        tz_hr, *tz_min = map(int, tz[0].split(colon))
+        tz_min = tz_min[0] if tz_min else 0
+        tzinfo = timezone(timedelta(
+            hours=factor * tz_hr, minutes=factor * tz_min))
+    else:
+        tzinfo = None
+    return datetime(year, month, day, hours, minutes, seconds,
+                    micro, tzinfo=tzinfo)
+# End _convert_datetime function
 
 
 def _register_geometry():
@@ -80,6 +123,7 @@ class GeoPackage:
             str(path), isolation_level='EXCLUSIVE',
             detect_types=PARSE_DECLTYPES | PARSE_COLNAMES)
         _register_geometry()
+        register_converter('datetime', _convert_datetime)
     # End init built-in
 
     @property
@@ -137,13 +181,14 @@ class GeoPackage:
         return bool(cursor.fetchall())
     # End _check_table_exists method
 
-    def _validate_inputs(self, fields: FIELDS, name: str) -> FIELDS:
+    def _validate_inputs(self, fields: FIELDS, name: str,
+                         overwrite: bool) -> FIELDS:
         """
         Validate Inputs
         """
         if not fields:
             fields = ()
-        if self._check_table_exists(name):
+        if not overwrite and self._check_table_exists(name):
             raise ValueError(f'Table {name} already exists in {self._path}')
         return fields
     # End _validate_inputs method
@@ -151,28 +196,56 @@ class GeoPackage:
     def create_feature_class(self, name: str, srs: 'SpatialReferenceSystem',
                              shape_type: str = GeometryType.point,
                              z_enabled: bool = False, m_enabled: bool = False,
-                             fields: FIELDS = (),
-                             description: str = '') -> 'FeatureClass':
+                             fields: FIELDS = (), description: str = '',
+                             overwrite: bool = False) -> 'FeatureClass':
         """
         Creates a feature class in the GeoPackage per the options given.
         """
-        fields = self._validate_inputs(fields, name)
+        fields = self._validate_inputs(fields, name, overwrite)
         return FeatureClass.create(
             geopackage=self, name=name, shape_type=shape_type, srs=srs,
             z_enabled=z_enabled, m_enabled=m_enabled, fields=fields,
-            description=description)
+            description=description, overwrite=overwrite)
     # End create_feature_class method
 
     def create_table(self, name: str, fields: FIELDS = (),
-                     description: str = '') -> 'Table':
+                     description: str = '', overwrite: bool = False) -> 'Table':
         """
         Creates a feature class in the GeoPackage per the options given.
         """
-        fields = self._validate_inputs(fields, name)
+        fields = self._validate_inputs(fields, name, overwrite)
         return Table.create(
             geopackage=self, name=name, fields=fields,
-            description=description)
+            description=description, overwrite=overwrite)
     # End create_feature_class method
+
+    @property
+    def tables(self) -> Dict[str, 'Table']:
+        """
+        Tables in the GeoPackage
+        """
+        # noinspection PyTypeChecker
+        return self._get_table_objects(Table, DataType.attributes)
+    # End tables property
+
+    @property
+    def feature_classes(self) -> Dict[str, 'FeatureClass']:
+        """
+        Feature Classes in the GeoPackage
+        """
+        # noinspection PyTypeChecker
+        return self._get_table_objects(FeatureClass, DataType.features)
+    # End feature_classes property
+
+    def _get_table_objects(self, cls: Type['BaseTable'],
+                           data_type: str) -> Dict[str, 'BaseTable']:
+        """
+        Get Table Objects
+        """
+        cursor = self.connection.execute(
+            SELECT_TABLES_BY_TYPE, (data_type,))
+        return {name: cls(self, name) for name, in cursor.fetchall()}
+    # End _get_table_objects method
 # End GeoPackage class
 
 
@@ -197,17 +270,30 @@ class Table(BaseTable):
     """
     @classmethod
     def create(cls, geopackage: GeoPackage, name: str, fields: FIELDS,
-               description: str = '') -> 'Table':
+               description: str = '', overwrite: bool = False) -> 'Table':
         """
         Create a regular non-spatial table in the geopackage
         """
         cols = f', {", ".join(repr(f) for f in fields)}' if fields else ''
         with geopackage.connection as conn:
+            if overwrite:
+                conn.executescript(REMOVE_TABLE.format(name))
             conn.execute(CREATE_TABLE.format(name=name, other_fields=cols))
             conn.execute(INSERT_GPKG_CONTENTS_SHORT, (
                 name, DataType.attributes, name, description, _now(), None))
+            conn.execute(INSERT_GPKG_OGR_CONTENTS, (name, 0))
+            conn.execute(GPKG_OGR_CONTENTS_INSERT_TRIGGER.format(name))
+            conn.execute(GPKG_OGR_CONTENTS_DELETE_TRIGGER.format(name))
         return cls(geopackage=geopackage, name=name)
     # End create_table method
+
+    def drop(self) -> None:
+        """
+        Drop table from Geopackage
+        """
+        with self.geopackage.connection as conn:
+            conn.executescript(REMOVE_TABLE.format(self.name))
+    # End drop method
 # End Table class
 
 
@@ -219,12 +305,15 @@ class FeatureClass(BaseTable):
     def create(cls, geopackage: GeoPackage, name: str, shape_type: str,
                srs: 'SpatialReferenceSystem', z_enabled: bool = False,
                m_enabled: bool = False, fields: FIELDS = (),
-               description: str = '') -> 'FeatureClass':
+               description: str = '',
+               overwrite: bool = False) -> 'FeatureClass':
         """
         Create Feature Class
         """
         cols = f', {", ".join(repr(f) for f in fields)}' if fields else ''
         with geopackage.connection as conn:
+            if overwrite:
+                conn.executescript(REMOVE_FEATURE_CLASS.format(name))
             conn.execute(CREATE_FEATURE_TABLE.format(
                 name=name, feature_type=shape_type, other_fields=cols))
             if not geopackage.check_srs_exists(srs.srs_id):
@@ -234,8 +323,53 @@ class FeatureClass(BaseTable):
                           int(z_enabled), int(m_enabled)))
             conn.execute(INSERT_GPKG_CONTENTS_SHORT, (
                 name, DataType.features, name, description, _now(), srs.srs_id))
+            conn.execute(INSERT_GPKG_OGR_CONTENTS, (name, 0))
+            conn.execute(GPKG_OGR_CONTENTS_INSERT_TRIGGER.format(name))
+            conn.execute(GPKG_OGR_CONTENTS_DELETE_TRIGGER.format(name))
         return cls(geopackage=geopackage, name=name)
     # End create method
+
+    def drop(self) -> None:
+        """
+        Drop feature class from Geopackage
+        """
+        with self.geopackage.connection as conn:
+            conn.executescript(REMOVE_FEATURE_CLASS.format(self.name))
+    # End drop method
+
+    @staticmethod
+    def _check_result(cursor: Cursor) -> Optional[str]:
+        """
+        Check Result
+        """
+        result = cursor.fetchone()
+        if not result:
+            return
+        if None in result:
+            return
+        value, = result
+        return value
+    # End _check_result method
+
+    @property
+    def geometry_column_name(self) -> Optional[str]:
+        """
+        Geometry Column Name
+        """
+        cursor = self.geopackage.connection.execute(
+            SELECT_GEOMETRY_COLUMN, (self.name,))
+        return self._check_result(cursor)
+    # End geometry_column_name property
+
+    @property
+    def geometry_type(self) -> Optional[str]:
+        """
+        Geometry Type
+        """
+        cursor = self.geopackage.connection.execute(
+            SELECT_GEOMETRY_TYPE, (self.name,))
+        return self._check_result(cursor)
+    # End geometry_type property
 
     @property
     def spatial_reference_system(self) -> 'SpatialReferenceSystem':
@@ -269,20 +403,21 @@ class FeatureClass(BaseTable):
     # End has_m property
 
     @property
-    def extent(self) -> tuple[float, float, float, float]:
+    def extent(self) -> Tuple[float, float, float, float]:
         """
         Extent property
         """
         empty = nan, nan, nan, nan
         cursor = self.geopackage.connection.execute(SELECT_EXTENT, (self.name,))
-        if not (result := cursor.fetchone()):
+        result = cursor.fetchone()
+        if not result:
             return empty
         if None in result:
             return empty
         return result
 
     @extent.setter
-    def extent(self, value: tuple[float, float, float, float]) -> None:
+    def extent(self, value: Tuple[float, float, float, float]) -> None:
         if not isinstance(value, (tuple, list)):  # pragma: nocover
             raise ValueError('Please supply a tuple or list of values')
         if not len(value) == 4:  # pragma: nocover
@@ -323,7 +458,7 @@ class SpatialReferenceSystem:
         self._srs_id = value
     # End srs_id property
 
-    def as_record(self) -> tuple[str, int, str, int, str, str]:
+    def as_record(self) -> Tuple[str, int, str, int, str, str]:
         """
         Record of the Spatial Reference System
         """

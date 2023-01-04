@@ -2,8 +2,7 @@
 """
 Test GeoPackage
 """
-
-
+from datetime import datetime, timedelta, timezone
 from math import isnan
 from random import randint, choice
 from string import ascii_uppercase, digits
@@ -13,11 +12,10 @@ from pytest import fixture, mark, raises
 from fudgeo.enumeration import GeometryType, SQLFieldType
 from fudgeo.geometry import (
     LineString, LineStringM, LineStringZ, LineStringZM, MultiLineString,
-    MultiPoint,
-    MultiPolygon,
-    Point, Polygon)
+    MultiPoint, MultiPolygon, Point, Polygon)
 from fudgeo.geopkg import (
-    FeatureClass, Field, GeoPackage, SpatialReferenceSystem, Table)
+    FeatureClass, Field, GeoPackage, SHAPE, SpatialReferenceSystem, Table,
+    _convert_datetime)
 
 WGS_1984_UTM_Zone_23N = (
     """PROJCS["WGS_1984_UTM_Zone_23N",
@@ -57,10 +55,26 @@ def setup_geopackage(tmp_path):
         Field('int_fld', SQLFieldType.integer),
         Field('text_fld', SQLFieldType.text),
         Field('test_fld_size', SQLFieldType.text, 100),
-        Field('test_bool', SQLFieldType.boolean))
+        Field('test_bool', SQLFieldType.boolean),
+        Field('test_timestamp', SQLFieldType.timestamp))
     yield path, gpkg, srs, fields
-    path.unlink(missing_ok=True)
+    if path.exists():
+        path.unlink()
 # End setup_geopackage function
+
+
+@fixture
+def fields():
+    """
+    Fields
+    """
+    return [Field('AAA', SQLFieldType.integer),
+            Field('BBB', SQLFieldType.text, size=10),
+            Field('CCC', SQLFieldType.text),
+            Field('DDD', SQLFieldType.double),
+            Field('EEE', SQLFieldType.datetime),
+            Field('FFF', SQLFieldType.timestamp)]
+# End fields function
 
 
 def random_points_and_attrs(count, srs_id):
@@ -103,45 +117,95 @@ def test_create_geopackage(tmp_path):
     with raises(ValueError):
         GeoPackage.create(path)
     geo.connection.close()
-    path.unlink(missing_ok=True)
+    if path.exists():
+        path.unlink()
 # End test_create_geopackage function
 
 
-def test_create_table(tmp_path):
+def test_create_table(tmp_path, fields):
     """
     Create Table
     """
     path = tmp_path / 'tbl'
     geo = GeoPackage.create(path)
-    fields = [Field('AAA', SQLFieldType.integer),
-              Field('BBB', SQLFieldType.text, size=10),
-              Field('CCC', SQLFieldType.text),
-              Field('DDD', SQLFieldType.double)]
     name = 'TTT'
     table = geo.create_table(name, fields)
+    field_names = ', '.join(f.name for f in fields)
     assert isinstance(table, Table)
     with raises(ValueError):
         geo.create_table(name, fields)
-    cursor = geo.connection.execute(f"""SELECT count(fid) FROM {name}""")
+    conn = geo.connection
+    cursor = conn.execute(f"""SELECT count(fid) FROM {name}""")
     count, = cursor.fetchone()
     assert count == 0
+    now = datetime.now()
+    eee_datetime = now + timedelta(days=1)
+    fff_datetime = now + timedelta(days=2)
+    records = [
+        (1, 'asdf', 'longer than 10 characters', 123.456, eee_datetime, fff_datetime),
+        (2, 'qwerty', 'not much longer than 10', 987.654, now + timedelta(days=100), now + timedelta(days=200))]
+    sql = f"""INSERT INTO {name}({field_names}) VALUES (?, ?, ?, ?, ?, ?)"""
+    conn.executemany(sql, records)
+    conn.commit()
+    cursor = conn.execute(f"""SELECT count(fid) FROM {name}""")
+    count, = cursor.fetchone()
+    assert count == 2
+    *_, eee, fff = fields
+    cursor = conn.execute(f"""SELECT {eee.name} FROM {name}""")
+    value, = cursor.fetchone()
+    assert isinstance(value, datetime)
+    assert value == eee_datetime
+    cursor = conn.execute(f"""SELECT {fff.name} FROM {name}""")
+    value, = cursor.fetchone()
+    assert isinstance(value, datetime)
+    assert value == fff_datetime
     table = geo.create_table('ANOTHER')
     assert isinstance(table, Table)
-    geo.connection.close()
-    path.unlink(missing_ok=True)
+    cursor = conn.execute(
+        """SELECT count(type) FROM sqlite_master WHERE type = 'trigger'""")
+    count, = cursor.fetchone()
+    assert count == 4
+    conn.close()
+    if path.exists():
+        path.unlink()
 # End test_create_table function
 
 
-def test_create_feature_class(tmp_path):
+def test_create_table_drop_table(tmp_path, fields):
+    """
+    Create Table, overwrite Table, and Drop Table
+    """
+    path = tmp_path / 'tbl_drop'
+    geo = GeoPackage.create(path)
+    name = 'TTT_DDD'
+    table = geo.create_table(name, fields)
+    assert isinstance(table, Table)
+    tbl = geo.create_table(name, fields, overwrite=True)
+    conn = geo.connection
+    cursor = conn.execute(f"""SELECT count(fid) FROM {name}""")
+    count, = cursor.fetchone()
+    assert count == 0
+    sql = """SELECT count(type) FROM sqlite_master WHERE type = 'trigger'"""
+    cursor = conn.execute(sql)
+    count, = cursor.fetchone()
+    assert count == 2
+    tbl.drop()
+    assert not geo._check_table_exists(name)
+    cursor = conn.execute(sql)
+    count, = cursor.fetchone()
+    assert count == 0
+    conn.close()
+    if path.exists():
+        path.unlink()
+# End test_create_table_drop_table function
+
+
+def test_create_feature_class(tmp_path, fields):
     """
     Create Feature Class
     """
     path = tmp_path / 'fc'
     geo = GeoPackage.create(path)
-    fields = [Field('AAA', SQLFieldType.integer),
-              Field('BBB', SQLFieldType.text, size=10),
-              Field('CCC', SQLFieldType.text),
-              Field('DDD', SQLFieldType.double)]
     name = 'FFF'
     srs = SpatialReferenceSystem(
         'WGS_1984_UTM_Zone_23N', 'EPSG', 32623, WGS_1984_UTM_Zone_23N)
@@ -154,30 +218,90 @@ def test_create_feature_class(tmp_path):
     assert count == 0
     table = geo.create_feature_class('ANOTHER', srs=srs)
     assert isinstance(table, FeatureClass)
+    cursor = geo.connection.execute(
+        """SELECT count(type) FROM sqlite_master WHERE type = 'trigger'""")
+    count, = cursor.fetchone()
+    assert count == 4
     geo.connection.close()
-    path.unlink(missing_ok=True)
+    if path.exists():
+        path.unlink()
 # End test_create_feature_class function
 
 
-@mark.parametrize('name, geom, has_z, has_m', [
-    ('test_points', GeometryType.point, False, False),
-    ('test_points_z', GeometryType.point, True, False),
-    ('test_points_m', GeometryType.point, False, True),
-    ('test_points_zm', GeometryType.point, True, True),
-    ('test_lines', GeometryType.linestring, False, False),
-    ('test_lines_z', GeometryType.linestring, True, False),
-    ('test_lines_m', GeometryType.linestring, False, True),
-    ('test_lines_zm', GeometryType.linestring, True, True),
-    ('test_polygons', GeometryType.polygon, False, False),
-    ('test_polygons_z', GeometryType.polygon, True, False),
+def test_create_feature_drop_feature(tmp_path, fields):
+    """
+    Create Feature Class, Overwrite it, and then Drop it
+    """
+    path = tmp_path / 'fc_drop'
+    geo = GeoPackage.create(path)
+    name = 'FFF_DDD'
+    srs = SpatialReferenceSystem(
+        'WGS_1984_UTM_Zone_23N', 'EPSG', 32623, WGS_1984_UTM_Zone_23N)
+    table = geo.create_feature_class(name, srs=srs, fields=fields)
+    assert isinstance(table, FeatureClass)
+    fc = geo.create_feature_class(name, srs=srs, fields=fields, overwrite=True)
+    cursor = geo.connection.execute(f"""SELECT count(fid) FROM {name}""")
+    count, = cursor.fetchone()
+    assert count == 0
+    sql = """SELECT count(type) FROM sqlite_master WHERE type = 'trigger'"""
+    cursor = geo.connection.execute(sql)
+    count, = cursor.fetchone()
+    assert count == 2
+    fc.drop()
+    assert not geo._check_table_exists(name)
+    cursor = geo.connection.execute(sql)
+    count, = cursor.fetchone()
+    assert count == 0
+    geo.connection.close()
+    if path.exists():
+        path.unlink()
+# End test_create_feature_drop_feature function
+
+
+def test_tables_and_feature_classes(tmp_path, fields):
+    """
+    Test tables and feature classes
+    """
+    path = tmp_path / 'list'
+    geo = GeoPackage.create(path)
+    srs = SpatialReferenceSystem(
+        'WGS_1984_UTM_Zone_23N', 'EPSG', 32623, WGS_1984_UTM_Zone_23N)
+    for c in 'ABC':
+        geo.create_feature_class(c, srs=srs, fields=fields)
+    assert set(geo.feature_classes) == set('ABC')
+    assert isinstance(geo.feature_classes['A'], FeatureClass)
+    for c in 'DEF':
+        geo.create_table(c, fields=fields)
+    assert set(geo.tables) == set('DEF')
+    assert isinstance(geo.tables['F'], Table)
+    geo.connection.close()
+    if path.exists():
+        path.unlink()
+# End test_tables_and_feature_classes function
+
+
+@mark.parametrize('name, geom, has_z, has_m, type_', [
+    ('test_points', GeometryType.point, False, False, 'Point'),
+    ('test_points_z', GeometryType.point, True, False, 'PointZ'),
+    ('test_points_m', GeometryType.point, False, True, 'PointM'),
+    ('test_points_zm', GeometryType.point, True, True, 'PointZM'),
+    ('test_lines', GeometryType.linestring, False, False, 'LineString'),
+    ('test_lines_z', GeometryType.linestring, True, False, 'LineStringZ'),
+    ('test_lines_m', GeometryType.linestring, False, True, 'LineStringM'),
+    ('test_lines_zm', GeometryType.linestring, True, True, 'LineStringZM'),
+    ('test_polygons', GeometryType.polygon, False, False, 'Polygon'),
+    ('test_polygons_z', GeometryType.polygon, True, False, 'PolygonZ'),
+    ('test_polygons_m', GeometryType.polygon, False, True, 'PolygonM'),
+    ('test_polygons_zm', GeometryType.polygon, True, True, 'PolygonZM'),
 ])
-def test_create_feature_class_options(setup_geopackage, name, geom, has_z, has_m):
+def test_create_feature_class_options(setup_geopackage, name, geom, has_z, has_m, type_):
     """
     Test creating feature classes with different shape options
     """
     _, gpkg, srs, fields = setup_geopackage
     fc = gpkg.create_feature_class(
-        name, srs=srs, fields=fields, m_enabled=has_m, z_enabled=has_z)
+        name, shape_type=geom, srs=srs, fields=fields,
+        m_enabled=has_m, z_enabled=has_z)
     assert isinstance(fc, FeatureClass)
     conn = gpkg.connection
     cursor = conn.execute(f"""SELECT count(fid) FROM {name}""")
@@ -186,6 +310,8 @@ def test_create_feature_class_options(setup_geopackage, name, geom, has_z, has_m
     assert fc.spatial_reference_system.srs_id == 32623
     assert fc.has_z is has_z
     assert fc.has_m is has_m
+    assert fc.geometry_column_name == SHAPE
+    assert fc.geometry_type == type_
 # End test_create_feature_class_options function
 
 
@@ -373,6 +499,26 @@ def test_insert_multi_lines(setup_geopackage):
     assert isinstance(line, MultiLineString)
     assert line == geom
 # End test_insert_multi_lines function
+
+
+@mark.parametrize('val, expected', [
+    (b'1977-06-15 03:18:54', datetime(1977, 6, 15, 3, 18, 54, 0)),
+    (b'1977-06-15 03:18:54.123456', datetime(1977, 6, 15, 3, 18, 54, 123456)),
+    (b'2000-06-06 11:43:37+00:00', datetime(2000, 6, 6, 11, 43, 37, 0, tzinfo=timezone.utc)),
+    (b'2000-06-06 11:43:37+01:00', datetime(2000, 6, 6, 11, 43, 37, 0, tzinfo=timezone(timedelta(hours=1)))),
+    (b'2000-06-06 11:43:37+02:30', datetime(2000, 6, 6, 11, 43, 37, 0, tzinfo=timezone(timedelta(hours=2, minutes=30)))),
+    (b'2000-06-06 11:43:37-05:15', datetime(2000, 6, 6, 11, 43, 37, 0, tzinfo=timezone(timedelta(seconds=-18900)))),
+    (b'2000-06-06 11:43:37-05:15', datetime(2000, 6, 6, 11, 43, 37, 0, tzinfo=timezone(timedelta(seconds=-18900)))),
+    (b'1977-06-15T03:18:54', datetime(1977, 6, 15, 3, 18, 54, 0)),
+    (b'1977-06-15T03:18:54.123456', datetime(1977, 6, 15, 3, 18, 54, 123456)),
+    (b'2000-06-06T11:43:37+00:00', datetime(2000, 6, 6, 11, 43, 37, 0, tzinfo=timezone.utc)),
+])
+def test_convert_datetime(val, expected):
+    """
+    Test the datetime converter
+    """
+    assert _convert_datetime(val) == expected
+# End test_convert_datetime function
 
 
 if __name__ == '__main__':
