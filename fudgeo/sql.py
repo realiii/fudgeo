@@ -88,7 +88,8 @@ TABLE_EXISTS = """
 
 
 CHECK_SRS_EXISTS = """
-    SELECT srs_id FROM gpkg_spatial_ref_sys 
+    SELECT srs_id 
+    FROM gpkg_spatial_ref_sys 
     WHERE srs_id = ?
 """
 
@@ -106,16 +107,22 @@ SELECT_SRS = """
 
 
 SELECT_HAS_ZM = """
-    SELECT gpkg_geometry_columns.z,gpkg_geometry_columns.m
-    FROM gpkg_contents LEFT JOIN gpkg_geometry_columns ON 
-            gpkg_contents.table_name = gpkg_geometry_columns.table_name
-    WHERE gpkg_contents.table_name = ?
+    SELECT z, m
+    FROM gpkg_geometry_columns
+    WHERE table_name = ?
+"""
+
+
+SELECT_GEOMETRY_COLUMN = """
+    SELECT column_name
+    FROM gpkg_geometry_columns
+    WHERE table_name = ?
 """
 
 
 UPDATE_EXTENT = """    
     UPDATE gpkg_contents 
-    SET min_x=?, min_y=?, max_x=?, max_y=? 
+    SET min_x = ?, min_y = ?, max_x = ?, max_y = ? 
     WHERE table_name = ?
 """
 
