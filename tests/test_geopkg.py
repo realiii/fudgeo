@@ -14,7 +14,7 @@ from fudgeo.geometry import (
     LineString, LineStringM, LineStringZ, LineStringZM, MultiLineString,
     MultiPoint, MultiPolygon, Point, Polygon)
 from fudgeo.geopkg import (
-    FeatureClass, Field, GeoPackage, SpatialReferenceSystem, Table,
+    FeatureClass, Field, GeoPackage, SHAPE, SpatialReferenceSystem, Table,
     _convert_datetime)
 
 WGS_1984_UTM_Zone_23N = (
@@ -307,6 +307,7 @@ def test_create_feature_class_options(setup_geopackage, name, geom, has_z, has_m
     assert fc.spatial_reference_system.srs_id == 32623
     assert fc.has_z is has_z
     assert fc.has_m is has_m
+    assert fc.geometry_column_name == SHAPE
 # End test_create_feature_class_options function
 
 

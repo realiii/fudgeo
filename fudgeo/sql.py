@@ -113,6 +113,13 @@ SELECT_HAS_ZM = """
 """
 
 
+SELECT_GEOMETRY_COLUMN = """
+    SELECT column_name
+    FROM gpkg_geometry_columns
+    WHERE table_name = ?
+"""
+
+
 UPDATE_EXTENT = """    
     UPDATE gpkg_contents 
     SET min_x = ?, min_y = ?, max_x = ?, max_y = ? 
