@@ -119,11 +119,7 @@ class GeoPackage:
         """
         super().__init__()
         self._path: Path = Path(path)
-        self._conn: Connection = connect(
-            str(path), isolation_level='EXCLUSIVE',
-            detect_types=PARSE_DECLTYPES | PARSE_COLNAMES)
-        _register_geometry()
-        register_converter('datetime', _convert_datetime)
+        self._conn: Optional[Connection] = None
     # End init built-in
 
     @property
@@ -139,6 +135,12 @@ class GeoPackage:
         """
         Connection
         """
+        if self._conn is None:
+            self._conn = connect(
+                str(self._path), isolation_level='EXCLUSIVE',
+                detect_types=PARSE_DECLTYPES | PARSE_COLNAMES)
+            _register_geometry()
+            register_converter('datetime', _convert_datetime)
         return self._conn
     # End connection property
 
@@ -169,7 +171,7 @@ class GeoPackage:
         Check if a SpatialReferenceSystem already exists in the table.
         This is done purely by srs id because that is all ESRI looks at.
         """
-        cursor = self._conn.execute(CHECK_SRS_EXISTS, (srs_id,))
+        cursor = self.connection.execute(CHECK_SRS_EXISTS, (srs_id,))
         return bool(cursor.fetchall())
     # End check_srs_exists method
 
@@ -177,7 +179,7 @@ class GeoPackage:
         """
         Check existence of table
         """
-        cursor = self._conn.execute(TABLE_EXISTS, (table_name,))
+        cursor = self.connection.execute(TABLE_EXISTS, (table_name,))
         return bool(cursor.fetchall())
     # End _check_table_exists method
 
