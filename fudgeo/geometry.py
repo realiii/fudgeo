@@ -26,7 +26,8 @@ __all__ = ['Point', 'PointZ', 'PointM', 'PointZM', 'MultiPoint', 'MultiPointZ',
            'MultiPointM', 'MultiPointZM', 'LineString', 'LineStringZ',
            'LineStringM', 'LineStringZM', 'MultiLineString', 'MultiLineStringZ',
            'MultiLineStringM', 'MultiLineStringZM', 'Polygon', 'PolygonZ',
-           'MultiPolygon', 'MultiPolygonZ']
+           'PolygonM', 'PolygonZM', 'MultiPolygon', 'MultiPolygonZ',
+           'MultiPolygonM', 'MultiPolygonZM']
 
 
 def _unpack_line(value: bytes, dimension: int,
