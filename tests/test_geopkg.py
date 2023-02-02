@@ -2,6 +2,8 @@
 """
 Test GeoPackage
 """
+
+
 from datetime import datetime, timedelta, timezone
 from math import isnan
 from random import randint, choice
@@ -12,10 +14,11 @@ from pytest import fixture, mark, raises
 from fudgeo.enumeration import GeometryType, SQLFieldType
 from fudgeo.geometry import (
     LineString, LineStringM, LineStringZ, LineStringZM, MultiLineString,
-    MultiPoint, MultiPolygon, Point, Polygon)
+    MultiPoint, MultiPolygon, Point, Polygon, PolygonM)
 from fudgeo.geopkg import (
     FeatureClass, Field, GeoPackage, SHAPE, SpatialReferenceSystem, Table,
     _convert_datetime)
+
 
 WGS_1984_UTM_Zone_23N = (
     """PROJCS["WGS_1984_UTM_Zone_23N",
@@ -499,6 +502,24 @@ def test_insert_multi_lines(setup_geopackage):
     assert isinstance(line, MultiLineString)
     assert line == geom
 # End test_insert_multi_lines function
+
+
+def test_insert_polygon_m(setup_geopackage):
+    """
+    Test insert polygon m
+    """
+    rings = [[(0, 0, 0), (0, 1, 1), (1, 1, 1), (1, 0, 1), (0, 0, 0)],
+              [(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]]
+    _, gpkg, srs, fields = setup_geopackage
+    gpkg.create_feature_class(
+        'test1', srs, fields=fields, shape_type=GeometryType.polygon)
+    geom = PolygonM(rings, srs.srs_id)
+    result = _insert_shape_and_fetch(gpkg, geom)
+    assert len(result) == 1
+    _, poly = result[0]
+    assert isinstance(poly, PolygonM)
+    assert poly == geom
+# End test_insert_polygon_m function
 
 
 @mark.parametrize('val, expected', [

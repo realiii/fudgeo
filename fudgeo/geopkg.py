@@ -19,7 +19,8 @@ from fudgeo.geometry import (
     Point, PointZ, PointM, PointZM, MultiPoint, MultiPointZ, MultiPointM,
     MultiPointZM, LineString, LineStringZ, LineStringM, LineStringZM,
     MultiLineString, MultiLineStringZ, MultiLineStringM, MultiLineStringZM,
-    Polygon, PolygonZ, MultiPolygon, MultiPolygonZ)
+    Polygon, PolygonZ, PolygonM, PolygonZM, MultiPolygon, MultiPolygonZ,
+    MultiPolygonM, MultiPolygonZM)
 from fudgeo.sql import (
     CHECK_SRS_EXISTS, CREATE_FEATURE_TABLE, CREATE_TABLE, DEFAULT_EPSG_RECS,
     DEFAULT_ESRI_RECS, GPKG_OGR_CONTENTS_DELETE_TRIGGER,
@@ -102,7 +103,8 @@ def _register_geometry():
         Point, PointZ, PointM, PointZM, MultiPoint, MultiPointZ, MultiPointM,
         MultiPointZM, LineString, LineStringZ, LineStringM, LineStringZM,
         MultiLineString, MultiLineStringZ, MultiLineStringM, MultiLineStringZM,
-        Polygon, PolygonZ, MultiPolygon, MultiPolygonZ)
+        Polygon, PolygonZ, PolygonM, PolygonZM, MultiPolygon, MultiPolygonZ,
+        MultiPolygonM, MultiPolygonZM)
     for cls in classes:
         register_adapter(cls, _adapt_geometry)
         register_converter(cls.__name__, cls.from_gpkg)
