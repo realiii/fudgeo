@@ -33,9 +33,7 @@ from fudgeo.geometry import (
     MultiLineString, MultiLineStringM, MultiLineStringZ, MultiLineStringZM,
     MultiPoint, MultiPointM, MultiPointZ, MultiPointZM, MultiPolygon,
     MultiPolygonM, MultiPolygonZ, MultiPolygonZM, Point, PointM, PointZ,
-    PointZM, Polygon,
-    PolygonM, PolygonZ,
-    PolygonZM)
+    PointZM, Polygon, PolygonM, PolygonZ, PolygonZM)
 
 
 @fixture(scope='session')
