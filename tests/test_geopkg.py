@@ -18,6 +18,7 @@ from fudgeo.geometry import (
 from fudgeo.geopkg import (
     FeatureClass, Field, GeoPackage, SHAPE, SpatialReferenceSystem, Table,
     _convert_datetime)
+from fudgeo.sql import SELECT_SRS
 
 
 WGS_1984_UTM_Zone_23N = (
@@ -316,6 +317,26 @@ def test_create_feature_class_options(setup_geopackage, name, geom, has_z, has_m
     assert fc.geometry_column_name == SHAPE
     assert fc.geometry_type == type_
 # End test_create_feature_class_options function
+
+
+def test_select_srs(setup_geopackage):
+    """
+    Test select srs
+    """
+    _, gpkg, srs, fields = setup_geopackage
+    name = 'table_name'
+    fc = gpkg.create_feature_class(
+        name, shape_type=GeometryType.polygon, srs=srs, fields=fields)
+    assert isinstance(fc, FeatureClass)
+    conn = gpkg.connection
+    cursor = conn.execute(SELECT_SRS, (name,))
+    _, _, srs_id, _, _ = cursor.fetchone()
+    epsg = 32623
+    assert srs_id == epsg
+    cursor = conn.execute(SELECT_SRS, (name.upper(),))
+    _, _, srs_id, _, _ = cursor.fetchone()
+    assert srs_id == epsg
+# End test_select_srs function
 
 
 def test_insert_point_rows(setup_geopackage):
