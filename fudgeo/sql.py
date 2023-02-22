@@ -17,9 +17,9 @@ INSERT_GPKG_OGR_CONTENTS = """
 
 
 REMOVE_FEATURE_CLASS = """
-    DELETE FROM gpkg_ogr_contents WHERE table_name = '{0}';
-    DELETE FROM gpkg_contents WHERE table_name = '{0}';
-    DELETE FROM gpkg_geometry_columns WHERE table_name = '{0}';
+    DELETE FROM gpkg_ogr_contents WHERE lower(table_name) = lower('{0}');
+    DELETE FROM gpkg_contents WHERE lower(table_name) = lower('{0}');
+    DELETE FROM gpkg_geometry_columns WHERE lower(table_name) = lower('{0}');
     DROP TRIGGER IF EXISTS trigger_insert_feature_count_{0};
     DROP TRIGGER IF EXISTS trigger_delete_feature_count_{0};
     DROP TABLE IF EXISTS {0};
@@ -27,8 +27,8 @@ REMOVE_FEATURE_CLASS = """
 
 
 REMOVE_TABLE = """
-    DELETE FROM gpkg_ogr_contents WHERE table_name = '{0}';
-    DELETE FROM gpkg_contents WHERE table_name = '{0}';
+    DELETE FROM gpkg_ogr_contents WHERE lower(table_name) = lower('{0}');
+    DELETE FROM gpkg_contents WHERE lower(table_name) = lower('{0}');
     DROP TRIGGER IF EXISTS trigger_insert_feature_count_{0};
     DROP TRIGGER IF EXISTS trigger_delete_feature_count_{0};
     DROP TABLE IF EXISTS {0};
@@ -83,7 +83,7 @@ INSERT_GPKG_SRS = """
 
 TABLE_EXISTS = """
     SELECT name FROM sqlite_master 
-    WHERE type = 'table' AND name= ?
+    WHERE type = 'table' AND lower(name) = lower(?)
 """
 
 
@@ -102,21 +102,21 @@ SELECT_SRS = """
            gpkg_spatial_ref_sys.description
     FROM gpkg_contents LEFT JOIN gpkg_spatial_ref_sys ON 
             gpkg_contents.srs_id = gpkg_spatial_ref_sys.srs_id
-    WHERE gpkg_contents.table_name = ?
+    WHERE lower(gpkg_contents.table_name) = lower(?)
 """
 
 
 SELECT_HAS_ZM = """
     SELECT z, m
     FROM gpkg_geometry_columns
-    WHERE table_name = ?
+    WHERE lower(table_name) = lower(?)
 """
 
 
 SELECT_GEOMETRY_COLUMN = """
     SELECT column_name
     FROM gpkg_geometry_columns
-    WHERE table_name = ?
+    WHERE lower(table_name) = lower(?)
 """
 
 
@@ -148,7 +148,7 @@ SELECT_GEOMETRY_TYPE = """
                      ELSE ''
                      END AS M
           FROM gpkg_geometry_columns
-          WHERE table_name = ?
+          WHERE lower(table_name) = lower(?)
   )
 """
 
@@ -156,14 +156,14 @@ SELECT_GEOMETRY_TYPE = """
 UPDATE_EXTENT = """    
     UPDATE gpkg_contents 
     SET min_x = ?, min_y = ?, max_x = ?, max_y = ? 
-    WHERE table_name = ?
+    WHERE lower(table_name) = lower(?)
 """
 
 
 SELECT_EXTENT = """
     SELECT min_x, min_y, max_x, max_y
     FROM gpkg_contents
-    WHERE table_name = ?
+    WHERE lower(table_name) = lower(?)
 """
 
 
