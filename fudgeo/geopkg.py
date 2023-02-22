@@ -145,6 +145,7 @@ class GeoPackage:
                 str(self._path), isolation_level='EXCLUSIVE',
                 detect_types=PARSE_DECLTYPES | PARSE_COLNAMES)
             _register_geometry()
+            register_converter('timestamp', _convert_datetime)
             register_converter('datetime', _convert_datetime)
         return self._conn
     # End connection property
