@@ -3,7 +3,7 @@
 Test Geometry
 """
 
-from pytest import fixture, raises
+from pytest import fixture, mark, raises
 
 from tests.conversion.geo import (
     make_gpkg_geom_header, point_lists_to_gpkg_multi_line_string,
@@ -45,11 +45,11 @@ def header():
 # End header function
 
 
-def test_point(header):
+@mark.parametrize('pt', [Point(x=1, y=2), Point.from_tuple((1, 2))])
+def test_point(header, pt):
     """
     Test Point
     """
-    pt = Point(x=1, y=2)
     with raises(AttributeError):
         pt.attribute = 10
     values = 1, 2
@@ -60,11 +60,11 @@ def test_point(header):
 # End test_point function
 
 
-def test_point_z(header):
+@mark.parametrize('pt', [PointZ(x=1, y=2, z=3), PointZ.from_tuple((1, 2, 3))])
+def test_point_z(header, pt):
     """
     Test Point Z
     """
-    pt = PointZ(x=1, y=2, z=3)
     with raises(AttributeError):
         pt.attribute = 10
     values = 1, 2, 3
@@ -75,11 +75,11 @@ def test_point_z(header):
 # End test_point_z function
 
 
-def test_point_m(header):
+@mark.parametrize('pt', [PointM(x=1, y=2, m=3), PointM.from_tuple((1, 2, 3))])
+def test_point_m(header, pt):
     """
     Test Point M
     """
-    pt = PointM(x=1, y=2, m=3)
     with raises(AttributeError):
         pt.attribute = 10
     values = 1, 2, 3
@@ -90,11 +90,12 @@ def test_point_m(header):
 # End test_point_m function
 
 
-def test_point_zm(header):
+@mark.parametrize('pt', [PointZM(x=1, y=2, z=3, m=4),
+                         PointZM.from_tuple((1, 2, 3, 4))])
+def test_point_zm(header, pt):
     """
     Test Point ZM
     """
-    pt = PointZM(x=1, y=2, z=3, m=4)
     with raises(AttributeError):
         pt.attribute = 10
     values = 1, 2, 3, 4
