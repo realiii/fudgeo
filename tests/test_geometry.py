@@ -5,6 +5,7 @@ Test Geometry
 
 from pytest import fixture, mark, raises
 
+from fudgeo.constant import WKB_MULTI_POINT_PRE
 from tests.conversion.geo import (
     make_gpkg_geom_header, point_lists_to_gpkg_multi_line_string,
     point_lists_to_gpkg_multi_polygon, point_lists_to_gpkg_polygon,
@@ -33,7 +34,7 @@ from fudgeo.geometry import (
     MultiLineString, MultiLineStringM, MultiLineStringZ, MultiLineStringZM,
     MultiPoint, MultiPointM, MultiPointZ, MultiPointZM, MultiPolygon,
     MultiPolygonM, MultiPolygonZ, MultiPolygonZM, Point, PointM, PointZ,
-    PointZM, Polygon, PolygonM, PolygonZ, PolygonZM)
+    PointZM, Polygon, PolygonM, PolygonZ, PolygonZM, _pack_points)
 
 
 @fixture(scope='session')
@@ -114,10 +115,13 @@ def test_multi_point(header):
     pts = MultiPoint(values)
     with raises(AttributeError):
         pts.attribute = 10
-    assert pts.to_wkb() == multipoint_to_wkb_multipoint(values)
-    assert pts.to_gpkg() == points_to_gpkg_multipoint(header, values)
-    assert MultiPoint.from_wkb(pts.to_wkb()) == pts
-    assert MultiPoint.from_gpkg(pts.to_gpkg()) == pts
+    wkb = pts.to_wkb()
+    assert wkb == multipoint_to_wkb_multipoint(values)
+    assert wkb == _pack_points(values, dimension=2, prefix=WKB_MULTI_POINT_PRE, use_prefix=True)
+    assert MultiPoint.from_wkb(wkb) == pts
+    gpkg = pts.to_gpkg()
+    assert gpkg == points_to_gpkg_multipoint(header, values)
+    assert MultiPoint.from_gpkg(gpkg) == pts
 # End test_multi_point function
 
 

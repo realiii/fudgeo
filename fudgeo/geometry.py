@@ -8,7 +8,7 @@ from abc import abstractmethod
 from functools import lru_cache, reduce
 from operator import add
 from struct import pack, unpack
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 from fudgeo.constant import (
     BYTE_UINT, COUNT_UNIT, DOUBLE, EMPTY, GP_MAGIC, QUADRUPLE, SRS_ID, TRIPLE,
@@ -54,6 +54,27 @@ def _unpack_points(value: bytes, dimension: int) -> List[Tuple[float, ...]]:
     values: Tuple[float, ...] = unpack(f'<{total}d', reduce(add, data))
     return [values[i:i + dimension] for i in range(0, total, dimension)]
 # End _unpack_points function
+
+
+def _pack_points(values: Union[List[DOUBLE], List[TRIPLE], List[QUADRUPLE]],
+                 dimension: int, prefix: bytes, use_prefix: bool) -> bytes:
+    """
+    Pack Values for Multi Point
+    """
+    flat = []
+    for coords in values:
+        flat.extend(coords)
+    count = len(values)
+    total = count * dimension
+    data = pack(f'<{total}d', *flat)
+    if not use_prefix:
+        return reduce(add, (prefix, pack(COUNT_UNIT, count), data))
+    length = len(data)
+    step = length // count
+    chunks = EMPTY.join(
+        [WKB_POINT_PRE + data[i:i + step] for i in range(0, len(data), step)])
+    return reduce(add, (prefix, pack(COUNT_UNIT, count), chunks))
+# End _pack_points function
 
 
 def _unpack_lines(value: bytes, dimension: int, is_ring: bool = False) \
