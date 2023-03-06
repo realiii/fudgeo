@@ -59,7 +59,7 @@ def _unpack_points(value: bytes, dimension: int) -> List[Tuple[float, ...]]:
 def _pack_points(coordinates: COORDINATES, has_z: bool, has_m: bool,
                  use_prefix: bool) -> bytes:
     """
-    Pack Values for Multi Point
+    Pack Coordinates
     """
     flat = []
     for coords in coordinates:
