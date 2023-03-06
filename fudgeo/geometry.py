@@ -546,9 +546,8 @@ class MultiPoint(AbstractGeometry):
         """
         To WKB
         """
-        return self._joiner(
-            WKB_MULTI_POINT_PRE, pack(COUNT_UNIT, len(self.points)),
-            self._joiner(*[pt.to_wkb() for pt in self.points]))
+        return WKB_MULTI_POINT_PRE + _pack_points(
+            self.coordinates, use_prefix=True)
     # End to_wkb method
 
     @classmethod
@@ -609,9 +608,8 @@ class MultiPointZ(AbstractGeometry):
         """
         To WKB
         """
-        return self._joiner(
-            WKB_MULTI_POINT_Z_PRE, pack(COUNT_UNIT, len(self.points)),
-            self._joiner(*[pt.to_wkb() for pt in self.points]))
+        return WKB_MULTI_POINT_Z_PRE + _pack_points(
+            self.coordinates, has_z=True, use_prefix=True)
     # End to_wkb method
 
     @classmethod
@@ -672,9 +670,8 @@ class MultiPointM(AbstractGeometry):
         """
         To WKB
         """
-        return self._joiner(
-            WKB_MULTI_POINT_M_PRE, pack(COUNT_UNIT, len(self.points)),
-            self._joiner(*[pt.to_wkb() for pt in self.points]))
+        return WKB_MULTI_POINT_M_PRE + _pack_points(
+            self.coordinates, has_m=True, use_prefix=True)
     # End to_wkb method
 
     @classmethod
@@ -736,9 +733,8 @@ class MultiPointZM(AbstractGeometry):
         """
         To WKB
         """
-        return self._joiner(
-            WKB_MULTI_POINT_ZM_PRE, pack(COUNT_UNIT, len(self.points)),
-            self._joiner(*[pt.to_wkb() for pt in self.points]))
+        return WKB_MULTI_POINT_ZM_PRE + _pack_points(
+            self.coordinates, has_z=True, has_m=True, use_prefix=True)
     # End to_wkb method
 
     @classmethod
@@ -799,9 +795,7 @@ class LineString(AbstractGeometry):
         """
         To WKB
         """
-        return self._joiner(
-            WKB_LINESTRING_PRE, pack(COUNT_UNIT, len(self.points)),
-            self._joiner(*[pt.to_wkb(False) for pt in self.points]))
+        return WKB_LINESTRING_PRE + _pack_points(self.coordinates)
     # End to_wkb method
 
     @classmethod
@@ -862,9 +856,7 @@ class LineStringZ(AbstractGeometry):
         """
         To WKB
         """
-        return self._joiner(
-            WKB_LINESTRING_Z_PRE, pack(COUNT_UNIT, len(self.points)),
-            self._joiner(*[pt.to_wkb(False) for pt in self.points]))
+        return WKB_LINESTRING_Z_PRE + _pack_points(self.coordinates, has_z=True)
     # End to_wkb method
 
     @classmethod
@@ -925,9 +917,7 @@ class LineStringM(AbstractGeometry):
         """
         To WKB
         """
-        return self._joiner(
-            WKB_LINESTRING_M_PRE, pack(COUNT_UNIT, len(self.points)),
-            self._joiner(*[pt.to_wkb(False) for pt in self.points]))
+        return WKB_LINESTRING_M_PRE + _pack_points(self.coordinates, has_m=True)
     # End to_wkb method
 
     @classmethod
@@ -989,9 +979,8 @@ class LineStringZM(AbstractGeometry):
         """
         To WKB
         """
-        return self._joiner(
-            WKB_LINESTRING_ZM_PRE, pack(COUNT_UNIT, len(self.points)),
-            self._joiner(*[pt.to_wkb(False) for pt in self.points]))
+        return WKB_LINESTRING_ZM_PRE + _pack_points(
+            self.coordinates, has_z=True, has_m=True)
     # End to_wkb method
 
     @classmethod
@@ -1281,9 +1270,7 @@ class LinearRing(AbstractGeometry):
         """
         To WKB
         """
-        return self._joiner(
-            pack(COUNT_UNIT, len(self.points)),
-            self._joiner(*[pt.to_wkb(False) for pt in self.points]))
+        return _pack_points(self.coordinates)
     # End to_wkb method
 
     @classmethod
@@ -1349,9 +1336,7 @@ class LinearRingZ(AbstractGeometry):
         """
         To WKB
         """
-        return self._joiner(
-            pack(COUNT_UNIT, len(self.points)),
-            self._joiner(*[pt.to_wkb(False) for pt in self.points]))
+        return _pack_points(self.coordinates, has_z=True)
     # End to_wkb method
 
     @classmethod
@@ -1417,9 +1402,7 @@ class LinearRingM(AbstractGeometry):
         """
         To WKB
         """
-        return self._joiner(
-            pack(COUNT_UNIT, len(self.points)),
-            self._joiner(*[pt.to_wkb(False) for pt in self.points]))
+        return _pack_points(self.coordinates, has_m=True)
     # End to_wkb method
 
     @classmethod
@@ -1486,9 +1469,7 @@ class LinearRingZM(AbstractGeometry):
         """
         To WKB
         """
-        return self._joiner(
-            pack(COUNT_UNIT, len(self.points)),
-            self._joiner(*[pt.to_wkb(False) for pt in self.points]))
+        return _pack_points(self.coordinates, has_z=True, has_m=True)
     # End to_wkb method
 
     @classmethod
