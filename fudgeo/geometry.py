@@ -56,8 +56,8 @@ def _unpack_points(value: bytes, dimension: int) -> List[Tuple[float, ...]]:
 # End _unpack_points function
 
 
-def _pack_points(coordinates: COORDINATES, has_z: bool, has_m: bool,
-                 use_prefix: bool) -> bytes:
+def _pack_points(coordinates: COORDINATES, has_z: bool = False,
+                 has_m: bool = False, use_prefix: bool = False) -> bytes:
     """
     Pack Coordinates
     """
