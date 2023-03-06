@@ -5,12 +5,12 @@ Constants
 
 
 from struct import pack
-from typing import Tuple
-
+from typing import List, Tuple, Union
 
 DOUBLE = Tuple[float, float]
 TRIPLE = Tuple[float, float, float]
 QUADRUPLE = Tuple[float, float, float, float]
+COORDINATES = Union[List[DOUBLE], List[TRIPLE], List[QUADRUPLE]]
 
 WGS84 = 4326
 SRS_ID = 'srs_id'
@@ -49,6 +49,14 @@ WKB_MULTI_POLYGON_PRE = pack(BYTE_UINT, 1, 6)
 WKB_MULTI_POLYGON_Z_PRE = pack(BYTE_UINT, 1, 1006)
 WKB_MULTI_POLYGON_M_PRE = pack(BYTE_UINT, 1, 2006)
 WKB_MULTI_POLYGON_ZM_PRE = pack(BYTE_UINT, 1, 3006)
+
+
+POINT_PREFIX = {
+    (False, False): WKB_POINT_PRE,
+    (True, False): WKB_POINT_Z_PRE,
+    (False, True): WKB_POINT_M_PRE,
+    (True, True): WKB_POINT_ZM_PRE,
+}
 
 
 if __name__ == '__main__':

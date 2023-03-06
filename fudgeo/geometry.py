@@ -11,15 +11,15 @@ from struct import pack, unpack
 from typing import List, Tuple
 
 from fudgeo.constant import (
-    BYTE_UINT, COUNT_UNIT, DOUBLE, EMPTY, GP_MAGIC, QUADRUPLE, SRS_ID, TRIPLE,
-    WGS84, WKB_LINESTRING_M_PRE, WKB_LINESTRING_PRE, WKB_LINESTRING_ZM_PRE,
-    WKB_LINESTRING_Z_PRE, WKB_MULTI_LINESTRING_M_PRE, WKB_MULTI_LINESTRING_PRE,
-    WKB_MULTI_LINESTRING_ZM_PRE, WKB_MULTI_LINESTRING_Z_PRE,
-    WKB_MULTI_POINT_M_PRE, WKB_MULTI_POINT_PRE, WKB_MULTI_POINT_ZM_PRE,
-    WKB_MULTI_POINT_Z_PRE, WKB_MULTI_POLYGON_M_PRE, WKB_MULTI_POLYGON_PRE,
-    WKB_MULTI_POLYGON_ZM_PRE, WKB_MULTI_POLYGON_Z_PRE, WKB_POINT_M_PRE,
-    WKB_POINT_PRE, WKB_POINT_ZM_PRE, WKB_POINT_Z_PRE, WKB_POLYGON_M_PRE,
-    WKB_POLYGON_PRE, WKB_POLYGON_ZM_PRE, WKB_POLYGON_Z_PRE)
+    BYTE_UINT, COORDINATES, COUNT_UNIT, DOUBLE, EMPTY, GP_MAGIC, POINT_PREFIX,
+    QUADRUPLE, SRS_ID, TRIPLE, WGS84, WKB_LINESTRING_M_PRE, WKB_LINESTRING_PRE,
+    WKB_LINESTRING_ZM_PRE, WKB_LINESTRING_Z_PRE, WKB_MULTI_LINESTRING_M_PRE,
+    WKB_MULTI_LINESTRING_PRE, WKB_MULTI_LINESTRING_ZM_PRE,
+    WKB_MULTI_LINESTRING_Z_PRE, WKB_MULTI_POINT_M_PRE, WKB_MULTI_POINT_PRE,
+    WKB_MULTI_POINT_ZM_PRE, WKB_MULTI_POINT_Z_PRE, WKB_MULTI_POLYGON_M_PRE,
+    WKB_MULTI_POLYGON_PRE, WKB_MULTI_POLYGON_ZM_PRE, WKB_MULTI_POLYGON_Z_PRE,
+    WKB_POINT_M_PRE, WKB_POINT_PRE, WKB_POINT_ZM_PRE, WKB_POINT_Z_PRE,
+    WKB_POLYGON_M_PRE, WKB_POLYGON_PRE, WKB_POLYGON_ZM_PRE, WKB_POLYGON_Z_PRE)
 
 
 __all__ = ['Point', 'PointZ', 'PointM', 'PointZM', 'MultiPoint', 'MultiPointZ',
@@ -54,6 +54,27 @@ def _unpack_points(value: bytes, dimension: int) -> List[Tuple[float, ...]]:
     values: Tuple[float, ...] = unpack(f'<{total}d', reduce(add, data))
     return [values[i:i + dimension] for i in range(0, total, dimension)]
 # End _unpack_points function
+
+
+def _pack_points(coordinates: COORDINATES, has_z: bool = False,
+                 has_m: bool = False, use_prefix: bool = False) -> bytes:
+    """
+    Pack Coordinates
+    """
+    flat = []
+    for coords in coordinates:
+        flat.extend(coords)
+    count = len(coordinates)
+    total = count * sum((2, has_z, has_m))
+    data = pack(f'<{total}d', *flat)
+    if not use_prefix:
+        return pack(COUNT_UNIT, count) + data
+    length = len(data)
+    step = length // count
+    prefix = POINT_PREFIX.get((has_z, has_m))
+    parts = [prefix + data[i:i + step] for i in range(0, length, step)]
+    return pack(COUNT_UNIT, count) + EMPTY.join(parts)
+# End _pack_points function
 
 
 def _unpack_lines(value: bytes, dimension: int, is_ring: bool = False) \
@@ -492,14 +513,14 @@ class MultiPoint(AbstractGeometry):
     """
     Multi Point
     """
-    __slots__ = 'points'
+    __slots__ = 'coordinates'
 
     def __init__(self, coordinates: List[DOUBLE], srs_id: int = WGS84) -> None:
         """
         Initialize the MultiPoint class
         """
         super().__init__(srs_id=srs_id)
-        self.points: List[Point] = [Point(x=x, y=y) for x, y in coordinates]
+        self.coordinates: List[DOUBLE] = coordinates
     # End init built-in
 
     def __eq__(self, other: 'MultiPoint') -> bool:
@@ -513,13 +534,20 @@ class MultiPoint(AbstractGeometry):
         return self.points == other.points
     # End eq built-in
 
+    @property
+    def points(self) -> List[Point]:
+        """
+        Points
+        """
+        return [Point(x=x, y=y) for x, y in self.coordinates]
+    # End points property
+
     def to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
         """
-        return self._joiner(
-            WKB_MULTI_POINT_PRE, pack(COUNT_UNIT, len(self.points)),
-            self._joiner(*[pt.to_wkb() for pt in self.points]))
+        return WKB_MULTI_POINT_PRE + _pack_points(
+            self.coordinates, use_prefix=True)
     # End to_wkb method
 
     @classmethod
@@ -547,15 +575,14 @@ class MultiPointZ(AbstractGeometry):
     """
     Multi Point Z
     """
-    __slots__ = 'points'
+    __slots__ = 'coordinates'
 
     def __init__(self, coordinates: List[TRIPLE], srs_id: int = WGS84) -> None:
         """
         Initialize the MultiPointZ class
         """
         super().__init__(srs_id=srs_id)
-        self.points: List[PointZ] = [
-            PointZ(x=x, y=y, z=z) for x, y, z in coordinates]
+        self.coordinates: List[TRIPLE] = coordinates
     # End init built-in
 
     def __eq__(self, other: 'MultiPointZ') -> bool:
@@ -569,13 +596,20 @@ class MultiPointZ(AbstractGeometry):
         return self.points == other.points
     # End eq built-in
 
+    @property
+    def points(self) -> List[PointZ]:
+        """
+        Points
+        """
+        return [PointZ(x=x, y=y, z=z) for x, y, z in self.coordinates]
+    # End points property
+
     def to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
         """
-        return self._joiner(
-            WKB_MULTI_POINT_Z_PRE, pack(COUNT_UNIT, len(self.points)),
-            self._joiner(*[pt.to_wkb() for pt in self.points]))
+        return WKB_MULTI_POINT_Z_PRE + _pack_points(
+            self.coordinates, has_z=True, use_prefix=True)
     # End to_wkb method
 
     @classmethod
@@ -603,15 +637,14 @@ class MultiPointM(AbstractGeometry):
     """
     Multi Point M
     """
-    __slots__ = 'points'
+    __slots__ = 'coordinates'
 
     def __init__(self, coordinates: List[TRIPLE], srs_id: int = WGS84) -> None:
         """
         Initialize the MultiPointM class
         """
         super().__init__(srs_id=srs_id)
-        self.points: List[PointM] = [
-            PointM(x=x, y=y, m=m) for x, y, m in coordinates]
+        self.coordinates: List[TRIPLE] = coordinates
     # End init built-in
 
     def __eq__(self, other: 'MultiPointM') -> bool:
@@ -625,13 +658,20 @@ class MultiPointM(AbstractGeometry):
         return self.points == other.points
     # End eq built-in
 
+    @property
+    def points(self) -> List[PointM]:
+        """
+        Points
+        """
+        return [PointM(x=x, y=y, m=m) for x, y, m in self.coordinates]
+    # End points property
+
     def to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
         """
-        return self._joiner(
-            WKB_MULTI_POINT_M_PRE, pack(COUNT_UNIT, len(self.points)),
-            self._joiner(*[pt.to_wkb() for pt in self.points]))
+        return WKB_MULTI_POINT_M_PRE + _pack_points(
+            self.coordinates, has_m=True, use_prefix=True)
     # End to_wkb method
 
     @classmethod
@@ -659,7 +699,7 @@ class MultiPointZM(AbstractGeometry):
     """
     Multi Point ZM
     """
-    __slots__ = 'points'
+    __slots__ = 'coordinates'
 
     def __init__(self, coordinates: List[QUADRUPLE],
                  srs_id: int = WGS84) -> None:
@@ -667,8 +707,7 @@ class MultiPointZM(AbstractGeometry):
         Initialize the MultiPointZM class
         """
         super().__init__(srs_id=srs_id)
-        self.points: List[PointZM] = [
-            PointZM(x=x, y=y, z=z, m=m) for x, y, z, m in coordinates]
+        self.coordinates: List[QUADRUPLE] = coordinates
     # End init built-in
 
     def __eq__(self, other: 'MultiPointZM') -> bool:
@@ -682,13 +721,20 @@ class MultiPointZM(AbstractGeometry):
         return self.points == other.points
     # End eq built-in
 
+    @property
+    def points(self) -> List[PointZM]:
+        """
+        Points
+        """
+        return [PointZM(x=x, y=y, z=z, m=m) for x, y, z, m in self.coordinates]
+    # End points property
+
     def to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
         """
-        return self._joiner(
-            WKB_MULTI_POINT_ZM_PRE, pack(COUNT_UNIT, len(self.points)),
-            self._joiner(*[pt.to_wkb() for pt in self.points]))
+        return WKB_MULTI_POINT_ZM_PRE + _pack_points(
+            self.coordinates, has_z=True, has_m=True, use_prefix=True)
     # End to_wkb method
 
     @classmethod
@@ -716,14 +762,14 @@ class LineString(AbstractGeometry):
     """
     LineString
     """
-    __slots__ = 'points'
+    __slots__ = 'coordinates'
 
     def __init__(self, coordinates: List[DOUBLE], srs_id: int = WGS84) -> None:
         """
         Initialize the LineString class
         """
         super().__init__(srs_id=srs_id)
-        self.points: List[Point] = [Point(x=x, y=y) for x, y in coordinates]
+        self.coordinates: List[DOUBLE] = coordinates
     # End init built-in
 
     def __eq__(self, other: 'LineString') -> bool:
@@ -737,13 +783,19 @@ class LineString(AbstractGeometry):
         return self.points == other.points
     # End eq built-in
 
+    @property
+    def points(self) -> List[Point]:
+        """
+        Points
+        """
+        return [Point(x=x, y=y) for x, y in self.coordinates]
+    # End points property
+
     def to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
         """
-        return self._joiner(
-            WKB_LINESTRING_PRE, pack(COUNT_UNIT, len(self.points)),
-            self._joiner(*[pt.to_wkb(False) for pt in self.points]))
+        return WKB_LINESTRING_PRE + _pack_points(self.coordinates)
     # End to_wkb method
 
     @classmethod
@@ -771,15 +823,14 @@ class LineStringZ(AbstractGeometry):
     """
     LineStringZ
     """
-    __slots__ = 'points'
+    __slots__ = 'coordinates'
 
     def __init__(self, coordinates: List[TRIPLE], srs_id: int = WGS84) -> None:
         """
         Initialize the LineStringZ class
         """
         super().__init__(srs_id=srs_id)
-        self.points: List[PointZ] = [
-            PointZ(x=x, y=y, z=z) for x, y, z in coordinates]
+        self.coordinates: List[TRIPLE] = coordinates
     # End init built-in
 
     def __eq__(self, other: 'LineStringZ') -> bool:
@@ -793,13 +844,19 @@ class LineStringZ(AbstractGeometry):
         return self.points == other.points
     # End eq built-in
 
+    @property
+    def points(self) -> List[PointZ]:
+        """
+        Points
+        """
+        return [PointZ(x=x, y=y, z=z) for x, y, z in self.coordinates]
+    # End points property
+
     def to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
         """
-        return self._joiner(
-            WKB_LINESTRING_Z_PRE, pack(COUNT_UNIT, len(self.points)),
-            self._joiner(*[pt.to_wkb(False) for pt in self.points]))
+        return WKB_LINESTRING_Z_PRE + _pack_points(self.coordinates, has_z=True)
     # End to_wkb method
 
     @classmethod
@@ -827,15 +884,14 @@ class LineStringM(AbstractGeometry):
     """
     LineStringM
     """
-    __slots__ = 'points'
+    __slots__ = 'coordinates'
 
     def __init__(self, coordinates: List[TRIPLE], srs_id: int = WGS84) -> None:
         """
         Initialize the LineStringM class
         """
         super().__init__(srs_id=srs_id)
-        self.points: List[PointM] = [
-            PointM(x=x, y=y, m=m) for x, y, m in coordinates]
+        self.coordinates: List[TRIPLE] = coordinates
     # End init built-in
 
     def __eq__(self, other: 'LineStringM') -> bool:
@@ -849,13 +905,19 @@ class LineStringM(AbstractGeometry):
         return self.points == other.points
     # End eq built-in
 
+    @property
+    def points(self) -> List[PointM]:
+        """
+        Points
+        """
+        return [PointM(x=x, y=y, m=m) for x, y, m in self.coordinates]
+    # End points property
+
     def to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
         """
-        return self._joiner(
-            WKB_LINESTRING_M_PRE, pack(COUNT_UNIT, len(self.points)),
-            self._joiner(*[pt.to_wkb(False) for pt in self.points]))
+        return WKB_LINESTRING_M_PRE + _pack_points(self.coordinates, has_m=True)
     # End to_wkb method
 
     @classmethod
@@ -883,7 +945,7 @@ class LineStringZM(AbstractGeometry):
     """
     LineStringZM
     """
-    __slots__ = 'points'
+    __slots__ = 'coordinates'
 
     def __init__(self, coordinates: List[QUADRUPLE],
                  srs_id: int = WGS84) -> None:
@@ -891,8 +953,7 @@ class LineStringZM(AbstractGeometry):
         Initialize the LineStringZM class
         """
         super().__init__(srs_id=srs_id)
-        self.points: List[PointZM] = [
-            PointZM(x=x, y=y, z=z, m=m) for x, y, z, m in coordinates]
+        self.coordinates: List[QUADRUPLE] = coordinates
     # End init built-in
 
     def __eq__(self, other: 'LineStringZM') -> bool:
@@ -906,13 +967,20 @@ class LineStringZM(AbstractGeometry):
         return self.points == other.points
     # End eq built-in
 
+    @property
+    def points(self) -> List[PointZM]:
+        """
+        Points
+        """
+        return [PointZM(x=x, y=y, z=z, m=m) for x, y, z, m in self.coordinates]
+    # End points property
+
     def to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
         """
-        return self._joiner(
-            WKB_LINESTRING_ZM_PRE, pack(COUNT_UNIT, len(self.points)),
-            self._joiner(*[pt.to_wkb(False) for pt in self.points]))
+        return WKB_LINESTRING_ZM_PRE + _pack_points(
+            self.coordinates, has_z=True, has_m=True)
     # End to_wkb method
 
     @classmethod
@@ -1168,7 +1236,7 @@ class LinearRing(AbstractGeometry):
     """
     Linear Ring
     """
-    __slots__ = 'points'
+    __slots__ = 'coordinates'
 
     def __init__(self, coordinates: List[DOUBLE],
                  srs_id: int = WGS84) -> None:
@@ -1176,7 +1244,7 @@ class LinearRing(AbstractGeometry):
         Initialize the LinearRing class
         """
         super().__init__(srs_id=srs_id)
-        self.points: List[Point] = [Point(x=x, y=y) for x, y in coordinates]
+        self.coordinates: List[DOUBLE] = coordinates
     # End init built-in
 
     def __eq__(self, other: 'LinearRing') -> bool:
@@ -1190,13 +1258,19 @@ class LinearRing(AbstractGeometry):
         return self.points == other.points
     # End eq built-in
 
+    @property
+    def points(self) -> List[Point]:
+        """
+        Points
+        """
+        return [Point(x=x, y=y) for x, y in self.coordinates]
+    # End points property
+
     def to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
         """
-        return self._joiner(
-            pack(COUNT_UNIT, len(self.points)),
-            self._joiner(*[pt.to_wkb(False) for pt in self.points]))
+        return _pack_points(self.coordinates)
     # End to_wkb method
 
     @classmethod
@@ -1229,15 +1303,14 @@ class LinearRingZ(AbstractGeometry):
     """
     Linear Ring Z
     """
-    __slots__ = 'points'
+    __slots__ = 'coordinates'
 
     def __init__(self, coordinates: List[TRIPLE], srs_id: int = WGS84) -> None:
         """
         Initialize the LinearRingZ class
         """
         super().__init__(srs_id=srs_id)
-        self.points: List[PointZ] = [
-            PointZ(x=x, y=y, z=z) for x, y, z in coordinates]
+        self.coordinates: List[TRIPLE] = coordinates
     # End init built-in
 
     def __eq__(self, other: 'LinearRingZ') -> bool:
@@ -1251,13 +1324,19 @@ class LinearRingZ(AbstractGeometry):
         return self.points == other.points
     # End eq built-in
 
+    @property
+    def points(self) -> List[PointZ]:
+        """
+        Points
+        """
+        return [PointZ(x=x, y=y, z=z) for x, y, z in self.coordinates]
+    # End points property
+
     def to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
         """
-        return self._joiner(
-            pack(COUNT_UNIT, len(self.points)),
-            self._joiner(*[pt.to_wkb(False) for pt in self.points]))
+        return _pack_points(self.coordinates, has_z=True)
     # End to_wkb method
 
     @classmethod
@@ -1290,15 +1369,14 @@ class LinearRingM(AbstractGeometry):
     """
     Linear Ring M
     """
-    __slots__ = 'points'
+    __slots__ = 'coordinates'
 
     def __init__(self, coordinates: List[TRIPLE], srs_id: int = WGS84) -> None:
         """
         Initialize the LinearRingM class
         """
         super().__init__(srs_id=srs_id)
-        self.points: List[PointM] = [
-            PointM(x=x, y=y, m=m) for x, y, m in coordinates]
+        self.coordinates: List[TRIPLE] = coordinates
     # End init built-in
 
     def __eq__(self, other: 'LinearRingM') -> bool:
@@ -1312,13 +1390,19 @@ class LinearRingM(AbstractGeometry):
         return self.points == other.points
     # End eq built-in
 
+    @property
+    def points(self) -> List[PointM]:
+        """
+        Points
+        """
+        return [PointM(x=x, y=y, m=m) for x, y, m in self.coordinates]
+    # End points property
+
     def to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
         """
-        return self._joiner(
-            pack(COUNT_UNIT, len(self.points)),
-            self._joiner(*[pt.to_wkb(False) for pt in self.points]))
+        return _pack_points(self.coordinates, has_m=True)
     # End to_wkb method
 
     @classmethod
@@ -1351,7 +1435,7 @@ class LinearRingZM(AbstractGeometry):
     """
     Linear Ring ZM
     """
-    __slots__ = 'points'
+    __slots__ = 'coordinates'
 
     def __init__(self, coordinates: List[QUADRUPLE],
                  srs_id: int = WGS84) -> None:
@@ -1359,8 +1443,7 @@ class LinearRingZM(AbstractGeometry):
         Initialize the LinearRingZM class
         """
         super().__init__(srs_id=srs_id)
-        self.points: List[PointZM] = [
-            PointZM(x=x, y=y, z=z, m=m) for x, y, z, m in coordinates]
+        self.coordinates: List[QUADRUPLE] = coordinates
     # End init built-in
 
     def __eq__(self, other: 'LinearRingZM') -> bool:
@@ -1374,13 +1457,19 @@ class LinearRingZM(AbstractGeometry):
         return self.points == other.points
     # End eq built-in
 
+    @property
+    def points(self) -> List[PointZM]:
+        """
+        Points
+        """
+        return [PointZM(x=x, y=y, z=z, m=m) for x, y, z, m in self.coordinates]
+    # End points property
+
     def to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
         """
-        return self._joiner(
-            pack(COUNT_UNIT, len(self.points)),
-            self._joiner(*[pt.to_wkb(False) for pt in self.points]))
+        return _pack_points(self.coordinates, has_z=True, has_m=True)
     # End to_wkb method
 
     @classmethod
