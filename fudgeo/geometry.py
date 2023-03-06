@@ -766,14 +766,14 @@ class LineString(AbstractGeometry):
     """
     LineString
     """
-    __slots__ = 'points'
+    __slots__ = 'coordinates'
 
     def __init__(self, coordinates: List[DOUBLE], srs_id: int = WGS84) -> None:
         """
         Initialize the LineString class
         """
         super().__init__(srs_id=srs_id)
-        self.points: List[Point] = [Point(x=x, y=y) for x, y in coordinates]
+        self.coordinates: List[DOUBLE] = coordinates
     # End init built-in
 
     def __eq__(self, other: 'LineString') -> bool:
@@ -786,6 +786,14 @@ class LineString(AbstractGeometry):
             return False
         return self.points == other.points
     # End eq built-in
+
+    @property
+    def points(self) -> List[Point]:
+        """
+        Points
+        """
+        return [Point(x=x, y=y) for x, y in self.coordinates]
+    # End points property
 
     def to_wkb(self, use_prefix: bool = True) -> bytes:
         """
@@ -821,15 +829,14 @@ class LineStringZ(AbstractGeometry):
     """
     LineStringZ
     """
-    __slots__ = 'points'
+    __slots__ = 'coordinates'
 
     def __init__(self, coordinates: List[TRIPLE], srs_id: int = WGS84) -> None:
         """
         Initialize the LineStringZ class
         """
         super().__init__(srs_id=srs_id)
-        self.points: List[PointZ] = [
-            PointZ(x=x, y=y, z=z) for x, y, z in coordinates]
+        self.coordinates: List[TRIPLE] = coordinates
     # End init built-in
 
     def __eq__(self, other: 'LineStringZ') -> bool:
@@ -842,6 +849,14 @@ class LineStringZ(AbstractGeometry):
             return False
         return self.points == other.points
     # End eq built-in
+
+    @property
+    def points(self) -> List[PointZ]:
+        """
+        Points
+        """
+        return [PointZ(x=x, y=y, z=z) for x, y, z in self.coordinates]
+    # End points property
 
     def to_wkb(self, use_prefix: bool = True) -> bytes:
         """
@@ -877,15 +892,14 @@ class LineStringM(AbstractGeometry):
     """
     LineStringM
     """
-    __slots__ = 'points'
+    __slots__ = 'coordinates'
 
     def __init__(self, coordinates: List[TRIPLE], srs_id: int = WGS84) -> None:
         """
         Initialize the LineStringM class
         """
         super().__init__(srs_id=srs_id)
-        self.points: List[PointM] = [
-            PointM(x=x, y=y, m=m) for x, y, m in coordinates]
+        self.coordinates: List[TRIPLE] = coordinates
     # End init built-in
 
     def __eq__(self, other: 'LineStringM') -> bool:
@@ -898,6 +912,14 @@ class LineStringM(AbstractGeometry):
             return False
         return self.points == other.points
     # End eq built-in
+
+    @property
+    def points(self) -> List[PointM]:
+        """
+        Points
+        """
+        return [PointM(x=x, y=y, m=m) for x, y, m in self.coordinates]
+    # End points property
 
     def to_wkb(self, use_prefix: bool = True) -> bytes:
         """
@@ -933,7 +955,7 @@ class LineStringZM(AbstractGeometry):
     """
     LineStringZM
     """
-    __slots__ = 'points'
+    __slots__ = 'coordinates'
 
     def __init__(self, coordinates: List[QUADRUPLE],
                  srs_id: int = WGS84) -> None:
@@ -941,8 +963,7 @@ class LineStringZM(AbstractGeometry):
         Initialize the LineStringZM class
         """
         super().__init__(srs_id=srs_id)
-        self.points: List[PointZM] = [
-            PointZM(x=x, y=y, z=z, m=m) for x, y, z, m in coordinates]
+        self.coordinates: List[QUADRUPLE] = coordinates
     # End init built-in
 
     def __eq__(self, other: 'LineStringZM') -> bool:
@@ -955,6 +976,14 @@ class LineStringZM(AbstractGeometry):
             return False
         return self.points == other.points
     # End eq built-in
+
+    @property
+    def points(self) -> List[PointZM]:
+        """
+        Points
+        """
+        return [PointZM(x=x, y=y, z=z, m=m) for x, y, z, m in self.coordinates]
+    # End points property
 
     def to_wkb(self, use_prefix: bool = True) -> bytes:
         """
