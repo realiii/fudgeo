@@ -5,10 +5,7 @@ Test Geometry
 
 from pytest import fixture, mark, raises
 
-from fudgeo.constant import (
-    WKB_LINESTRING_M_PRE, WKB_LINESTRING_PRE, WKB_LINESTRING_ZM_PRE,
-    WKB_LINESTRING_Z_PRE, WKB_MULTI_POINT_M_PRE, WKB_MULTI_POINT_PRE,
-    WKB_MULTI_POINT_ZM_PRE, WKB_MULTI_POINT_Z_PRE)
+
 from tests.conversion.geo import (
     make_gpkg_geom_header, point_lists_to_gpkg_multi_line_string,
     point_lists_to_gpkg_multi_polygon, point_lists_to_gpkg_polygon,
@@ -36,8 +33,7 @@ from fudgeo.geometry import (
     LinearRingZ, LinearRingZM, MultiLineString, MultiLineStringM,
     MultiLineStringZ, MultiLineStringZM, MultiPoint, MultiPointM, MultiPointZ,
     MultiPointZM, MultiPolygon, MultiPolygonM, MultiPolygonZ, MultiPolygonZM,
-    Point, PointM, PointZ, PointZM, Polygon, PolygonM, PolygonZ, PolygonZM,
-    _pack_points)
+    Point, PointM, PointZ, PointZM, Polygon, PolygonM, PolygonZ, PolygonZM)
 
 
 @fixture(scope='session')
@@ -121,8 +117,6 @@ def test_multi_point(header):
     assert pts.coordinates == values
     wkb = pts.to_wkb()
     assert wkb == multipoint_to_wkb_multipoint(values)
-    result = _pack_points(values, use_prefix=True)
-    assert wkb == WKB_MULTI_POINT_PRE + result
     assert MultiPoint.from_wkb(wkb) == pts
     gpkg = pts.to_gpkg()
     assert gpkg == points_to_gpkg_multipoint(header, values)
@@ -141,8 +135,6 @@ def test_multi_point_z(header):
     assert pts.coordinates == values
     wkb = pts.to_wkb()
     assert wkb == multipoint_z_to_wkb_multipoint_z(values)
-    result = _pack_points(values, has_z=True, use_prefix=True)
-    assert wkb == WKB_MULTI_POINT_Z_PRE + result
     assert MultiPointZ.from_wkb(wkb) == pts
     assert MultiPointZ.from_gpkg(pts.to_gpkg()) == pts
 # End test_multi_point_z function
@@ -159,8 +151,6 @@ def test_multi_point_m(header):
     assert pts.coordinates == values
     wkb = pts.to_wkb()
     assert wkb == multipoint_m_to_wkb_multipoint_m(values)
-    result = _pack_points(values, has_m=True, use_prefix=True)
-    assert wkb == WKB_MULTI_POINT_M_PRE + result
     assert MultiPointM.from_wkb(wkb) == pts
     assert MultiPointM.from_gpkg(pts.to_gpkg()) == pts
 # End test_multi_point_m function
@@ -177,8 +167,6 @@ def test_multi_point_zm(header):
     assert pts.coordinates == values
     wkb = pts.to_wkb()
     assert wkb == multipoint_zm_to_wkb_multipoint_zm(values)
-    result = _pack_points(values, has_z=True, has_m=True, use_prefix=True)
-    assert wkb == WKB_MULTI_POINT_ZM_PRE + result
     assert MultiPointZM.from_wkb(wkb) == pts
     assert MultiPointZM.from_gpkg(pts.to_gpkg()) == pts
 # End test_multi_point_zm function
@@ -195,7 +183,6 @@ def test_line_string(header):
     assert line.coordinates == values
     wkb = line.to_wkb()
     assert wkb == points_to_wkb_line_string(values)
-    assert wkb == WKB_LINESTRING_PRE + _pack_points(values)
     assert line.to_gpkg() == points_to_gpkg_line_string(header, values)
     assert LineString.from_wkb(wkb) == line
     assert LineString.from_gpkg(line.to_gpkg()) == line
@@ -213,7 +200,6 @@ def test_line_string_z(header):
     assert line.coordinates == values
     wkb = line.to_wkb()
     assert wkb == points_z_to_wkb_line_string_z(values)
-    assert wkb == WKB_LINESTRING_Z_PRE + _pack_points(values, has_z=True)
     assert line.to_gpkg() == points_z_to_gpkg_line_string_z(header, values)
     assert LineStringZ.from_wkb(wkb) == line
     assert LineStringZ.from_gpkg(line.to_gpkg()) == line
@@ -231,7 +217,6 @@ def test_line_string_m(header):
     assert line.coordinates == values
     wkb = line.to_wkb()
     assert wkb == points_m_to_wkb_line_string_m(values)
-    assert wkb == WKB_LINESTRING_M_PRE + _pack_points(values, has_z=True)
     assert line.to_gpkg() == points_m_to_gpkg_line_string_m(header, values)
     assert LineStringM.from_wkb(wkb) == line
     assert LineStringM.from_gpkg(line.to_gpkg()) == line
@@ -249,7 +234,6 @@ def test_line_string_zm(header):
     assert line.coordinates == values
     wkb = line.to_wkb()
     assert wkb == points_zm_to_wkb_line_string_zm(values)
-    assert wkb == WKB_LINESTRING_ZM_PRE + _pack_points(values, has_z=True, has_m=True)
     assert line.to_gpkg() == points_zm_to_gpkg_line_string_zm(header, values)
     assert LineStringZM.from_wkb(wkb) == line
     assert LineStringZM.from_gpkg(line.to_gpkg()) == line
@@ -336,7 +320,6 @@ def test_linear_ring(header):
     assert ring.coordinates == values
     wkb = ring.to_wkb()
     assert wkb == _linear_ring_to_wkb(values)
-    assert wkb == _pack_points(values)
     with raises(NotImplementedError):
         assert ring.to_gpkg()
     assert LinearRing.from_wkb(wkb) == ring
@@ -356,7 +339,6 @@ def test_linear_ring_z(header):
     assert ring.coordinates == values
     wkb = ring.to_wkb()
     assert wkb == _linear_ring_z_to_wkb(values)
-    assert wkb == _pack_points(values, has_z=True)
     with raises(NotImplementedError):
         assert ring.to_gpkg()
     assert LinearRingZ.from_wkb(wkb) == ring
@@ -376,7 +358,6 @@ def test_linear_ring_m(header):
     assert ring.coordinates == values
     wkb = ring.to_wkb()
     assert wkb == _linear_ring_m_to_wkb(values)
-    assert wkb == _pack_points(values, has_m=True)
     with raises(NotImplementedError):
         assert ring.to_gpkg()
     assert LinearRingM.from_wkb(wkb) == ring
@@ -396,7 +377,6 @@ def test_linear_ring_zm(header):
     assert ring.coordinates == values
     wkb = ring.to_wkb()
     assert wkb == _linear_ring_zm_to_wkb(values)
-    assert wkb == _pack_points(values, has_z=True, has_m=True)
     with raises(NotImplementedError):
         assert ring.to_gpkg()
     assert LinearRingZM.from_wkb(wkb) == ring
