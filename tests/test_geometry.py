@@ -5,7 +5,6 @@ Test Geometry
 
 from pytest import fixture, mark, raises
 
-from fudgeo.constant import WKB_MULTI_POINT_PRE
 from tests.conversion.geo import (
     make_gpkg_geom_header, point_lists_to_gpkg_multi_line_string,
     point_lists_to_gpkg_multi_polygon, point_lists_to_gpkg_polygon,
@@ -115,7 +114,8 @@ def test_multi_point(header):
         pts.attribute = 10
     wkb = pts.to_wkb()
     assert wkb == multipoint_to_wkb_multipoint(values)
-    assert wkb == _pack_points(values, dimension=2, prefix=WKB_MULTI_POINT_PRE, use_prefix=True)
+    assert wkb == _pack_points(
+        values, dimension=2, has_z=False, has_m=False, use_point_prefix=True)
     assert MultiPoint.from_wkb(wkb) == pts
     gpkg = pts.to_gpkg()
     assert gpkg == points_to_gpkg_multipoint(header, values)
@@ -131,8 +131,11 @@ def test_multi_point_z(header):
     pts = MultiPointZ(values)
     with raises(AttributeError):
         pts.attribute = 10
-    assert pts.to_wkb() == multipoint_z_to_wkb_multipoint_z(values)
-    assert MultiPointZ.from_wkb(pts.to_wkb()) == pts
+    wkb = pts.to_wkb()
+    assert wkb == multipoint_z_to_wkb_multipoint_z(values)
+    assert wkb == _pack_points(
+        values, dimension=3, has_z=True, has_m=False, use_point_prefix=True)
+    assert MultiPointZ.from_wkb(wkb) == pts
     assert MultiPointZ.from_gpkg(pts.to_gpkg()) == pts
 # End test_multi_point_z function
 
@@ -145,8 +148,11 @@ def test_multi_point_m(header):
     pts = MultiPointM(values)
     with raises(AttributeError):
         pts.attribute = 10
-    assert pts.to_wkb() == multipoint_m_to_wkb_multipoint_m(values)
-    assert MultiPointM.from_wkb(pts.to_wkb()) == pts
+    wkb = pts.to_wkb()
+    assert wkb == multipoint_m_to_wkb_multipoint_m(values)
+    assert wkb == _pack_points(
+        values, dimension=3, has_z=False, has_m=True, use_point_prefix=True)
+    assert MultiPointM.from_wkb(wkb) == pts
     assert MultiPointM.from_gpkg(pts.to_gpkg()) == pts
 # End test_multi_point_m function
 
@@ -159,8 +165,11 @@ def test_multi_point_zm(header):
     pts = MultiPointZM(values)
     with raises(AttributeError):
         pts.attribute = 10
-    assert pts.to_wkb() == multipoint_zm_to_wkb_multipoint_zm(values)
-    assert MultiPointZM.from_wkb(pts.to_wkb()) == pts
+    wkb = pts.to_wkb()
+    assert wkb == multipoint_zm_to_wkb_multipoint_zm(values)
+    assert wkb == _pack_points(
+        values, dimension=4, has_z=True, has_m=True, use_point_prefix=True)
+    assert MultiPointZM.from_wkb(wkb) == pts
     assert MultiPointZM.from_gpkg(pts.to_gpkg()) == pts
 # End test_multi_point_zm function
 
