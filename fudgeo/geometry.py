@@ -11,8 +11,8 @@ from struct import pack, unpack
 from typing import List, Tuple
 
 from fudgeo.constant import (
-    BYTE_UINT, COUNT_UNIT, DOUBLE, EMPTY, GP_MAGIC, QUADRUPLE, SRS_ID, TRIPLE,
-    VALUES, WGS84, WKB_LINESTRING_M_PRE, WKB_LINESTRING_PRE,
+    BYTE_UINT, COORDINATES, COUNT_UNIT, DOUBLE, EMPTY, GP_MAGIC, QUADRUPLE,
+    SRS_ID, TRIPLE, WGS84, WKB_LINESTRING_M_PRE, WKB_LINESTRING_PRE,
     WKB_LINESTRING_ZM_PRE, WKB_LINESTRING_Z_PRE, WKB_MULTI_LINESTRING_M_PRE,
     WKB_MULTI_LINESTRING_PRE, WKB_MULTI_LINESTRING_ZM_PRE,
     WKB_MULTI_LINESTRING_Z_PRE, WKB_MULTI_POINT_M_PRE, WKB_MULTI_POINT_PRE,
@@ -71,15 +71,15 @@ def _point_prefixes(has_z: bool, has_m: bool) -> Tuple[bytes, bytes]:
 # End _point_prefix function
 
 
-def _pack_points(values: VALUES, dimension: int, has_z: bool, has_m: bool,
-                 use_point_prefix: bool) -> bytes:
+def _pack_points(coordinates: COORDINATES, dimension: int,
+                 has_z: bool, has_m: bool, use_point_prefix: bool) -> bytes:
     """
     Pack Values for Multi Point
     """
     flat = []
-    for coords in values:
+    for coords in coordinates:
         flat.extend(coords)
-    count = len(values)
+    count = len(coordinates)
     total = count * dimension
     data = pack(f'<{total}d', *flat)
     point_prefix, multi_prefix = _point_prefixes(has_z, has_m)

@@ -10,7 +10,7 @@ from typing import List, Tuple, Union
 DOUBLE = Tuple[float, float]
 TRIPLE = Tuple[float, float, float]
 QUADRUPLE = Tuple[float, float, float, float]
-VALUES = Union[List[DOUBLE], List[TRIPLE], List[QUADRUPLE]]
+COORDINATES = Union[List[DOUBLE], List[TRIPLE], List[QUADRUPLE]]
 
 WGS84 = 4326
 SRS_ID = 'srs_id'
