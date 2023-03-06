@@ -11,8 +11,8 @@ from struct import pack, unpack
 from typing import List, Tuple
 
 from fudgeo.constant import (
-    BYTE_UINT, COORDINATES, COUNT_UNIT, DOUBLE, EMPTY, GP_MAGIC, QUADRUPLE,
-    SRS_ID, TRIPLE, WGS84, WKB_LINESTRING_M_PRE, WKB_LINESTRING_PRE,
+    BYTE_UINT, COORDINATES, COUNT_UNIT, DOUBLE, EMPTY, GP_MAGIC, POINT_PREFIX,
+    QUADRUPLE, SRS_ID, TRIPLE, WGS84, WKB_LINESTRING_M_PRE, WKB_LINESTRING_PRE,
     WKB_LINESTRING_ZM_PRE, WKB_LINESTRING_Z_PRE, WKB_MULTI_LINESTRING_M_PRE,
     WKB_MULTI_LINESTRING_PRE, WKB_MULTI_LINESTRING_ZM_PRE,
     WKB_MULTI_LINESTRING_Z_PRE, WKB_MULTI_POINT_M_PRE, WKB_MULTI_POINT_PRE,
@@ -56,23 +56,8 @@ def _unpack_points(value: bytes, dimension: int) -> List[Tuple[float, ...]]:
 # End _unpack_points function
 
 
-def _point_prefixes(has_z: bool, has_m: bool) -> Tuple[bytes, bytes]:
-    """
-    Point Prefixes, Point and MultiPoint
-    """
-    if not has_z and not has_m:
-        return WKB_POINT_PRE, WKB_MULTI_POINT_PRE
-    elif has_z and not has_m:
-        return WKB_POINT_Z_PRE, WKB_MULTI_POINT_Z_PRE
-    elif not has_z and has_m:
-        return WKB_POINT_M_PRE, WKB_MULTI_POINT_M_PRE
-    elif has_z and has_m:
-        return WKB_POINT_ZM_PRE, WKB_MULTI_POINT_ZM_PRE
-# End _point_prefix function
-
-
-def _pack_points(coordinates: COORDINATES, dimension: int,
-                 has_z: bool, has_m: bool, use_point_prefix: bool) -> bytes:
+def _pack_points(coordinates: COORDINATES, has_z: bool, has_m: bool,
+                 use_prefix: bool) -> bytes:
     """
     Pack Values for Multi Point
     """
@@ -80,15 +65,15 @@ def _pack_points(coordinates: COORDINATES, dimension: int,
     for coords in coordinates:
         flat.extend(coords)
     count = len(coordinates)
-    total = count * dimension
+    total = count * sum((2, has_z, has_m))
     data = pack(f'<{total}d', *flat)
-    point_prefix, multi_prefix = _point_prefixes(has_z, has_m)
-    if not use_point_prefix:
-        return multi_prefix + pack(COUNT_UNIT, count) + data
+    if not use_prefix:
+        return pack(COUNT_UNIT, count) + data
     length = len(data)
     step = length // count
-    parts = [point_prefix + data[i:i + step] for i in range(0, len(data), step)]
-    return multi_prefix + pack(COUNT_UNIT, count) + EMPTY.join(parts)
+    prefix = POINT_PREFIX.get((has_z, has_m))
+    parts = [prefix + data[i:i + step] for i in range(0, length, step)]
+    return pack(COUNT_UNIT, count) + EMPTY.join(parts)
 # End _pack_points function
 
 
