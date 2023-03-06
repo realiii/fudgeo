@@ -1247,7 +1247,7 @@ class LinearRing(AbstractGeometry):
     """
     Linear Ring
     """
-    __slots__ = 'points'
+    __slots__ = 'coordinates'
 
     def __init__(self, coordinates: List[DOUBLE],
                  srs_id: int = WGS84) -> None:
@@ -1255,7 +1255,7 @@ class LinearRing(AbstractGeometry):
         Initialize the LinearRing class
         """
         super().__init__(srs_id=srs_id)
-        self.points: List[Point] = [Point(x=x, y=y) for x, y in coordinates]
+        self.coordinates: List[DOUBLE] = coordinates
     # End init built-in
 
     def __eq__(self, other: 'LinearRing') -> bool:
@@ -1268,6 +1268,14 @@ class LinearRing(AbstractGeometry):
             return False
         return self.points == other.points
     # End eq built-in
+
+    @property
+    def points(self) -> List[Point]:
+        """
+        Points
+        """
+        return [Point(x=x, y=y) for x, y in self.coordinates]
+    # End points property
 
     def to_wkb(self, use_prefix: bool = True) -> bytes:
         """
@@ -1308,15 +1316,14 @@ class LinearRingZ(AbstractGeometry):
     """
     Linear Ring Z
     """
-    __slots__ = 'points'
+    __slots__ = 'coordinates'
 
     def __init__(self, coordinates: List[TRIPLE], srs_id: int = WGS84) -> None:
         """
         Initialize the LinearRingZ class
         """
         super().__init__(srs_id=srs_id)
-        self.points: List[PointZ] = [
-            PointZ(x=x, y=y, z=z) for x, y, z in coordinates]
+        self.coordinates: List[TRIPLE] = coordinates
     # End init built-in
 
     def __eq__(self, other: 'LinearRingZ') -> bool:
@@ -1329,6 +1336,14 @@ class LinearRingZ(AbstractGeometry):
             return False
         return self.points == other.points
     # End eq built-in
+
+    @property
+    def points(self) -> List[PointZ]:
+        """
+        Points
+        """
+        return [PointZ(x=x, y=y, z=z) for x, y, z in self.coordinates]
+    # End points property
 
     def to_wkb(self, use_prefix: bool = True) -> bytes:
         """
@@ -1369,15 +1384,14 @@ class LinearRingM(AbstractGeometry):
     """
     Linear Ring M
     """
-    __slots__ = 'points'
+    __slots__ = 'coordinates'
 
     def __init__(self, coordinates: List[TRIPLE], srs_id: int = WGS84) -> None:
         """
         Initialize the LinearRingM class
         """
         super().__init__(srs_id=srs_id)
-        self.points: List[PointM] = [
-            PointM(x=x, y=y, m=m) for x, y, m in coordinates]
+        self.coordinates: List[TRIPLE] = coordinates
     # End init built-in
 
     def __eq__(self, other: 'LinearRingM') -> bool:
@@ -1390,6 +1404,14 @@ class LinearRingM(AbstractGeometry):
             return False
         return self.points == other.points
     # End eq built-in
+
+    @property
+    def points(self) -> List[PointM]:
+        """
+        Points
+        """
+        return [PointM(x=x, y=y, m=m) for x, y, m in self.coordinates]
+    # End points property
 
     def to_wkb(self, use_prefix: bool = True) -> bytes:
         """
@@ -1430,7 +1452,7 @@ class LinearRingZM(AbstractGeometry):
     """
     Linear Ring ZM
     """
-    __slots__ = 'points'
+    __slots__ = 'coordinates'
 
     def __init__(self, coordinates: List[QUADRUPLE],
                  srs_id: int = WGS84) -> None:
@@ -1438,8 +1460,7 @@ class LinearRingZM(AbstractGeometry):
         Initialize the LinearRingZM class
         """
         super().__init__(srs_id=srs_id)
-        self.points: List[PointZM] = [
-            PointZM(x=x, y=y, z=z, m=m) for x, y, z, m in coordinates]
+        self.coordinates: List[QUADRUPLE] = coordinates
     # End init built-in
 
     def __eq__(self, other: 'LinearRingZM') -> bool:
@@ -1452,6 +1473,14 @@ class LinearRingZM(AbstractGeometry):
             return False
         return self.points == other.points
     # End eq built-in
+
+    @property
+    def points(self) -> List[PointZM]:
+        """
+        Points
+        """
+        return [PointZM(x=x, y=y, z=z, m=m) for x, y, z, m in self.coordinates]
+    # End points property
 
     def to_wkb(self, use_prefix: bool = True) -> bytes:
         """
