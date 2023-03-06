@@ -6,7 +6,8 @@ Test Geometry
 from pytest import fixture, mark, raises
 
 from fudgeo.constant import (
-    WKB_MULTI_POINT_M_PRE, WKB_MULTI_POINT_PRE,
+    WKB_LINESTRING_M_PRE, WKB_LINESTRING_PRE, WKB_LINESTRING_ZM_PRE,
+    WKB_LINESTRING_Z_PRE, WKB_MULTI_POINT_M_PRE, WKB_MULTI_POINT_PRE,
     WKB_MULTI_POINT_ZM_PRE, WKB_MULTI_POINT_Z_PRE)
 from tests.conversion.geo import (
     make_gpkg_geom_header, point_lists_to_gpkg_multi_line_string,
@@ -117,7 +118,7 @@ def test_multi_point(header):
         pts.attribute = 10
     wkb = pts.to_wkb()
     assert wkb == multipoint_to_wkb_multipoint(values)
-    result = _pack_points(values, has_z=False, has_m=False, use_prefix=True)
+    result = _pack_points(values, use_prefix=True)
     assert wkb == WKB_MULTI_POINT_PRE + result
     assert MultiPoint.from_wkb(wkb) == pts
     gpkg = pts.to_gpkg()
@@ -136,7 +137,7 @@ def test_multi_point_z(header):
         pts.attribute = 10
     wkb = pts.to_wkb()
     assert wkb == multipoint_z_to_wkb_multipoint_z(values)
-    result = _pack_points(values, has_z=True, has_m=False, use_prefix=True)
+    result = _pack_points(values, has_z=True, use_prefix=True)
     assert wkb == WKB_MULTI_POINT_Z_PRE + result
     assert MultiPointZ.from_wkb(wkb) == pts
     assert MultiPointZ.from_gpkg(pts.to_gpkg()) == pts
@@ -153,7 +154,7 @@ def test_multi_point_m(header):
         pts.attribute = 10
     wkb = pts.to_wkb()
     assert wkb == multipoint_m_to_wkb_multipoint_m(values)
-    result = _pack_points(values, has_z=False, has_m=True, use_prefix=True)
+    result = _pack_points(values, has_m=True, use_prefix=True)
     assert wkb == WKB_MULTI_POINT_M_PRE + result
     assert MultiPointM.from_wkb(wkb) == pts
     assert MultiPointM.from_gpkg(pts.to_gpkg()) == pts
@@ -185,9 +186,11 @@ def test_line_string(header):
     line = LineString(values)
     with raises(AttributeError):
         line.attribute = 10
-    assert line.to_wkb() == points_to_wkb_line_string(values)
+    wkb = line.to_wkb()
+    assert wkb == points_to_wkb_line_string(values)
+    assert wkb == WKB_LINESTRING_PRE + _pack_points(values)
     assert line.to_gpkg() == points_to_gpkg_line_string(header, values)
-    assert LineString.from_wkb(line.to_wkb()) == line
+    assert LineString.from_wkb(wkb) == line
     assert LineString.from_gpkg(line.to_gpkg()) == line
 # End test_line_string function
 
@@ -200,9 +203,11 @@ def test_line_string_z(header):
     line = LineStringZ(values)
     with raises(AttributeError):
         line.attribute = 10
-    assert line.to_wkb() == points_z_to_wkb_line_string_z(values)
+    wkb = line.to_wkb()
+    assert wkb == points_z_to_wkb_line_string_z(values)
+    assert wkb == WKB_LINESTRING_Z_PRE + _pack_points(values, has_z=True)
     assert line.to_gpkg() == points_z_to_gpkg_line_string_z(header, values)
-    assert LineStringZ.from_wkb(line.to_wkb()) == line
+    assert LineStringZ.from_wkb(wkb) == line
     assert LineStringZ.from_gpkg(line.to_gpkg()) == line
 # End test_line_string_z function
 
@@ -215,9 +220,11 @@ def test_line_string_m(header):
     line = LineStringM(values)
     with raises(AttributeError):
         line.attribute = 10
-    assert line.to_wkb() == points_m_to_wkb_line_string_m(values)
+    wkb = line.to_wkb()
+    assert wkb == points_m_to_wkb_line_string_m(values)
+    assert wkb == WKB_LINESTRING_M_PRE + _pack_points(values, has_z=True)
     assert line.to_gpkg() == points_m_to_gpkg_line_string_m(header, values)
-    assert LineStringM.from_wkb(line.to_wkb()) == line
+    assert LineStringM.from_wkb(wkb) == line
     assert LineStringM.from_gpkg(line.to_gpkg()) == line
 # End test_line_string_m function
 
@@ -230,9 +237,11 @@ def test_line_string_zm(header):
     line = LineStringZM(values)
     with raises(AttributeError):
         line.attribute = 10
-    assert line.to_wkb() == points_zm_to_wkb_line_string_zm(values)
+    wkb = line.to_wkb()
+    assert wkb == points_zm_to_wkb_line_string_zm(values)
+    assert wkb == WKB_LINESTRING_ZM_PRE + _pack_points(values, has_z=True, has_m=True)
     assert line.to_gpkg() == points_zm_to_gpkg_line_string_zm(header, values)
-    assert LineStringZM.from_wkb(line.to_wkb()) == line
+    assert LineStringZM.from_wkb(wkb) == line
     assert LineStringZM.from_gpkg(line.to_gpkg()) == line
 # End test_line_string_zm function
 
