@@ -213,15 +213,15 @@ def test_create_feature_class(tmp_path, fields):
     name = 'FFF'
     srs = SpatialReferenceSystem(
         'WGS_1984_UTM_Zone_23N', 'EPSG', 32623, WGS_1984_UTM_Zone_23N)
-    table = geo.create_feature_class(name, srs=srs, fields=fields)
-    assert isinstance(table, FeatureClass)
+    fc = geo.create_feature_class(name, srs=srs, fields=fields)
+    assert isinstance(fc, FeatureClass)
     with raises(ValueError):
         geo.create_feature_class(name, srs=srs, fields=fields)
     cursor = geo.connection.execute(f"""SELECT count(fid) FROM {name}""")
     count, = cursor.fetchone()
     assert count == 0
-    table = geo.create_feature_class('ANOTHER', srs=srs)
-    assert isinstance(table, FeatureClass)
+    fc = geo.create_feature_class('ANOTHER', srs=srs)
+    assert isinstance(fc, FeatureClass)
     cursor = geo.connection.execute(
         """SELECT count(type) FROM sqlite_master WHERE type = 'trigger'""")
     count, = cursor.fetchone()
@@ -241,8 +241,8 @@ def test_create_feature_drop_feature(tmp_path, fields):
     name = 'FFF_DDD'
     srs = SpatialReferenceSystem(
         'WGS_1984_UTM_Zone_23N', 'EPSG', 32623, WGS_1984_UTM_Zone_23N)
-    table = geo.create_feature_class(name, srs=srs, fields=fields)
-    assert isinstance(table, FeatureClass)
+    fc = geo.create_feature_class(name, srs=srs, fields=fields)
+    assert isinstance(fc, FeatureClass)
     fc = geo.create_feature_class(name, srs=srs, fields=fields, overwrite=True)
     cursor = geo.connection.execute(f"""SELECT count(fid) FROM {name}""")
     count, = cursor.fetchone()
@@ -330,12 +330,14 @@ def test_select_srs(setup_geopackage):
     assert isinstance(fc, FeatureClass)
     conn = gpkg.connection
     cursor = conn.execute(SELECT_SRS, (name,))
-    _, _, srs_id, _, _ = cursor.fetchone()
+    _, _, org_id, _, _, srs_id = cursor.fetchone()
     epsg = 32623
-    assert srs_id == epsg
+    assert org_id == epsg
+    assert org_id == srs_id
     cursor = conn.execute(SELECT_SRS, (name.upper(),))
-    _, _, srs_id, _, _ = cursor.fetchone()
-    assert srs_id == epsg
+    _, _, org_id, _, _, srs_id = cursor.fetchone()
+    assert org_id == epsg
+    assert org_id == srs_id
 # End test_select_srs function
 
 
@@ -562,6 +564,25 @@ def test_convert_datetime(val, expected):
     """
     assert _convert_datetime(val) == expected
 # End test_convert_datetime function
+
+
+def test_custom_spatial_reference(tmp_path, fields):
+    """
+    Test custom spatial reference
+    """
+    path = tmp_path / 'fc'
+    wkt = WGS_1984_UTM_Zone_23N.replace('1984', '1975')
+    srs_id = 300001
+    srs = SpatialReferenceSystem(
+        name='Nineteen Seventy Five', organization='CUSTOM',
+        org_coord_sys_id=0, definition=wkt, srs_id=srs_id)
+    geo = GeoPackage.create(path)
+    name = 'custom_srs_fc'
+    fc = geo.create_feature_class(name, srs=srs, fields=fields)
+    assert isinstance(fc, FeatureClass)
+    assert fc.spatial_reference_system.srs_id == srs_id
+    assert fc.spatial_reference_system.as_record() == srs.as_record()
+# End test_custom_spatial_reference function
 
 
 if __name__ == '__main__':

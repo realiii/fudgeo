@@ -5,6 +5,7 @@ Test Geometry
 
 from pytest import fixture, mark, raises
 
+
 from tests.conversion.geo import (
     make_gpkg_geom_header, point_lists_to_gpkg_multi_line_string,
     point_lists_to_gpkg_multi_polygon, point_lists_to_gpkg_polygon,
@@ -13,27 +14,26 @@ from tests.conversion.geo import (
     points_to_gpkg_line_string, points_to_gpkg_multipoint,
     points_z_to_gpkg_line_string_z, points_zm_to_gpkg_line_string_zm)
 from tests.conversion.wkb import (
-    _linear_ring_to_wkb, _linear_ring_z_to_wkb,
-    multipoint_m_to_wkb_multipoint_m, multipoint_to_wkb_multipoint,
-    multipoint_z_to_wkb_multipoint_z, multipoint_zm_to_wkb_multipoint_zm,
-    point_lists_m_to_multi_line_string_m, point_lists_m_to_wkb_multipolygon_m,
-    point_lists_m_to_wkb_polygon_m,
-    point_lists_to_multi_line_string,
-    point_lists_to_wkb_multipolygon, point_lists_to_wkb_polygon,
-    point_lists_z_to_multi_line_string_z, point_lists_z_to_wkb_multipolygon_z,
-    point_lists_z_to_wkb_polygon_z, point_lists_zm_to_multi_line_string_zm,
+    _linear_ring_m_to_wkb, _linear_ring_to_wkb, _linear_ring_z_to_wkb,
+    _linear_ring_zm_to_wkb, multipoint_m_to_wkb_multipoint_m,
+    multipoint_to_wkb_multipoint, multipoint_z_to_wkb_multipoint_z,
+    multipoint_zm_to_wkb_multipoint_zm, point_lists_m_to_multi_line_string_m,
+    point_lists_m_to_wkb_multipolygon_m, point_lists_m_to_wkb_polygon_m,
+    point_lists_to_multi_line_string, point_lists_to_wkb_multipolygon,
+    point_lists_to_wkb_polygon, point_lists_z_to_multi_line_string_z,
+    point_lists_z_to_wkb_multipolygon_z, point_lists_z_to_wkb_polygon_z,
+    point_lists_zm_to_multi_line_string_zm,
     point_lists_zm_to_wkb_multipolygon_zm, point_lists_zm_to_wkb_polygon_zm,
-    point_m_to_wkb_point_m,
-    point_to_wkb_point, point_z_to_wkb_point_z,
+    point_m_to_wkb_point_m, point_to_wkb_point, point_z_to_wkb_point_z,
     point_zm_to_wkb_point_zm, points_m_to_wkb_line_string_m,
     points_to_wkb_line_string, points_z_to_wkb_line_string_z,
     points_zm_to_wkb_line_string_zm)
 from fudgeo.geometry import (
-    LineString, LineStringM, LineStringZ, LineStringZM, LinearRing, LinearRingZ,
-    MultiLineString, MultiLineStringM, MultiLineStringZ, MultiLineStringZM,
-    MultiPoint, MultiPointM, MultiPointZ, MultiPointZM, MultiPolygon,
-    MultiPolygonM, MultiPolygonZ, MultiPolygonZM, Point, PointM, PointZ,
-    PointZM, Polygon, PolygonM, PolygonZ, PolygonZM)
+    LineString, LineStringM, LineStringZ, LineStringZM, LinearRing, LinearRingM,
+    LinearRingZ, LinearRingZM, MultiLineString, MultiLineStringM,
+    MultiLineStringZ, MultiLineStringZM, MultiPoint, MultiPointM, MultiPointZ,
+    MultiPointZM, MultiPolygon, MultiPolygonM, MultiPolygonZ, MultiPolygonZM,
+    Point, PointM, PointZ, PointZM, Polygon, PolygonM, PolygonZ, PolygonZM)
 
 
 @fixture(scope='session')
@@ -114,10 +114,13 @@ def test_multi_point(header):
     pts = MultiPoint(values)
     with raises(AttributeError):
         pts.attribute = 10
-    assert pts.to_wkb() == multipoint_to_wkb_multipoint(values)
-    assert pts.to_gpkg() == points_to_gpkg_multipoint(header, values)
-    assert MultiPoint.from_wkb(pts.to_wkb()) == pts
-    assert MultiPoint.from_gpkg(pts.to_gpkg()) == pts
+    assert pts.coordinates == values
+    wkb = pts.to_wkb()
+    assert wkb == multipoint_to_wkb_multipoint(values)
+    assert MultiPoint.from_wkb(wkb) == pts
+    gpkg = pts.to_gpkg()
+    assert gpkg == points_to_gpkg_multipoint(header, values)
+    assert MultiPoint.from_gpkg(gpkg) == pts
 # End test_multi_point function
 
 
@@ -129,8 +132,10 @@ def test_multi_point_z(header):
     pts = MultiPointZ(values)
     with raises(AttributeError):
         pts.attribute = 10
-    assert pts.to_wkb() == multipoint_z_to_wkb_multipoint_z(values)
-    assert MultiPointZ.from_wkb(pts.to_wkb()) == pts
+    assert pts.coordinates == values
+    wkb = pts.to_wkb()
+    assert wkb == multipoint_z_to_wkb_multipoint_z(values)
+    assert MultiPointZ.from_wkb(wkb) == pts
     assert MultiPointZ.from_gpkg(pts.to_gpkg()) == pts
 # End test_multi_point_z function
 
@@ -143,8 +148,10 @@ def test_multi_point_m(header):
     pts = MultiPointM(values)
     with raises(AttributeError):
         pts.attribute = 10
-    assert pts.to_wkb() == multipoint_m_to_wkb_multipoint_m(values)
-    assert MultiPointM.from_wkb(pts.to_wkb()) == pts
+    assert pts.coordinates == values
+    wkb = pts.to_wkb()
+    assert wkb == multipoint_m_to_wkb_multipoint_m(values)
+    assert MultiPointM.from_wkb(wkb) == pts
     assert MultiPointM.from_gpkg(pts.to_gpkg()) == pts
 # End test_multi_point_m function
 
@@ -157,8 +164,10 @@ def test_multi_point_zm(header):
     pts = MultiPointZM(values)
     with raises(AttributeError):
         pts.attribute = 10
-    assert pts.to_wkb() == multipoint_zm_to_wkb_multipoint_zm(values)
-    assert MultiPointZM.from_wkb(pts.to_wkb()) == pts
+    assert pts.coordinates == values
+    wkb = pts.to_wkb()
+    assert wkb == multipoint_zm_to_wkb_multipoint_zm(values)
+    assert MultiPointZM.from_wkb(wkb) == pts
     assert MultiPointZM.from_gpkg(pts.to_gpkg()) == pts
 # End test_multi_point_zm function
 
@@ -171,9 +180,11 @@ def test_line_string(header):
     line = LineString(values)
     with raises(AttributeError):
         line.attribute = 10
-    assert line.to_wkb() == points_to_wkb_line_string(values)
+    assert line.coordinates == values
+    wkb = line.to_wkb()
+    assert wkb == points_to_wkb_line_string(values)
     assert line.to_gpkg() == points_to_gpkg_line_string(header, values)
-    assert LineString.from_wkb(line.to_wkb()) == line
+    assert LineString.from_wkb(wkb) == line
     assert LineString.from_gpkg(line.to_gpkg()) == line
 # End test_line_string function
 
@@ -186,9 +197,11 @@ def test_line_string_z(header):
     line = LineStringZ(values)
     with raises(AttributeError):
         line.attribute = 10
-    assert line.to_wkb() == points_z_to_wkb_line_string_z(values)
+    assert line.coordinates == values
+    wkb = line.to_wkb()
+    assert wkb == points_z_to_wkb_line_string_z(values)
     assert line.to_gpkg() == points_z_to_gpkg_line_string_z(header, values)
-    assert LineStringZ.from_wkb(line.to_wkb()) == line
+    assert LineStringZ.from_wkb(wkb) == line
     assert LineStringZ.from_gpkg(line.to_gpkg()) == line
 # End test_line_string_z function
 
@@ -201,9 +214,11 @@ def test_line_string_m(header):
     line = LineStringM(values)
     with raises(AttributeError):
         line.attribute = 10
-    assert line.to_wkb() == points_m_to_wkb_line_string_m(values)
+    assert line.coordinates == values
+    wkb = line.to_wkb()
+    assert wkb == points_m_to_wkb_line_string_m(values)
     assert line.to_gpkg() == points_m_to_gpkg_line_string_m(header, values)
-    assert LineStringM.from_wkb(line.to_wkb()) == line
+    assert LineStringM.from_wkb(wkb) == line
     assert LineStringM.from_gpkg(line.to_gpkg()) == line
 # End test_line_string_m function
 
@@ -216,9 +231,11 @@ def test_line_string_zm(header):
     line = LineStringZM(values)
     with raises(AttributeError):
         line.attribute = 10
-    assert line.to_wkb() == points_zm_to_wkb_line_string_zm(values)
+    assert line.coordinates == values
+    wkb = line.to_wkb()
+    assert wkb == points_zm_to_wkb_line_string_zm(values)
     assert line.to_gpkg() == points_zm_to_gpkg_line_string_zm(header, values)
-    assert LineStringZM.from_wkb(line.to_wkb()) == line
+    assert LineStringZM.from_wkb(wkb) == line
     assert LineStringZM.from_gpkg(line.to_gpkg()) == line
 # End test_line_string_zm function
 
@@ -300,10 +317,12 @@ def test_linear_ring(header):
     ring = LinearRing(values)
     with raises(AttributeError):
         ring.attribute = 10
-    assert ring.to_wkb() == _linear_ring_to_wkb(values)
+    assert ring.coordinates == values
+    wkb = ring.to_wkb()
+    assert wkb == _linear_ring_to_wkb(values)
     with raises(NotImplementedError):
         assert ring.to_gpkg()
-    assert LinearRing.from_wkb(ring.to_wkb()) == ring
+    assert LinearRing.from_wkb(wkb) == ring
     with raises(NotImplementedError):
         assert LinearRing.from_gpkg(b'')
 # End test_linear_ring function
@@ -317,13 +336,53 @@ def test_linear_ring_z(header):
     ring = LinearRingZ(values)
     with raises(AttributeError):
         ring.attribute = 10
-    assert ring.to_wkb() == _linear_ring_z_to_wkb(values)
+    assert ring.coordinates == values
+    wkb = ring.to_wkb()
+    assert wkb == _linear_ring_z_to_wkb(values)
     with raises(NotImplementedError):
         assert ring.to_gpkg()
-    assert LinearRingZ.from_wkb(ring.to_wkb()) == ring
+    assert LinearRingZ.from_wkb(wkb) == ring
     with raises(NotImplementedError):
         assert LinearRingZ.from_gpkg(b'')
 # End test_linear_ring_z function
+
+
+def test_linear_ring_m(header):
+    """
+    Test linear ring M wkb
+    """
+    values = [(0, 0, 0), (1, 1, 1), (2, 0, 2), (0, 0, 0)]
+    ring = LinearRingM(values)
+    with raises(AttributeError):
+        ring.attribute = 10
+    assert ring.coordinates == values
+    wkb = ring.to_wkb()
+    assert wkb == _linear_ring_m_to_wkb(values)
+    with raises(NotImplementedError):
+        assert ring.to_gpkg()
+    assert LinearRingM.from_wkb(wkb) == ring
+    with raises(NotImplementedError):
+        assert LinearRingM.from_gpkg(b'')
+# End test_linear_ring_m function
+
+
+def test_linear_ring_zm(header):
+    """
+    Test linear ring ZM wkb
+    """
+    values = [(0, 0, 0, 0), (1, 1, 1, 1), (2, 0, 2, 0), (0, 0, 0, 0)]
+    ring = LinearRingZM(values)
+    with raises(AttributeError):
+        ring.attribute = 10
+    assert ring.coordinates == values
+    wkb = ring.to_wkb()
+    assert wkb == _linear_ring_zm_to_wkb(values)
+    with raises(NotImplementedError):
+        assert ring.to_gpkg()
+    assert LinearRingZM.from_wkb(wkb) == ring
+    with raises(NotImplementedError):
+        assert LinearRingZM.from_gpkg(b'')
+# End test_linear_ring_zm function
 
 
 def test_polygon(header):
