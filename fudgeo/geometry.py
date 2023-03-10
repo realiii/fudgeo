@@ -26,7 +26,8 @@ __all__ = ['Point', 'PointZ', 'PointM', 'PointZM', 'MultiPoint', 'MultiPointZ',
            'MultiPointM', 'MultiPointZM', 'LineString', 'LineStringZ',
            'LineStringM', 'LineStringZM', 'MultiLineString', 'MultiLineStringZ',
            'MultiLineStringM', 'MultiLineStringZM', 'Polygon', 'PolygonZ',
-           'MultiPolygon', 'MultiPolygonZ']
+           'PolygonM', 'PolygonZM', 'MultiPolygon', 'MultiPolygonZ',
+           'MultiPolygonM', 'MultiPolygonZM']
 
 
 def _unpack_line(value: bytes, dimension: int,
@@ -248,6 +249,15 @@ class Point(AbstractGeometry):
         x, y = cls._unpack(value[8:])
         return cls(x=x, y=y, srs_id=srs_id)
     # End from_gpkg method
+
+    @classmethod
+    def from_tuple(cls, xy: DOUBLE, srs_id: int = WGS84) -> 'Point':
+        """
+        From Tuple
+        """
+        x, y = xy
+        return cls(x=x, y=y, srs_id=srs_id)
+    # End from_tuple method
 # End Point class
 
 
@@ -314,6 +324,15 @@ class PointZ(AbstractGeometry):
         x, y, z = cls._unpack(value[8:])
         return cls(x=x, y=y, z=z, srs_id=srs_id)
     # End from_gpkg method
+
+    @classmethod
+    def from_tuple(cls, xyz: TRIPLE, srs_id: int = WGS84) -> 'PointZ':
+        """
+        From Tuple
+        """
+        x, y, z = xyz
+        return cls(x=x, y=y, z=z, srs_id=srs_id)
+    # End from_tuple method
 # End PointZ class
 
 
@@ -380,6 +399,15 @@ class PointM(AbstractGeometry):
         x, y, m = cls._unpack(value[8:])
         return cls(x=x, y=y, m=m, srs_id=srs_id)
     # End from_gpkg method
+
+    @classmethod
+    def from_tuple(cls, xym: TRIPLE, srs_id: int = WGS84) -> 'PointM':
+        """
+        From Tuple
+        """
+        x, y, m = xym
+        return cls(x=x, y=y, m=m, srs_id=srs_id)
+    # End from_tuple method
 # End PointM class
 
 
@@ -448,6 +476,15 @@ class PointZM(AbstractGeometry):
         x, y, z, m = cls._unpack(value[8:])
         return cls(x=x, y=y, z=z, m=m, srs_id=srs_id)
     # End from_gpkg method
+
+    @classmethod
+    def from_tuple(cls, xyzm: QUADRUPLE, srs_id: int = WGS84) -> 'PointZM':
+        """
+        From Tuple
+        """
+        x, y, z, m = xyzm
+        return cls(x=x, y=y, z=z, m=m, srs_id=srs_id)
+    # End from_tuple method
 # End PointZM class
 
 

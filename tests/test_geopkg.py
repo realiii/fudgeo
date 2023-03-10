@@ -2,6 +2,8 @@
 """
 Test GeoPackage
 """
+
+
 from datetime import datetime, timedelta, timezone
 from math import isnan
 from random import randint, choice
@@ -12,10 +14,12 @@ from pytest import fixture, mark, raises
 from fudgeo.enumeration import GeometryType, SQLFieldType
 from fudgeo.geometry import (
     LineString, LineStringM, LineStringZ, LineStringZM, MultiLineString,
-    MultiPoint, MultiPolygon, Point, Polygon)
+    MultiPoint, MultiPolygon, Point, Polygon, PolygonM)
 from fudgeo.geopkg import (
     FeatureClass, Field, GeoPackage, SHAPE, SpatialReferenceSystem, Table,
     _convert_datetime)
+from fudgeo.sql import SELECT_SRS
+
 
 WGS_1984_UTM_Zone_23N = (
     """PROJCS["WGS_1984_UTM_Zone_23N",
@@ -315,6 +319,26 @@ def test_create_feature_class_options(setup_geopackage, name, geom, has_z, has_m
 # End test_create_feature_class_options function
 
 
+def test_select_srs(setup_geopackage):
+    """
+    Test select srs
+    """
+    _, gpkg, srs, fields = setup_geopackage
+    name = 'table_name'
+    fc = gpkg.create_feature_class(
+        name, shape_type=GeometryType.polygon, srs=srs, fields=fields)
+    assert isinstance(fc, FeatureClass)
+    conn = gpkg.connection
+    cursor = conn.execute(SELECT_SRS, (name,))
+    _, _, srs_id, _, _ = cursor.fetchone()
+    epsg = 32623
+    assert srs_id == epsg
+    cursor = conn.execute(SELECT_SRS, (name.upper(),))
+    _, _, srs_id, _, _ = cursor.fetchone()
+    assert srs_id == epsg
+# End test_select_srs function
+
+
 def test_insert_point_rows(setup_geopackage):
     """
     Test Insert Point Rows
@@ -501,6 +525,24 @@ def test_insert_multi_lines(setup_geopackage):
 # End test_insert_multi_lines function
 
 
+def test_insert_polygon_m(setup_geopackage):
+    """
+    Test insert polygon m
+    """
+    rings = [[(0, 0, 0), (0, 1, 1), (1, 1, 1), (1, 0, 1), (0, 0, 0)],
+              [(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]]
+    _, gpkg, srs, fields = setup_geopackage
+    gpkg.create_feature_class(
+        'test1', srs, fields=fields, shape_type=GeometryType.polygon)
+    geom = PolygonM(rings, srs.srs_id)
+    result = _insert_shape_and_fetch(gpkg, geom)
+    assert len(result) == 1
+    _, poly = result[0]
+    assert isinstance(poly, PolygonM)
+    assert poly == geom
+# End test_insert_polygon_m function
+
+
 @mark.parametrize('val, expected', [
     (b'1977-06-15 03:18:54', datetime(1977, 6, 15, 3, 18, 54, 0)),
     (b'1977-06-15 03:18:54.123456', datetime(1977, 6, 15, 3, 18, 54, 123456)),
@@ -512,6 +554,7 @@ def test_insert_multi_lines(setup_geopackage):
     (b'1977-06-15T03:18:54', datetime(1977, 6, 15, 3, 18, 54, 0)),
     (b'1977-06-15T03:18:54.123456', datetime(1977, 6, 15, 3, 18, 54, 123456)),
     (b'2000-06-06T11:43:37+00:00', datetime(2000, 6, 6, 11, 43, 37, 0, tzinfo=timezone.utc)),
+    (b'2022-02-14T08:37:41.0Z', datetime(2022, 2, 14, 8, 37, 41, 0)),
 ])
 def test_convert_datetime(val, expected):
     """

@@ -19,7 +19,8 @@ from fudgeo.geometry import (
     Point, PointZ, PointM, PointZM, MultiPoint, MultiPointZ, MultiPointM,
     MultiPointZM, LineString, LineStringZ, LineStringM, LineStringZM,
     MultiLineString, MultiLineStringZ, MultiLineStringM, MultiLineStringZM,
-    Polygon, PolygonZ, MultiPolygon, MultiPolygonZ)
+    Polygon, PolygonZ, PolygonM, PolygonZM, MultiPolygon, MultiPolygonZ,
+    MultiPolygonM, MultiPolygonZM)
 from fudgeo.sql import (
     CHECK_SRS_EXISTS, CREATE_FEATURE_TABLE, CREATE_TABLE, DEFAULT_EPSG_RECS,
     DEFAULT_ESRI_RECS, GPKG_OGR_CONTENTS_DELETE_TRIGGER,
@@ -81,7 +82,10 @@ def _convert_datetime(val: bytes) -> datetime:
             factor = scale
             break
     hours, minutes, seconds = map(int, tm.split(colon))
-    micro = int('{:0<6.6}'.format(micro[0].decode())) if micro else 0
+    try:
+        micro = int('{:0<6.6}'.format(micro[0].decode())) if micro else 0
+    except (ValueError, TypeError):
+        micro = 0
     if tz:
         tz_hr, *tz_min = map(int, tz[0].split(colon))
         tz_min = tz_min[0] if tz_min else 0
@@ -102,7 +106,8 @@ def _register_geometry():
         Point, PointZ, PointM, PointZM, MultiPoint, MultiPointZ, MultiPointM,
         MultiPointZM, LineString, LineStringZ, LineStringM, LineStringZM,
         MultiLineString, MultiLineStringZ, MultiLineStringM, MultiLineStringZM,
-        Polygon, PolygonZ, MultiPolygon, MultiPolygonZ)
+        Polygon, PolygonZ, PolygonM, PolygonZM, MultiPolygon, MultiPolygonZ,
+        MultiPolygonM, MultiPolygonZM)
     for cls in classes:
         register_adapter(cls, _adapt_geometry)
         register_converter(cls.__name__, cls.from_gpkg)
@@ -140,6 +145,7 @@ class GeoPackage:
                 str(self._path), isolation_level='EXCLUSIVE',
                 detect_types=PARSE_DECLTYPES | PARSE_COLNAMES)
             _register_geometry()
+            register_converter('timestamp', _convert_datetime)
             register_converter('datetime', _convert_datetime)
         return self._conn
     # End connection property
