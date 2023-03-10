@@ -99,7 +99,8 @@ SELECT_SRS = """
            gpkg_spatial_ref_sys.organization,
            gpkg_spatial_ref_sys.organization_coordsys_id,
            gpkg_spatial_ref_sys.definition,
-           gpkg_spatial_ref_sys.description
+           gpkg_spatial_ref_sys.description,
+           gpkg_spatial_ref_sys.srs_id
     FROM gpkg_contents LEFT JOIN gpkg_spatial_ref_sys ON 
             gpkg_contents.srs_id = gpkg_spatial_ref_sys.srs_id
     WHERE lower(gpkg_contents.table_name) = lower(?)

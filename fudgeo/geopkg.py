@@ -441,7 +441,8 @@ class SpatialReferenceSystem:
     Spatial Reference System
     """
     def __init__(self, name: str, organization: str, org_coord_sys_id: int,
-                 definition: str, description: str = '') -> None:
+                 definition: str, description: str = '',
+                 srs_id: Optional[int] = None) -> None:
         """
         Initialize the SpatialReferenceSystem class
         """
@@ -449,7 +450,7 @@ class SpatialReferenceSystem:
         self.name: str = name
         self.organization: str = organization
         self.org_coord_sys_id: int = org_coord_sys_id
-        self._srs_id: int = org_coord_sys_id
+        self._srs_id: int = org_coord_sys_id if srs_id is None else srs_id
         self.definition: str = definition
         self.description: str = description
     # End init built-in
