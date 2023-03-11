@@ -20,6 +20,11 @@ GP_MAGIC: bytes = b'GP'
 EMPTY: bytes = b''
 BYTE_UINT: str = '<BI'
 COUNT_UNIT: str = '<I'
+HEADER_UNIT: str = '<2s2bi'
+
+TWO_D: int = 2
+THREE_D: int = 3
+FOUR_D: int = 4
 
 WKB_POINT_PRE: bytes = pack(BYTE_UINT, 1, 1)
 WKB_POINT_Z_PRE: bytes = pack(BYTE_UINT, 1, 1001)
@@ -58,6 +63,11 @@ POINT_PREFIX: Dict[Tuple[bool, bool], bytes] = {
     (False, True): WKB_POINT_M_PRE,
     (True, True): WKB_POINT_ZM_PRE,
 }
+
+
+HEADER_OFFSET: int = 8
+ENVELOPE_OFFSET: Dict[int, int] = {0: 0, 1: 32, 2: 48, 3: 48, 4: 64}
+ENVELOPE_OFFSET = {k: v + HEADER_OFFSET for k, v in ENVELOPE_OFFSET.items()}
 
 
 if __name__ == '__main__':

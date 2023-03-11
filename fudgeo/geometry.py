@@ -66,7 +66,7 @@ def _pack_points(coordinates: COORDINATES, has_z: bool = False,
     for coords in coordinates:
         flat.extend(coords)
     count = len(coordinates)
-    total = count * sum((2, has_z, has_m))
+    total = count * sum((TWO_D, has_z, has_m))
     data = pack(f'<{total}d', *flat)
     if not use_prefix:
         return pack(COUNT_UNIT, count) + data
@@ -137,6 +137,17 @@ def _make_header_with_srs_id(srs_id: int) -> bytes:
 # End _make_header_with_srs_id function
 
 
+@lru_cache(maxsize=None)
+def _unpack_header_srs_id_and_offset(value: bytes) -> Tuple[int, int]:
+    """
+    Unpack a GeoPackage Geometry Header to get SRS ID and Offset to Geometry
+    """
+    _, _, flags, srs_id = unpack(HEADER_UNIT, value)
+    envelope_code = (flags & (0x07 << 1)) >> 1
+    return srs_id, ENVELOPE_OFFSET[envelope_code]
+# End _unpack_header_srs_id_and_offset function
+
+
 class AbstractGeometry:
     """
     Abstract Geometry
@@ -159,22 +170,6 @@ class AbstractGeometry:
         return EMPTY.join(args)
     # End _joiner method
 
-    @staticmethod
-    def _unpack_srs_id(value: bytes) -> int:
-        """
-        Unpack SRS ID
-        """
-        _, _, _, srs_id = unpack('<2s2bi', value[:8])
-        return srs_id
-    # End  method
-
-    def _make_header(self) -> bytes:
-        """
-        Make Header
-        """
-        return _make_header_with_srs_id(self.srs_id)
-    # End _make_header method
-
     @abstractmethod
     def to_wkb(self, use_prefix: bool = True) -> bytes:  # pragma: nocover
         """
@@ -196,7 +191,8 @@ class AbstractGeometry:
         """
         To Geopackage
         """
-        return self._joiner(self._make_header(), self.to_wkb())
+        return self._joiner(
+            _make_header_with_srs_id(self.srs_id), self.to_wkb())
     # End to_gpkg method
 
     @classmethod
@@ -267,8 +263,8 @@ class Point(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id = cls._unpack_srs_id(value)
-        x, y = cls._unpack(value[8:])
+        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
+        x, y = cls._unpack(value[offset:])
         return cls(x=x, y=y, srs_id=srs_id)
     # End from_gpkg method
 
@@ -342,8 +338,8 @@ class PointZ(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id = cls._unpack_srs_id(value)
-        x, y, z = cls._unpack(value[8:])
+        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
+        x, y, z = cls._unpack(value[offset:])
         return cls(x=x, y=y, z=z, srs_id=srs_id)
     # End from_gpkg method
 
@@ -417,8 +413,8 @@ class PointM(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id = cls._unpack_srs_id(value)
-        x, y, m = cls._unpack(value[8:])
+        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
+        x, y, m = cls._unpack(value[offset:])
         return cls(x=x, y=y, m=m, srs_id=srs_id)
     # End from_gpkg method
 
@@ -494,8 +490,8 @@ class PointZM(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id = cls._unpack_srs_id(value)
-        x, y, z, m = cls._unpack(value[8:])
+        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
+        x, y, z, m = cls._unpack(value[offset:])
         return cls(x=x, y=y, z=z, m=m, srs_id=srs_id)
     # End from_gpkg method
 
@@ -557,7 +553,7 @@ class MultiPoint(AbstractGeometry):
         From WKB
         """
         # noinspection PyTypeChecker
-        return cls(_unpack_points(wkb, dimension=2))
+        return cls(_unpack_points(wkb, dimension=TWO_D))
     # End from_wkb method
 
     @classmethod
@@ -565,9 +561,10 @@ class MultiPoint(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id = cls._unpack_srs_id(value)
+        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
         # noinspection PyTypeChecker
-        return cls(_unpack_points(value[8:], dimension=2), srs_id=srs_id)
+        return cls(_unpack_points(
+            value[offset:], dimension=TWO_D), srs_id=srs_id)
     # End from_gpkg method
 # End MultiPoint class
 
@@ -627,9 +624,9 @@ class MultiPointZ(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id = cls._unpack_srs_id(value)
+        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
         # noinspection PyTypeChecker
-        return cls(_unpack_points(value[8:], dimension=3), srs_id=srs_id)
+        return cls(_unpack_points(value[offset:], dimension=3), srs_id=srs_id)
     # End from_gpkg method
 # End MultiPointZ class
 
@@ -689,9 +686,9 @@ class MultiPointM(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id = cls._unpack_srs_id(value)
+        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
         # noinspection PyTypeChecker
-        return cls(_unpack_points(value[8:], dimension=3), srs_id=srs_id)
+        return cls(_unpack_points(value[offset:], dimension=3), srs_id=srs_id)
     # End from_gpkg method
 # End MultiPointM class
 
@@ -744,7 +741,7 @@ class MultiPointZM(AbstractGeometry):
         From WKB
         """
         # noinspection PyTypeChecker
-        return cls(_unpack_points(wkb, dimension=4))
+        return cls(_unpack_points(wkb, dimension=FOUR_D))
     # End from_wkb method
 
     @classmethod
@@ -752,9 +749,10 @@ class MultiPointZM(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id = cls._unpack_srs_id(value)
+        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
         # noinspection PyTypeChecker
-        return cls(_unpack_points(value[8:], dimension=4), srs_id=srs_id)
+        return cls(_unpack_points(
+            value[offset:], dimension=FOUR_D), srs_id=srs_id)
     # End from_gpkg method
 # End MultiPointZM class
 
@@ -805,7 +803,7 @@ class LineString(AbstractGeometry):
         From WKB
         """
         # noinspection PyTypeChecker
-        return cls(_unpack_line(wkb, dimension=2))
+        return cls(_unpack_line(wkb, dimension=TWO_D))
     # End from_wkb method
 
     @classmethod
@@ -813,9 +811,9 @@ class LineString(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id = cls._unpack_srs_id(value)
+        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
         # noinspection PyTypeChecker
-        return cls(_unpack_line(value[8:], dimension=2), srs_id=srs_id)
+        return cls(_unpack_line(value[offset:], dimension=TWO_D), srs_id=srs_id)
     # End from_gpkg method
 # End LineString class
 
@@ -874,9 +872,9 @@ class LineStringZ(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id = cls._unpack_srs_id(value)
+        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
         # noinspection PyTypeChecker
-        return cls(_unpack_line(value[8:], dimension=3), srs_id=srs_id)
+        return cls(_unpack_line(value[offset:], dimension=3), srs_id=srs_id)
     # End from_gpkg method
 # End LineStringZ class
 
@@ -935,9 +933,10 @@ class LineStringM(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id = cls._unpack_srs_id(value)
+        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
         # noinspection PyTypeChecker
-        return cls(_unpack_line(value[8:], dimension=3), srs_id=srs_id)
+        return cls(_unpack_line(
+            value[offset:], dimension=THREE_D), srs_id=srs_id)
     # End from_gpkg method
 # End LineStringM class
 
@@ -990,7 +989,7 @@ class LineStringZM(AbstractGeometry):
         From WKB
         """
         # noinspection PyTypeChecker
-        return cls(_unpack_line(wkb, dimension=4))
+        return cls(_unpack_line(wkb, dimension=FOUR_D))
     # End from_wkb method
 
     @classmethod
@@ -998,9 +997,10 @@ class LineStringZM(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id = cls._unpack_srs_id(value)
+        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
         # noinspection PyTypeChecker
-        return cls(_unpack_line(value[8:], dimension=4), srs_id=srs_id)
+        return cls(_unpack_line(
+            value[offset:], dimension=FOUR_D), srs_id=srs_id)
     # End from_gpkg method
 # End LineStringZM class
 
@@ -1047,7 +1047,7 @@ class MultiLineString(AbstractGeometry):
         From WKB
         """
         # noinspection PyTypeChecker
-        return cls(_unpack_lines(wkb, dimension=2))
+        return cls(_unpack_lines(wkb, dimension=TWO_D))
     # End from_wkb method
 
     @classmethod
@@ -1055,9 +1055,10 @@ class MultiLineString(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id = cls._unpack_srs_id(value)
+        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
         # noinspection PyTypeChecker
-        return cls(_unpack_lines(value[8:], dimension=2), srs_id=srs_id)
+        return cls(_unpack_lines(
+            value[offset:], dimension=TWO_D), srs_id=srs_id)
     # End from_gpkg method
 # End MultiLineString class
 
@@ -1104,7 +1105,7 @@ class MultiLineStringZ(AbstractGeometry):
         From WKB
         """
         # noinspection PyTypeChecker
-        return cls(_unpack_lines(wkb, dimension=3))
+        return cls(_unpack_lines(wkb, dimension=THREE_D))
     # End from_wkb method
 
     @classmethod
@@ -1112,9 +1113,10 @@ class MultiLineStringZ(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id = cls._unpack_srs_id(value)
+        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
         # noinspection PyTypeChecker
-        return cls(_unpack_lines(value[8:], dimension=3), srs_id=srs_id)
+        return cls(_unpack_lines(
+            value[offset:], dimension=THREE_D), srs_id=srs_id)
     # End from_gpkg method
 # End MultiLineStringZ class
 
@@ -1161,7 +1163,7 @@ class MultiLineStringM(AbstractGeometry):
         From WKB
         """
         # noinspection PyTypeChecker
-        return cls(_unpack_lines(wkb, dimension=3))
+        return cls(_unpack_lines(wkb, dimension=THREE_D))
     # End from_wkb method
 
     @classmethod
@@ -1169,9 +1171,10 @@ class MultiLineStringM(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id = cls._unpack_srs_id(value)
+        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
         # noinspection PyTypeChecker
-        return cls(_unpack_lines(value[8:], dimension=3), srs_id=srs_id)
+        return cls(_unpack_lines(
+            value[offset:], dimension=THREE_D), srs_id=srs_id)
     # End from_gpkg method
 # End MultiLineStringM class
 
@@ -1218,7 +1221,7 @@ class MultiLineStringZM(AbstractGeometry):
         From WKB
         """
         # noinspection PyTypeChecker
-        return cls(_unpack_lines(wkb, dimension=4))
+        return cls(_unpack_lines(wkb, dimension=FOUR_D))
     # End from_wkb method
 
     @classmethod
@@ -1226,9 +1229,10 @@ class MultiLineStringZM(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id = cls._unpack_srs_id(value)
+        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
         # noinspection PyTypeChecker
-        return cls(_unpack_lines(value[8:], dimension=4), srs_id=srs_id)
+        return cls(_unpack_lines(
+            value[offset:], dimension=FOUR_D), srs_id=srs_id)
     # End from_gpkg method
 # End MultiLineStringZM class
 
@@ -1280,7 +1284,7 @@ class LinearRing(AbstractGeometry):
         From WKB
         """
         # noinspection PyTypeChecker
-        return cls(_unpack_line(wkb, dimension=2, is_ring=True))
+        return cls(_unpack_line(wkb, dimension=TWO_D, is_ring=True))
     # End from_wkb method
 
     def to_gpkg(self) -> bytes:
@@ -1346,7 +1350,7 @@ class LinearRingZ(AbstractGeometry):
         From WKB
         """
         # noinspection PyTypeChecker
-        return cls(_unpack_line(wkb, dimension=3, is_ring=True))
+        return cls(_unpack_line(wkb, dimension=THREE_D, is_ring=True))
     # End from_wkb method
 
     def to_gpkg(self) -> bytes:
@@ -1412,7 +1416,7 @@ class LinearRingM(AbstractGeometry):
         From WKB
         """
         # noinspection PyTypeChecker
-        return cls(_unpack_line(wkb, dimension=3, is_ring=True))
+        return cls(_unpack_line(wkb, dimension=THREE_D, is_ring=True))
     # End from_wkb method
 
     def to_gpkg(self) -> bytes:
@@ -1479,7 +1483,7 @@ class LinearRingZM(AbstractGeometry):
         From WKB
         """
         # noinspection PyTypeChecker
-        return cls(_unpack_line(wkb, dimension=4, is_ring=True))
+        return cls(_unpack_line(wkb, dimension=FOUR_D, is_ring=True))
     # End from_wkb method
 
     def to_gpkg(self) -> bytes:
@@ -1541,7 +1545,7 @@ class Polygon(AbstractGeometry):
         From WKB
         """
         # noinspection PyTypeChecker
-        return cls(_unpack_lines(wkb, dimension=2, is_ring=True))
+        return cls(_unpack_lines(wkb, dimension=TWO_D, is_ring=True))
     # End from_wkb method
 
     @classmethod
@@ -1549,10 +1553,10 @@ class Polygon(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id = cls._unpack_srs_id(value)
+        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
         # noinspection PyTypeChecker
         return cls(_unpack_lines(
-            value[8:], dimension=2, is_ring=True), srs_id=srs_id)
+            value[offset:], dimension=TWO_D, is_ring=True), srs_id=srs_id)
     # End from_gpkg method
 # End Polygon class
 
@@ -1599,7 +1603,7 @@ class PolygonZ(AbstractGeometry):
         From WKB
         """
         # noinspection PyTypeChecker
-        return cls(_unpack_lines(wkb, dimension=3, is_ring=True))
+        return cls(_unpack_lines(wkb, dimension=THREE_D, is_ring=True))
     # End from_wkb method
 
     @classmethod
@@ -1607,10 +1611,10 @@ class PolygonZ(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id = cls._unpack_srs_id(value)
+        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
         # noinspection PyTypeChecker
         return cls(_unpack_lines(
-            value[8:], dimension=3, is_ring=True), srs_id=srs_id)
+            value[offset:], dimension=THREE_D, is_ring=True), srs_id=srs_id)
     # End from_gpkg method
 # End PolygonZ class
 
@@ -1657,7 +1661,7 @@ class PolygonM(AbstractGeometry):
         From WKB
         """
         # noinspection PyTypeChecker
-        return cls(_unpack_lines(wkb, dimension=3, is_ring=True))
+        return cls(_unpack_lines(wkb, dimension=THREE_D, is_ring=True))
     # End from_wkb method
 
     @classmethod
@@ -1665,10 +1669,10 @@ class PolygonM(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id = cls._unpack_srs_id(value)
+        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
         # noinspection PyTypeChecker
         return cls(_unpack_lines(
-            value[8:], dimension=3, is_ring=True), srs_id=srs_id)
+            value[offset:], dimension=THREE_D, is_ring=True), srs_id=srs_id)
     # End from_gpkg method
 # End PolygonM class
 
@@ -1715,7 +1719,7 @@ class PolygonZM(AbstractGeometry):
         From WKB
         """
         # noinspection PyTypeChecker
-        return cls(_unpack_lines(wkb, dimension=4, is_ring=True))
+        return cls(_unpack_lines(wkb, dimension=FOUR_D, is_ring=True))
     # End from_wkb method
 
     @classmethod
@@ -1723,10 +1727,10 @@ class PolygonZM(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id = cls._unpack_srs_id(value)
+        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
         # noinspection PyTypeChecker
         return cls(_unpack_lines(
-            value[8:], dimension=4, is_ring=True), srs_id=srs_id)
+            value[offset:], dimension=FOUR_D, is_ring=True), srs_id=srs_id)
     # End from_gpkg method
 # End PolygonZM class
 
@@ -1773,7 +1777,7 @@ class MultiPolygon(AbstractGeometry):
         From WKB
         """
         # noinspection PyTypeChecker
-        return cls(_unpack_polygons(wkb, dimension=2))
+        return cls(_unpack_polygons(wkb, dimension=TWO_D))
     # End from_wkb method
 
     @classmethod
@@ -1781,9 +1785,10 @@ class MultiPolygon(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id = cls._unpack_srs_id(value)
+        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
         # noinspection PyTypeChecker
-        return cls(_unpack_polygons(value[8:], dimension=2), srs_id=srs_id)
+        return cls(_unpack_polygons(
+            value[offset:], dimension=TWO_D), srs_id=srs_id)
     # End from_gpkg method
 # End MultiPolygon class
 
@@ -1830,7 +1835,7 @@ class MultiPolygonZ(AbstractGeometry):
         From WKB
         """
         # noinspection PyTypeChecker
-        return cls(_unpack_polygons(wkb, dimension=3))
+        return cls(_unpack_polygons(wkb, dimension=THREE_D))
     # End from_wkb method
 
     @classmethod
@@ -1838,9 +1843,10 @@ class MultiPolygonZ(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id = cls._unpack_srs_id(value)
+        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
         # noinspection PyTypeChecker
-        return cls(_unpack_polygons(value[8:], dimension=3), srs_id=srs_id)
+        return cls(_unpack_polygons(
+            value[offset:], dimension=THREE_D), srs_id=srs_id)
     # End from_gpkg method
 # End MultiPolygonZ class
 
@@ -1887,7 +1893,7 @@ class MultiPolygonM(AbstractGeometry):
         From WKB
         """
         # noinspection PyTypeChecker
-        return cls(_unpack_polygons(wkb, dimension=3))
+        return cls(_unpack_polygons(wkb, dimension=THREE_D))
     # End from_wkb method
 
     @classmethod
@@ -1895,9 +1901,10 @@ class MultiPolygonM(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id = cls._unpack_srs_id(value)
+        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
         # noinspection PyTypeChecker
-        return cls(_unpack_polygons(value[8:], dimension=3), srs_id=srs_id)
+        return cls(_unpack_polygons(
+            value[offset:], dimension=THREE_D), srs_id=srs_id)
     # End from_gpkg method
 # End MultiPolygonM class
 
@@ -1944,7 +1951,7 @@ class MultiPolygonZM(AbstractGeometry):
         From WKB
         """
         # noinspection PyTypeChecker
-        return cls(_unpack_polygons(wkb, dimension=4))
+        return cls(_unpack_polygons(wkb, dimension=FOUR_D))
     # End from_wkb method
 
     @classmethod
@@ -1952,9 +1959,10 @@ class MultiPolygonZM(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id = cls._unpack_srs_id(value)
+        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
         # noinspection PyTypeChecker
-        return cls(_unpack_polygons(value[8:], dimension=4), srs_id=srs_id)
+        return cls(_unpack_polygons(
+            value[offset:], dimension=FOUR_D), srs_id=srs_id)
     # End from_gpkg method
 # End MultiPolygonZM class
 
