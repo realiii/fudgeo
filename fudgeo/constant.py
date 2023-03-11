@@ -13,7 +13,6 @@ QUADRUPLE = Tuple[float, float, float, float]
 COORDINATES = Union[List[DOUBLE], List[TRIPLE], List[QUADRUPLE]]
 
 WGS84 = 4326
-SRS_ID = 'srs_id'
 
 GP_MAGIC = b'GP'
 EMPTY = b''
