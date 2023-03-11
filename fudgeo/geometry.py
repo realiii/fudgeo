@@ -140,7 +140,7 @@ class AbstractGeometry:
     """
     Abstract Geometry
     """
-    __slots__ = ['srs_id']
+    __slots__ = 'srs_id',
 
     def __init__(self, srs_id: int) -> None:
         """
@@ -213,7 +213,7 @@ class Point(AbstractGeometry):
     """
     Point
     """
-    __slots__ = ['x', 'y']
+    __slots__ = 'x', 'y'
 
     def __init__(self, *, x: float, y: float, srs_id: int = WGS84) -> None:
         """
@@ -286,7 +286,7 @@ class PointZ(AbstractGeometry):
     """
     Point Z
     """
-    __slots__ = ['x', 'y', 'z']
+    __slots__ = 'x', 'y', 'z'
 
     def __init__(self, *, x: float, y: float, z: float,
                  srs_id: int = WGS84) -> None:
@@ -361,7 +361,7 @@ class PointM(AbstractGeometry):
     """
     Point M
     """
-    __slots__ = ['x', 'y', 'm']
+    __slots__ = 'x', 'y', 'm'
 
     def __init__(self, *, x: float, y: float, m: float,
                  srs_id: int = WGS84) -> None:
@@ -436,7 +436,7 @@ class PointZM(AbstractGeometry):
     """
     Point ZM
     """
-    __slots__ = ['x', 'y', 'z', 'm']
+    __slots__ = 'x', 'y', 'z', 'm'
 
     def __init__(self, *, x: float, y: float, z: float, m: float,
                  srs_id: int = WGS84) -> None:
@@ -513,7 +513,7 @@ class MultiPoint(AbstractGeometry):
     """
     Multi Point
     """
-    __slots__ = 'coordinates'
+    __slots__ = 'coordinates',
 
     def __init__(self, coordinates: List[DOUBLE], srs_id: int = WGS84) -> None:
         """
@@ -575,7 +575,7 @@ class MultiPointZ(AbstractGeometry):
     """
     Multi Point Z
     """
-    __slots__ = 'coordinates'
+    __slots__ = 'coordinates',
 
     def __init__(self, coordinates: List[TRIPLE], srs_id: int = WGS84) -> None:
         """
@@ -637,7 +637,7 @@ class MultiPointM(AbstractGeometry):
     """
     Multi Point M
     """
-    __slots__ = 'coordinates'
+    __slots__ = 'coordinates',
 
     def __init__(self, coordinates: List[TRIPLE], srs_id: int = WGS84) -> None:
         """
@@ -699,7 +699,7 @@ class MultiPointZM(AbstractGeometry):
     """
     Multi Point ZM
     """
-    __slots__ = 'coordinates'
+    __slots__ = 'coordinates',
 
     def __init__(self, coordinates: List[QUADRUPLE],
                  srs_id: int = WGS84) -> None:
@@ -762,7 +762,7 @@ class LineString(AbstractGeometry):
     """
     LineString
     """
-    __slots__ = 'coordinates'
+    __slots__ = 'coordinates',
 
     def __init__(self, coordinates: List[DOUBLE], srs_id: int = WGS84) -> None:
         """
@@ -823,7 +823,7 @@ class LineStringZ(AbstractGeometry):
     """
     LineStringZ
     """
-    __slots__ = 'coordinates'
+    __slots__ = 'coordinates',
 
     def __init__(self, coordinates: List[TRIPLE], srs_id: int = WGS84) -> None:
         """
@@ -884,7 +884,7 @@ class LineStringM(AbstractGeometry):
     """
     LineStringM
     """
-    __slots__ = 'coordinates'
+    __slots__ = 'coordinates',
 
     def __init__(self, coordinates: List[TRIPLE], srs_id: int = WGS84) -> None:
         """
@@ -945,7 +945,7 @@ class LineStringZM(AbstractGeometry):
     """
     LineStringZM
     """
-    __slots__ = 'coordinates'
+    __slots__ = 'coordinates',
 
     def __init__(self, coordinates: List[QUADRUPLE],
                  srs_id: int = WGS84) -> None:
@@ -1008,7 +1008,7 @@ class MultiLineString(AbstractGeometry):
     """
     Multi LineString
     """
-    __slots__ = 'lines'
+    __slots__ = 'lines',
 
     def __init__(self, coordinates: List[List[DOUBLE]],
                  srs_id: int = WGS84) -> None:
@@ -1065,7 +1065,7 @@ class MultiLineStringZ(AbstractGeometry):
     """
     Multi LineString Z
     """
-    __slots__ = 'lines'
+    __slots__ = 'lines',
 
     def __init__(self, coordinates: List[List[TRIPLE]],
                  srs_id: int = WGS84) -> None:
@@ -1122,7 +1122,7 @@ class MultiLineStringM(AbstractGeometry):
     """
     Multi LineString M
     """
-    __slots__ = 'lines'
+    __slots__ = 'lines',
 
     def __init__(self, coordinates: List[List[TRIPLE]],
                  srs_id: int = WGS84) -> None:
@@ -1179,7 +1179,7 @@ class MultiLineStringZM(AbstractGeometry):
     """
     Multi LineString ZM
     """
-    __slots__ = 'lines'
+    __slots__ = 'lines',
 
     def __init__(self, coordinates: List[List[QUADRUPLE]],
                  srs_id: int = WGS84) -> None:
@@ -1236,7 +1236,7 @@ class LinearRing(AbstractGeometry):
     """
     Linear Ring
     """
-    __slots__ = 'coordinates'
+    __slots__ = 'coordinates',
 
     def __init__(self, coordinates: List[DOUBLE],
                  srs_id: int = WGS84) -> None:
@@ -1303,7 +1303,7 @@ class LinearRingZ(AbstractGeometry):
     """
     Linear Ring Z
     """
-    __slots__ = 'coordinates'
+    __slots__ = 'coordinates',
 
     def __init__(self, coordinates: List[TRIPLE], srs_id: int = WGS84) -> None:
         """
@@ -1369,7 +1369,7 @@ class LinearRingM(AbstractGeometry):
     """
     Linear Ring M
     """
-    __slots__ = 'coordinates'
+    __slots__ = 'coordinates',
 
     def __init__(self, coordinates: List[TRIPLE], srs_id: int = WGS84) -> None:
         """
@@ -1435,7 +1435,7 @@ class LinearRingZM(AbstractGeometry):
     """
     Linear Ring ZM
     """
-    __slots__ = 'coordinates'
+    __slots__ = 'coordinates',
 
     def __init__(self, coordinates: List[QUADRUPLE],
                  srs_id: int = WGS84) -> None:
@@ -1502,7 +1502,7 @@ class Polygon(AbstractGeometry):
     """
     Polygon
     """
-    __slots__ = 'rings'
+    __slots__ = 'rings',
 
     def __init__(self, coordinates: List[List[DOUBLE]],
                  srs_id: int = WGS84) -> None:
@@ -1560,7 +1560,7 @@ class PolygonZ(AbstractGeometry):
     """
     Polygon Z
     """
-    __slots__ = 'rings'
+    __slots__ = 'rings',
 
     def __init__(self, coordinates: List[List[TRIPLE]],
                  srs_id: int = WGS84) -> None:
@@ -1618,7 +1618,7 @@ class PolygonM(AbstractGeometry):
     """
     Polygon M
     """
-    __slots__ = 'rings'
+    __slots__ = 'rings',
 
     def __init__(self, coordinates: List[List[TRIPLE]],
                  srs_id: int = WGS84) -> None:
@@ -1676,7 +1676,7 @@ class PolygonZM(AbstractGeometry):
     """
     Polygon ZM
     """
-    __slots__ = 'rings'
+    __slots__ = 'rings',
 
     def __init__(self, coordinates: List[List[QUADRUPLE]],
                  srs_id: int = WGS84) -> None:
@@ -1734,7 +1734,7 @@ class MultiPolygon(AbstractGeometry):
     """
     Multi Polygon
     """
-    __slots__ = 'polygons'
+    __slots__ = 'polygons',
 
     def __init__(self, coordinates: List[List[List[DOUBLE]]],
                  srs_id: int = WGS84) -> None:
@@ -1791,7 +1791,7 @@ class MultiPolygonZ(AbstractGeometry):
     """
     Multi Polygon Z
     """
-    __slots__ = 'polygons'
+    __slots__ = 'polygons',
 
     def __init__(self, coordinates: List[List[List[TRIPLE]]],
                  srs_id: int = WGS84) -> None:
@@ -1848,7 +1848,7 @@ class MultiPolygonM(AbstractGeometry):
     """
     Multi Polygon M
     """
-    __slots__ = 'polygons'
+    __slots__ = 'polygons',
 
     def __init__(self, coordinates: List[List[List[TRIPLE]]],
                  srs_id: int = WGS84) -> None:
@@ -1905,7 +1905,7 @@ class MultiPolygonZM(AbstractGeometry):
     """
     Multi Polygon M
     """
-    __slots__ = 'polygons'
+    __slots__ = 'polygons',
 
     def __init__(self, coordinates: List[List[List[QUADRUPLE]]],
                  srs_id: int = WGS84) -> None:
