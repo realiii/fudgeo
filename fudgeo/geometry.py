@@ -11,8 +11,9 @@ from struct import pack, unpack
 from typing import List, Tuple
 
 from fudgeo.constant import (
-    BYTE_UINT, COORDINATES, COUNT_UNIT, DOUBLE, EMPTY, GP_MAGIC, POINT_PREFIX,
-    QUADRUPLE, TRIPLE, WGS84, WKB_LINESTRING_M_PRE, WKB_LINESTRING_PRE,
+    BYTE_UINT, COORDINATES, COUNT_UNIT, DOUBLE, EMPTY, ENVELOPE_OFFSET, FOUR_D,
+    GP_MAGIC, HEADER_OFFSET, HEADER_UNIT, POINT_PREFIX, QUADRUPLE, THREE_D,
+    TRIPLE, TWO_D, WGS84, WKB_LINESTRING_M_PRE, WKB_LINESTRING_PRE,
     WKB_LINESTRING_ZM_PRE, WKB_LINESTRING_Z_PRE, WKB_MULTI_LINESTRING_M_PRE,
     WKB_MULTI_LINESTRING_PRE, WKB_MULTI_LINESTRING_ZM_PRE,
     WKB_MULTI_LINESTRING_Z_PRE, WKB_MULTI_POINT_M_PRE, WKB_MULTI_POINT_PRE,
@@ -132,7 +133,7 @@ def _make_header_with_srs_id(srs_id: int) -> bytes:
     """
     Cached Header Creation
     """
-    return pack('<2s2bi', GP_MAGIC, 0, 1, srs_id)
+    return pack(HEADER_UNIT, GP_MAGIC, 0, 1, srs_id)
 # End _make_header_with_srs_id function
 
 
