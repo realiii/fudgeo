@@ -6,6 +6,7 @@ Geometry
 
 from abc import abstractmethod
 from functools import lru_cache, reduce
+from math import isnan, nan
 from operator import add
 from struct import pack, unpack
 from typing import List, Tuple
@@ -133,23 +134,27 @@ def _get_count_and_data(value: bytes, is_ring: bool = False) \
 
 
 @lru_cache(maxsize=None)
-def _make_header_with_srs_id(srs_id: int) -> bytes:
+def _make_header(srs_id: int, is_empty: bool) -> bytes:
     """
-    Cached Header Creation
+    Cached Creation of a GeoPackage Geometry Header
     """
-    return pack(HEADER_CODE, GP_MAGIC, 0, 1, srs_id)
-# End _make_header_with_srs_id function
+    flags = 1
+    if is_empty:
+        flags |= (1 << 4)
+    return pack(HEADER_CODE, GP_MAGIC, 0, flags, srs_id)
+# End _make_header function
 
 
 @lru_cache(maxsize=None)
-def _unpack_header_srs_id_and_offset(value: bytes) -> Tuple[int, int]:
+def _unpack_header(value: bytes) -> Tuple[int, int, bool]:
     """
-    Unpack a GeoPackage Geometry Header to get SRS ID and Offset to Geometry
+    Cached Unpacking of a GeoPackage Geometry Header
     """
     _, _, flags, srs_id = unpack(HEADER_CODE, value)
     envelope_code = (flags & (0x07 << 1)) >> 1
-    return srs_id, ENVELOPE_OFFSET[envelope_code]
-# End _unpack_header_srs_id_and_offset function
+    is_empty = bool((flags & (0x01 << 4)) >> 4)
+    return srs_id, ENVELOPE_OFFSET[envelope_code], is_empty
+# End _unpack_header function
 
 
 class AbstractGeometry:
@@ -174,6 +179,15 @@ class AbstractGeometry:
         return EMPTY.join(args)
     # End _joiner method
 
+    @property
+    @abstractmethod
+    def is_empty(self) -> bool:
+        """
+        Is Empty
+        """
+        pass
+    # End is_empty property
+
     @abstractmethod
     def to_wkb(self, use_prefix: bool = True) -> bytes:  # pragma: nocover
         """
@@ -195,8 +209,9 @@ class AbstractGeometry:
         """
         To Geopackage
         """
-        return self._joiner(
-            _make_header_with_srs_id(self.srs_id), self.to_wkb())
+        return (
+            _make_header(srs_id=self.srs_id, is_empty=self.is_empty) +
+            self.to_wkb())
     # End to_gpkg method
 
     @classmethod
@@ -236,6 +251,14 @@ class Point(AbstractGeometry):
         return (self.x, self.y) == (other.x, other.y)
     # End eq built-in
 
+    @property
+    def is_empty(self) -> bool:
+        """
+        Is Empty
+        """
+        return isnan(self.x) and isnan(self.y)
+    # End is_empty property
+
     @staticmethod
     def _unpack(value: bytes) -> DOUBLE:
         """
@@ -267,7 +290,9 @@ class Point(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
+        srs_id, offset, is_empty = _unpack_header(value[:HEADER_OFFSET])
+        if is_empty:
+            return cls.empty(srs_id)
         x, y = cls._unpack(value[offset:])
         return cls(x=x, y=y, srs_id=srs_id)
     # End from_gpkg method
@@ -280,6 +305,14 @@ class Point(AbstractGeometry):
         x, y = xy
         return cls(x=x, y=y, srs_id=srs_id)
     # End from_tuple method
+
+    @classmethod
+    def empty(cls, srs_id: int = WGS84) -> 'Point':
+        """
+        Empty Point
+        """
+        return cls(x=nan, y=nan, srs_id=srs_id)
+    # End empty method
 # End Point class
 
 
@@ -310,6 +343,14 @@ class PointZ(AbstractGeometry):
             return False
         return (self.x, self.y, self.z) == (other.x, other.y, other.z)
     # End eq built-in
+
+    @property
+    def is_empty(self) -> bool:
+        """
+        Is Empty
+        """
+        return isnan(self.x) and isnan(self.y) and isnan(self.z)
+    # End is_empty property
 
     @staticmethod
     def _unpack(value: bytes) -> TRIPLE:
@@ -343,7 +384,9 @@ class PointZ(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
+        srs_id, offset, is_empty = _unpack_header(value[:HEADER_OFFSET])
+        if is_empty:
+            return cls.empty(srs_id)
         x, y, z = cls._unpack(value[offset:])
         return cls(x=x, y=y, z=z, srs_id=srs_id)
     # End from_gpkg method
@@ -356,6 +399,14 @@ class PointZ(AbstractGeometry):
         x, y, z = xyz
         return cls(x=x, y=y, z=z, srs_id=srs_id)
     # End from_tuple method
+
+    @classmethod
+    def empty(cls, srs_id: int = WGS84) -> 'PointZ':
+        """
+        Empty PointZ
+        """
+        return cls(x=nan, y=nan, z=nan, srs_id=srs_id)
+    # End empty method
 # End PointZ class
 
 
@@ -386,6 +437,14 @@ class PointM(AbstractGeometry):
             return False
         return (self.x, self.y, self.m) == (other.x, other.y, other.m)
     # End eq built-in
+
+    @property
+    def is_empty(self) -> bool:
+        """
+        Is Empty
+        """
+        return isnan(self.x) and isnan(self.y) and isnan(self.m)
+    # End is_empty property
 
     @staticmethod
     def _unpack(value: bytes) -> TRIPLE:
@@ -419,7 +478,9 @@ class PointM(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
+        srs_id, offset, is_empty = _unpack_header(value[:HEADER_OFFSET])
+        if is_empty:
+            return cls.empty(srs_id)
         x, y, m = cls._unpack(value[offset:])
         return cls(x=x, y=y, m=m, srs_id=srs_id)
     # End from_gpkg method
@@ -432,6 +493,14 @@ class PointM(AbstractGeometry):
         x, y, m = xym
         return cls(x=x, y=y, m=m, srs_id=srs_id)
     # End from_tuple method
+
+    @classmethod
+    def empty(cls, srs_id: int = WGS84) -> 'PointM':
+        """
+        Empty PointM
+        """
+        return cls(x=nan, y=nan, m=nan, srs_id=srs_id)
+    # End empty method
 # End PointM class
 
 
@@ -465,6 +534,15 @@ class PointZM(AbstractGeometry):
             other.x, other.y, other.z, other.m)
     # End eq built-in
 
+    @property
+    def is_empty(self) -> bool:
+        """
+        Is Empty
+        """
+        return (isnan(self.x) and isnan(self.y) and
+                isnan(self.z) and isnan(self.m))
+    # End is_empty property
+
     @staticmethod
     def _unpack(value: bytes) -> QUADRUPLE:
         """
@@ -497,7 +575,9 @@ class PointZM(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
+        srs_id, offset, is_empty = _unpack_header(value[:HEADER_OFFSET])
+        if is_empty:
+            return cls.empty(srs_id)
         x, y, z, m = cls._unpack(value[offset:])
         return cls(x=x, y=y, z=z, m=m, srs_id=srs_id)
     # End from_gpkg method
@@ -510,6 +590,14 @@ class PointZM(AbstractGeometry):
         x, y, z, m = xyzm
         return cls(x=x, y=y, z=z, m=m, srs_id=srs_id)
     # End from_tuple method
+
+    @classmethod
+    def empty(cls, srs_id: int = WGS84) -> 'PointZM':
+        """
+        Empty Point
+        """
+        return cls(x=nan, y=nan, z=nan, m=nan, srs_id=srs_id)
+    # End empty method
 # End PointZM class
 
 
@@ -537,6 +625,14 @@ class MultiPoint(AbstractGeometry):
             return False
         return self.points == other.points
     # End eq built-in
+
+    @property
+    def is_empty(self) -> bool:
+        """
+        Is Empty
+        """
+        return not len(self.coordinates)
+    # End is_empty property
 
     @property
     def points(self) -> List[Point]:
@@ -568,7 +664,9 @@ class MultiPoint(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
+        srs_id, offset, is_empty = _unpack_header(value[:HEADER_OFFSET])
+        if is_empty:
+            return cls([], srs_id=srs_id)
         # noinspection PyTypeChecker
         return cls(_unpack_points(
             value[offset:], dimension=TWO_D), srs_id=srs_id)
@@ -602,6 +700,14 @@ class MultiPointZ(AbstractGeometry):
     # End eq built-in
 
     @property
+    def is_empty(self) -> bool:
+        """
+        Is Empty
+        """
+        return not len(self.coordinates)
+    # End is_empty property
+
+    @property
     def points(self) -> List[PointZ]:
         """
         Points
@@ -631,7 +737,9 @@ class MultiPointZ(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
+        srs_id, offset, is_empty = _unpack_header(value[:HEADER_OFFSET])
+        if is_empty:
+            return cls([], srs_id=srs_id)
         # noinspection PyTypeChecker
         return cls(_unpack_points(value[offset:], dimension=3), srs_id=srs_id)
     # End from_gpkg method
@@ -664,6 +772,14 @@ class MultiPointM(AbstractGeometry):
     # End eq built-in
 
     @property
+    def is_empty(self) -> bool:
+        """
+        Is Empty
+        """
+        return not len(self.coordinates)
+    # End is_empty property
+
+    @property
     def points(self) -> List[PointM]:
         """
         Points
@@ -693,7 +809,9 @@ class MultiPointM(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
+        srs_id, offset, is_empty = _unpack_header(value[:HEADER_OFFSET])
+        if is_empty:
+            return cls([], srs_id=srs_id)
         # noinspection PyTypeChecker
         return cls(_unpack_points(value[offset:], dimension=3), srs_id=srs_id)
     # End from_gpkg method
@@ -727,6 +845,14 @@ class MultiPointZM(AbstractGeometry):
     # End eq built-in
 
     @property
+    def is_empty(self) -> bool:
+        """
+        Is Empty
+        """
+        return not len(self.coordinates)
+    # End is_empty property
+
+    @property
     def points(self) -> List[PointZM]:
         """
         Points
@@ -756,7 +882,9 @@ class MultiPointZM(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
+        srs_id, offset, is_empty = _unpack_header(value[:HEADER_OFFSET])
+        if is_empty:
+            return cls([], srs_id=srs_id)
         # noinspection PyTypeChecker
         return cls(_unpack_points(
             value[offset:], dimension=FOUR_D), srs_id=srs_id)
@@ -790,6 +918,14 @@ class LineString(AbstractGeometry):
     # End eq built-in
 
     @property
+    def is_empty(self) -> bool:
+        """
+        Is Empty
+        """
+        return not len(self.coordinates)
+    # End is_empty property
+
+    @property
     def points(self) -> List[Point]:
         """
         Points
@@ -818,7 +954,9 @@ class LineString(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
+        srs_id, offset, is_empty = _unpack_header(value[:HEADER_OFFSET])
+        if is_empty:
+            return cls([], srs_id=srs_id)
         # noinspection PyTypeChecker
         return cls(_unpack_line(value[offset:], dimension=TWO_D), srs_id=srs_id)
     # End from_gpkg method
@@ -851,6 +989,14 @@ class LineStringZ(AbstractGeometry):
     # End eq built-in
 
     @property
+    def is_empty(self) -> bool:
+        """
+        Is Empty
+        """
+        return not len(self.coordinates)
+    # End is_empty property
+
+    @property
     def points(self) -> List[PointZ]:
         """
         Points
@@ -879,7 +1025,9 @@ class LineStringZ(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
+        srs_id, offset, is_empty = _unpack_header(value[:HEADER_OFFSET])
+        if is_empty:
+            return cls([], srs_id=srs_id)
         # noinspection PyTypeChecker
         return cls(_unpack_line(value[offset:], dimension=3), srs_id=srs_id)
     # End from_gpkg method
@@ -912,6 +1060,14 @@ class LineStringM(AbstractGeometry):
     # End eq built-in
 
     @property
+    def is_empty(self) -> bool:
+        """
+        Is Empty
+        """
+        return not len(self.coordinates)
+    # End is_empty property
+
+    @property
     def points(self) -> List[PointM]:
         """
         Points
@@ -940,7 +1096,9 @@ class LineStringM(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
+        srs_id, offset, is_empty = _unpack_header(value[:HEADER_OFFSET])
+        if is_empty:
+            return cls([], srs_id=srs_id)
         # noinspection PyTypeChecker
         return cls(_unpack_line(
             value[offset:], dimension=THREE_D), srs_id=srs_id)
@@ -975,6 +1133,14 @@ class LineStringZM(AbstractGeometry):
     # End eq built-in
 
     @property
+    def is_empty(self) -> bool:
+        """
+        Is Empty
+        """
+        return not len(self.coordinates)
+    # End is_empty property
+
+    @property
     def points(self) -> List[PointZM]:
         """
         Points
@@ -1004,7 +1170,9 @@ class LineStringZM(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
+        srs_id, offset, is_empty = _unpack_header(value[:HEADER_OFFSET])
+        if is_empty:
+            return cls([], srs_id=srs_id)
         # noinspection PyTypeChecker
         return cls(_unpack_line(
             value[offset:], dimension=FOUR_D), srs_id=srs_id)
@@ -1039,6 +1207,14 @@ class MultiLineString(AbstractGeometry):
         return self.lines == other.lines
     # End eq built-in
 
+    @property
+    def is_empty(self) -> bool:
+        """
+        Is Empty
+        """
+        return not len(self.lines)
+    # End is_empty property
+
     def to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
@@ -1062,7 +1238,9 @@ class MultiLineString(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
+        srs_id, offset, is_empty = _unpack_header(value[:HEADER_OFFSET])
+        if is_empty:
+            return cls([], srs_id=srs_id)
         # noinspection PyTypeChecker
         return cls(_unpack_lines(
             value[offset:], dimension=TWO_D), srs_id=srs_id)
@@ -1097,6 +1275,14 @@ class MultiLineStringZ(AbstractGeometry):
         return self.lines == other.lines
     # End eq built-in
 
+    @property
+    def is_empty(self) -> bool:
+        """
+        Is Empty
+        """
+        return not len(self.lines)
+    # End is_empty property
+
     def to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
@@ -1120,7 +1306,9 @@ class MultiLineStringZ(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
+        srs_id, offset, is_empty = _unpack_header(value[:HEADER_OFFSET])
+        if is_empty:
+            return cls([], srs_id=srs_id)
         # noinspection PyTypeChecker
         return cls(_unpack_lines(
             value[offset:], dimension=THREE_D), srs_id=srs_id)
@@ -1155,6 +1343,14 @@ class MultiLineStringM(AbstractGeometry):
         return self.lines == other.lines
     # End eq built-in
 
+    @property
+    def is_empty(self) -> bool:
+        """
+        Is Empty
+        """
+        return not len(self.lines)
+    # End is_empty property
+
     def to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
@@ -1178,7 +1374,9 @@ class MultiLineStringM(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
+        srs_id, offset, is_empty = _unpack_header(value[:HEADER_OFFSET])
+        if is_empty:
+            return cls([], srs_id=srs_id)
         # noinspection PyTypeChecker
         return cls(_unpack_lines(
             value[offset:], dimension=THREE_D), srs_id=srs_id)
@@ -1213,6 +1411,14 @@ class MultiLineStringZM(AbstractGeometry):
         return self.lines == other.lines
     # End eq built-in
 
+    @property
+    def is_empty(self) -> bool:
+        """
+        Is Empty
+        """
+        return not len(self.lines)
+    # End is_empty property
+
     def to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
@@ -1236,7 +1442,9 @@ class MultiLineStringZM(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
+        srs_id, offset, is_empty = _unpack_header(value[:HEADER_OFFSET])
+        if is_empty:
+            return cls([], srs_id=srs_id)
         # noinspection PyTypeChecker
         return cls(_unpack_lines(
             value[offset:], dimension=FOUR_D), srs_id=srs_id)
@@ -1269,6 +1477,14 @@ class LinearRing(AbstractGeometry):
             return False
         return self.points == other.points
     # End eq built-in
+
+    @property
+    def is_empty(self) -> bool:
+        """
+        Is Empty
+        """
+        return not len(self.coordinates)
+    # End is_empty property
 
     @property
     def points(self) -> List[Point]:
@@ -1337,6 +1553,14 @@ class LinearRingZ(AbstractGeometry):
     # End eq built-in
 
     @property
+    def is_empty(self) -> bool:
+        """
+        Is Empty
+        """
+        return not len(self.coordinates)
+    # End is_empty property
+
+    @property
     def points(self) -> List[PointZ]:
         """
         Points
@@ -1403,6 +1627,14 @@ class LinearRingM(AbstractGeometry):
     # End eq built-in
 
     @property
+    def is_empty(self) -> bool:
+        """
+        Is Empty
+        """
+        return not len(self.coordinates)
+    # End is_empty property
+
+    @property
     def points(self) -> List[PointM]:
         """
         Points
@@ -1457,6 +1689,14 @@ class LinearRingZM(AbstractGeometry):
         super().__init__(srs_id=srs_id)
         self.coordinates: List[QUADRUPLE] = coordinates
     # End init built-in
+
+    @property
+    def is_empty(self) -> bool:
+        """
+        Is Empty
+        """
+        return not len(self.coordinates)
+    # End is_empty property
 
     def __eq__(self, other: 'LinearRingZM') -> bool:
         """
@@ -1537,6 +1777,14 @@ class Polygon(AbstractGeometry):
         return self.rings == other.rings
     # End eq built-in
 
+    @property
+    def is_empty(self) -> bool:
+        """
+        Is Empty
+        """
+        return not len(self.rings)
+    # End is_empty property
+
     def to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
@@ -1560,7 +1808,9 @@ class Polygon(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
+        srs_id, offset, is_empty = _unpack_header(value[:HEADER_OFFSET])
+        if is_empty:
+            return cls([], srs_id=srs_id)
         # noinspection PyTypeChecker
         return cls(_unpack_lines(
             value[offset:], dimension=TWO_D, is_ring=True), srs_id=srs_id)
@@ -1595,6 +1845,14 @@ class PolygonZ(AbstractGeometry):
         return self.rings == other.rings
     # End eq built-in
 
+    @property
+    def is_empty(self) -> bool:
+        """
+        Is Empty
+        """
+        return not len(self.rings)
+    # End is_empty property
+
     def to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
@@ -1618,7 +1876,9 @@ class PolygonZ(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
+        srs_id, offset, is_empty = _unpack_header(value[:HEADER_OFFSET])
+        if is_empty:
+            return cls([], srs_id=srs_id)
         # noinspection PyTypeChecker
         return cls(_unpack_lines(
             value[offset:], dimension=THREE_D, is_ring=True), srs_id=srs_id)
@@ -1653,6 +1913,14 @@ class PolygonM(AbstractGeometry):
         return self.rings == other.rings
     # End eq built-in
 
+    @property
+    def is_empty(self) -> bool:
+        """
+        Is Empty
+        """
+        return not len(self.rings)
+    # End is_empty property
+
     def to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
@@ -1676,7 +1944,9 @@ class PolygonM(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
+        srs_id, offset, is_empty = _unpack_header(value[:HEADER_OFFSET])
+        if is_empty:
+            return cls([], srs_id=srs_id)
         # noinspection PyTypeChecker
         return cls(_unpack_lines(
             value[offset:], dimension=THREE_D, is_ring=True), srs_id=srs_id)
@@ -1711,6 +1981,14 @@ class PolygonZM(AbstractGeometry):
         return self.rings == other.rings
     # End eq built-in
 
+    @property
+    def is_empty(self) -> bool:
+        """
+        Is Empty
+        """
+        return not len(self.rings)
+    # End is_empty property
+
     def to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
@@ -1734,7 +2012,9 @@ class PolygonZM(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
+        srs_id, offset, is_empty = _unpack_header(value[:HEADER_OFFSET])
+        if is_empty:
+            return cls([], srs_id=srs_id)
         # noinspection PyTypeChecker
         return cls(_unpack_lines(
             value[offset:], dimension=FOUR_D, is_ring=True), srs_id=srs_id)
@@ -1769,6 +2049,14 @@ class MultiPolygon(AbstractGeometry):
         return self.polygons == other.polygons
     # End eq built-in
 
+    @property
+    def is_empty(self) -> bool:
+        """
+        Is Empty
+        """
+        return not len(self.polygons)
+    # End is_empty property
+
     def to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
@@ -1792,7 +2080,9 @@ class MultiPolygon(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
+        srs_id, offset, is_empty = _unpack_header(value[:HEADER_OFFSET])
+        if is_empty:
+            return cls([], srs_id=srs_id)
         # noinspection PyTypeChecker
         return cls(_unpack_polygons(
             value[offset:], dimension=TWO_D), srs_id=srs_id)
@@ -1827,6 +2117,14 @@ class MultiPolygonZ(AbstractGeometry):
         return self.polygons == other.polygons
     # End eq built-in
 
+    @property
+    def is_empty(self) -> bool:
+        """
+        Is Empty
+        """
+        return not len(self.polygons)
+    # End is_empty property
+
     def to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
@@ -1850,7 +2148,9 @@ class MultiPolygonZ(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
+        srs_id, offset, is_empty = _unpack_header(value[:HEADER_OFFSET])
+        if is_empty:
+            return cls([], srs_id=srs_id)
         # noinspection PyTypeChecker
         return cls(_unpack_polygons(
             value[offset:], dimension=THREE_D), srs_id=srs_id)
@@ -1885,6 +2185,14 @@ class MultiPolygonM(AbstractGeometry):
         return self.polygons == other.polygons
     # End eq built-in
 
+    @property
+    def is_empty(self) -> bool:
+        """
+        Is Empty
+        """
+        return not len(self.polygons)
+    # End is_empty property
+
     def to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
@@ -1908,7 +2216,9 @@ class MultiPolygonM(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
+        srs_id, offset, is_empty = _unpack_header(value[:HEADER_OFFSET])
+        if is_empty:
+            return cls([], srs_id=srs_id)
         # noinspection PyTypeChecker
         return cls(_unpack_polygons(
             value[offset:], dimension=THREE_D), srs_id=srs_id)
@@ -1943,6 +2253,14 @@ class MultiPolygonZM(AbstractGeometry):
         return self.polygons == other.polygons
     # End eq built-in
 
+    @property
+    def is_empty(self) -> bool:
+        """
+        Is Empty
+        """
+        return not len(self.polygons)
+    # End is_empty property
+
     def to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
@@ -1966,7 +2284,9 @@ class MultiPolygonZM(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id, offset = _unpack_header_srs_id_and_offset(value[:HEADER_OFFSET])
+        srs_id, offset, is_empty = _unpack_header(value[:HEADER_OFFSET])
+        if is_empty:
+            return cls([], srs_id=srs_id)
         # noinspection PyTypeChecker
         return cls(_unpack_polygons(
             value[offset:], dimension=FOUR_D), srs_id=srs_id)
