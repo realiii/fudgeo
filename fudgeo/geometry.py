@@ -11,16 +11,18 @@ from struct import pack, unpack
 from typing import List, Tuple
 
 from fudgeo.constant import (
-    BYTE_UINT, COORDINATES, COUNT_UNIT, DOUBLE, EMPTY, ENVELOPE_OFFSET, FOUR_D,
-    GP_MAGIC, HEADER_OFFSET, HEADER_UNIT, POINT_PREFIX, QUADRUPLE, THREE_D,
-    TRIPLE, TWO_D, WGS84, WKB_LINESTRING_M_PRE, WKB_LINESTRING_PRE,
-    WKB_LINESTRING_ZM_PRE, WKB_LINESTRING_Z_PRE, WKB_MULTI_LINESTRING_M_PRE,
-    WKB_MULTI_LINESTRING_PRE, WKB_MULTI_LINESTRING_ZM_PRE,
-    WKB_MULTI_LINESTRING_Z_PRE, WKB_MULTI_POINT_M_PRE, WKB_MULTI_POINT_PRE,
-    WKB_MULTI_POINT_ZM_PRE, WKB_MULTI_POINT_Z_PRE, WKB_MULTI_POLYGON_M_PRE,
-    WKB_MULTI_POLYGON_PRE, WKB_MULTI_POLYGON_ZM_PRE, WKB_MULTI_POLYGON_Z_PRE,
-    WKB_POINT_M_PRE, WKB_POINT_PRE, WKB_POINT_ZM_PRE, WKB_POINT_Z_PRE,
-    WKB_POLYGON_M_PRE, WKB_POLYGON_PRE, WKB_POLYGON_ZM_PRE, WKB_POLYGON_Z_PRE)
+    COORDINATES, COUNT_CODE, DOUBLE, EMPTY, ENVELOPE_OFFSET, FOUR_D,
+    FOUR_D_PACK_CODE, FOUR_D_UNPACK_CODE, GP_MAGIC, HEADER_OFFSET, HEADER_CODE,
+    POINT_PREFIX, QUADRUPLE, THREE_D, THREE_D_PACK_CODE, THREE_D_UNPACK_CODE,
+    TRIPLE, TWO_D, TWO_D_PACK_CODE, TWO_D_UNPACK_CODE, WGS84,
+    WKB_LINESTRING_M_PRE, WKB_LINESTRING_PRE, WKB_LINESTRING_ZM_PRE,
+    WKB_LINESTRING_Z_PRE, WKB_MULTI_LINESTRING_M_PRE, WKB_MULTI_LINESTRING_PRE,
+    WKB_MULTI_LINESTRING_ZM_PRE, WKB_MULTI_LINESTRING_Z_PRE,
+    WKB_MULTI_POINT_M_PRE, WKB_MULTI_POINT_PRE, WKB_MULTI_POINT_ZM_PRE,
+    WKB_MULTI_POINT_Z_PRE, WKB_MULTI_POLYGON_M_PRE, WKB_MULTI_POLYGON_PRE,
+    WKB_MULTI_POLYGON_ZM_PRE, WKB_MULTI_POLYGON_Z_PRE, WKB_POINT_M_PRE,
+    WKB_POINT_PRE, WKB_POINT_ZM_PRE, WKB_POINT_Z_PRE, WKB_POLYGON_M_PRE,
+    WKB_POLYGON_PRE, WKB_POLYGON_ZM_PRE, WKB_POLYGON_Z_PRE)
 
 
 __all__ = ['Point', 'PointZ', 'PointM', 'PointZM', 'MultiPoint', 'MultiPointZ',
@@ -69,12 +71,12 @@ def _pack_points(coordinates: COORDINATES, has_z: bool = False,
     total = count * sum((TWO_D, has_z, has_m))
     data = pack(f'<{total}d', *flat)
     if not use_prefix:
-        return pack(COUNT_UNIT, count) + data
+        return pack(COUNT_CODE, count) + data
     length = len(data)
     step = length // count
     prefix = POINT_PREFIX.get((has_z, has_m))
     parts = [prefix + data[i:i + step] for i in range(0, length, step)]
-    return pack(COUNT_UNIT, count) + EMPTY.join(parts)
+    return pack(COUNT_CODE, count) + EMPTY.join(parts)
 # End _pack_points function
 
 
@@ -84,7 +86,7 @@ def _unpack_lines(value: bytes, dimension: int, is_ring: bool = False) \
     Unpack Values for Multi LineString and Polygons
     """
     size, last_end = 8 * dimension, 0
-    offset, unit = (4, COUNT_UNIT) if is_ring else (9, '<BII')
+    offset, unit = (4, COUNT_CODE) if is_ring else (9, '<BII')
     count, data = _get_count_and_data(value)
     lines = []
     for _ in range(count):
@@ -123,7 +125,7 @@ def _get_count_and_data(value: bytes, is_ring: bool = False) \
     """
     first, second = (0, 4) if is_ring else (5, 9)
     header, data = value[first: second], value[second:]
-    count, = unpack(COUNT_UNIT, header)
+    count, = unpack(COUNT_CODE, header)
     return count, data
 # End _get_count_and_data function
 
@@ -133,7 +135,7 @@ def _make_header_with_srs_id(srs_id: int) -> bytes:
     """
     Cached Header Creation
     """
-    return pack(HEADER_UNIT, GP_MAGIC, 0, 1, srs_id)
+    return pack(HEADER_CODE, GP_MAGIC, 0, 1, srs_id)
 # End _make_header_with_srs_id function
 
 
@@ -142,7 +144,7 @@ def _unpack_header_srs_id_and_offset(value: bytes) -> Tuple[int, int]:
     """
     Unpack a GeoPackage Geometry Header to get SRS ID and Offset to Geometry
     """
-    _, _, flags, srs_id = unpack(HEADER_UNIT, value)
+    _, _, flags, srs_id = unpack(HEADER_CODE, value)
     envelope_code = (flags & (0x07 << 1)) >> 1
     return srs_id, ENVELOPE_OFFSET[envelope_code]
 # End _unpack_header_srs_id_and_offset function
@@ -237,7 +239,7 @@ class Point(AbstractGeometry):
         """
         Unpack Values
         """
-        *_, x, y = unpack(f'{BYTE_UINT}2d', value)
+        *_, x, y = unpack(TWO_D_UNPACK_CODE, value)
         return x, y
     # End _unpack method
 
@@ -246,7 +248,7 @@ class Point(AbstractGeometry):
         To WKB
         """
         pre = WKB_POINT_PRE if use_prefix else EMPTY
-        return self._joiner(pre, pack('<2d', self.x, self.y))
+        return self._joiner(pre, pack(TWO_D_PACK_CODE, self.x, self.y))
     # End to_wkb method
 
     @classmethod
@@ -312,7 +314,7 @@ class PointZ(AbstractGeometry):
         """
         Unpack Values
         """
-        *_, x, y, z = unpack(f'{BYTE_UINT}3d', value)
+        *_, x, y, z = unpack(THREE_D_UNPACK_CODE, value)
         return x, y, z
     # End _unpack method
 
@@ -321,7 +323,8 @@ class PointZ(AbstractGeometry):
         To WKB
         """
         pre = WKB_POINT_Z_PRE if use_prefix else EMPTY
-        return self._joiner(pre, pack('<3d', self.x, self.y, self.z))
+        return self._joiner(
+            pre, pack(THREE_D_PACK_CODE, self.x, self.y, self.z))
     # End to_wkb method
 
     @classmethod
@@ -387,7 +390,7 @@ class PointM(AbstractGeometry):
         """
         Unpack Values
         """
-        *_, x, y, m = unpack(f'{BYTE_UINT}3d', value)
+        *_, x, y, m = unpack(THREE_D_UNPACK_CODE, value)
         return x, y, m
     # End _unpack method
 
@@ -396,7 +399,8 @@ class PointM(AbstractGeometry):
         To WKB
         """
         pre = WKB_POINT_M_PRE if use_prefix else EMPTY
-        return self._joiner(pre, pack('<3d', self.x, self.y, self.m))
+        return self._joiner(
+            pre, pack(THREE_D_PACK_CODE, self.x, self.y, self.m))
     # End to_wkb method
 
     @classmethod
@@ -464,7 +468,7 @@ class PointZM(AbstractGeometry):
         """
         Unpack Values
         """
-        *_, x, y, z, m = unpack(f'{BYTE_UINT}4d', value)
+        *_, x, y, z, m = unpack(FOUR_D_UNPACK_CODE, value)
         return x, y, z, m
     # End _unpack method
 
@@ -473,7 +477,8 @@ class PointZM(AbstractGeometry):
         To WKB
         """
         pre = WKB_POINT_ZM_PRE if use_prefix else EMPTY
-        return self._joiner(pre, pack('<4d', self.x, self.y, self.z, self.m))
+        return self._joiner(
+            pre, pack(FOUR_D_PACK_CODE, self.x, self.y, self.z, self.m))
     # End to_wkb method
 
     @classmethod
@@ -1037,7 +1042,7 @@ class MultiLineString(AbstractGeometry):
         To WKB
         """
         return self._joiner(
-            WKB_MULTI_LINESTRING_PRE, pack(COUNT_UNIT, len(self.lines)),
+            WKB_MULTI_LINESTRING_PRE, pack(COUNT_CODE, len(self.lines)),
             self._joiner(*[line.to_wkb() for line in self.lines]))
     # End to_wkb method
 
@@ -1095,7 +1100,7 @@ class MultiLineStringZ(AbstractGeometry):
         To WKB
         """
         return self._joiner(
-            WKB_MULTI_LINESTRING_Z_PRE, pack(COUNT_UNIT, len(self.lines)),
+            WKB_MULTI_LINESTRING_Z_PRE, pack(COUNT_CODE, len(self.lines)),
             self._joiner(*[line.to_wkb() for line in self.lines]))
     # End to_wkb method
 
@@ -1153,7 +1158,7 @@ class MultiLineStringM(AbstractGeometry):
         To WKB
         """
         return self._joiner(
-            WKB_MULTI_LINESTRING_M_PRE, pack(COUNT_UNIT, len(self.lines)),
+            WKB_MULTI_LINESTRING_M_PRE, pack(COUNT_CODE, len(self.lines)),
             self._joiner(*[line.to_wkb() for line in self.lines]))
     # End to_wkb method
 
@@ -1211,7 +1216,7 @@ class MultiLineStringZM(AbstractGeometry):
         To WKB
         """
         return self._joiner(
-            WKB_MULTI_LINESTRING_ZM_PRE, pack(COUNT_UNIT, len(self.lines)),
+            WKB_MULTI_LINESTRING_ZM_PRE, pack(COUNT_CODE, len(self.lines)),
             self._joiner(*[line.to_wkb() for line in self.lines]))
     # End to_wkb method
 
@@ -1535,7 +1540,7 @@ class Polygon(AbstractGeometry):
         To WKB
         """
         return self._joiner(
-            WKB_POLYGON_PRE, pack(COUNT_UNIT, len(self.rings)),
+            WKB_POLYGON_PRE, pack(COUNT_CODE, len(self.rings)),
             self._joiner(*[ring.to_wkb() for ring in self.rings]))
     # End to_wkb method
 
@@ -1593,7 +1598,7 @@ class PolygonZ(AbstractGeometry):
         To WKB
         """
         return self._joiner(
-            WKB_POLYGON_Z_PRE, pack(COUNT_UNIT, len(self.rings)),
+            WKB_POLYGON_Z_PRE, pack(COUNT_CODE, len(self.rings)),
             self._joiner(*[ring.to_wkb() for ring in self.rings]))
     # End to_wkb method
 
@@ -1651,7 +1656,7 @@ class PolygonM(AbstractGeometry):
         To WKB
         """
         return self._joiner(
-            WKB_POLYGON_M_PRE, pack(COUNT_UNIT, len(self.rings)),
+            WKB_POLYGON_M_PRE, pack(COUNT_CODE, len(self.rings)),
             self._joiner(*[ring.to_wkb() for ring in self.rings]))
     # End to_wkb method
 
@@ -1709,7 +1714,7 @@ class PolygonZM(AbstractGeometry):
         To WKB
         """
         return self._joiner(
-            WKB_POLYGON_ZM_PRE, pack(COUNT_UNIT, len(self.rings)),
+            WKB_POLYGON_ZM_PRE, pack(COUNT_CODE, len(self.rings)),
             self._joiner(*[ring.to_wkb() for ring in self.rings]))
     # End to_wkb method
 
@@ -1767,7 +1772,7 @@ class MultiPolygon(AbstractGeometry):
         To WKB
         """
         return self._joiner(
-            WKB_MULTI_POLYGON_PRE, pack(COUNT_UNIT, len(self.polygons)),
+            WKB_MULTI_POLYGON_PRE, pack(COUNT_CODE, len(self.polygons)),
             self._joiner(*[polygon.to_wkb() for polygon in self.polygons]))
     # End to_wkb method
 
@@ -1825,7 +1830,7 @@ class MultiPolygonZ(AbstractGeometry):
         To WKB
         """
         return self._joiner(
-            WKB_MULTI_POLYGON_Z_PRE, pack(COUNT_UNIT, len(self.polygons)),
+            WKB_MULTI_POLYGON_Z_PRE, pack(COUNT_CODE, len(self.polygons)),
             self._joiner(*[polygon.to_wkb() for polygon in self.polygons]))
     # End to_wkb method
 
@@ -1883,7 +1888,7 @@ class MultiPolygonM(AbstractGeometry):
         To WKB
         """
         return self._joiner(
-            WKB_MULTI_POLYGON_M_PRE, pack(COUNT_UNIT, len(self.polygons)),
+            WKB_MULTI_POLYGON_M_PRE, pack(COUNT_CODE, len(self.polygons)),
             self._joiner(*[polygon.to_wkb() for polygon in self.polygons]))
     # End to_wkb method
 
@@ -1941,7 +1946,7 @@ class MultiPolygonZM(AbstractGeometry):
         To WKB
         """
         return self._joiner(
-            WKB_MULTI_POLYGON_ZM_PRE, pack(COUNT_UNIT, len(self.polygons)),
+            WKB_MULTI_POLYGON_ZM_PRE, pack(COUNT_CODE, len(self.polygons)),
             self._joiner(*[polygon.to_wkb() for polygon in self.polygons]))
     # End to_wkb method
 
