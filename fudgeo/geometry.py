@@ -172,12 +172,12 @@ class AbstractGeometry:
     # End init built-in
 
     @staticmethod
-    def _joiner(*args) -> bytes:
+    def _join_geometries(geoms: List['AbstractGeometry']) -> bytes:
         """
-        Joiner
+        Join Geometries
         """
-        return EMPTY.join(args)
-    # End _joiner method
+        return reduce(add, [geom.to_wkb() for geom in geoms], EMPTY)
+    # End _join_geometries method
 
     @property
     @abstractmethod
@@ -273,7 +273,7 @@ class Point(AbstractGeometry):
         To WKB
         """
         pre = WKB_POINT_PRE if use_prefix else EMPTY
-        return self._joiner(pre, pack(TWO_D_PACK_CODE, self.x, self.y))
+        return pre + pack(TWO_D_PACK_CODE, self.x, self.y)
     # End to_wkb method
 
     @classmethod
@@ -366,8 +366,7 @@ class PointZ(AbstractGeometry):
         To WKB
         """
         pre = WKB_POINT_Z_PRE if use_prefix else EMPTY
-        return self._joiner(
-            pre, pack(THREE_D_PACK_CODE, self.x, self.y, self.z))
+        return pre + pack(THREE_D_PACK_CODE, self.x, self.y, self.z)
     # End to_wkb method
 
     @classmethod
@@ -460,8 +459,7 @@ class PointM(AbstractGeometry):
         To WKB
         """
         pre = WKB_POINT_M_PRE if use_prefix else EMPTY
-        return self._joiner(
-            pre, pack(THREE_D_PACK_CODE, self.x, self.y, self.m))
+        return pre + pack(THREE_D_PACK_CODE, self.x, self.y, self.m)
     # End to_wkb method
 
     @classmethod
@@ -557,8 +555,7 @@ class PointZM(AbstractGeometry):
         To WKB
         """
         pre = WKB_POINT_ZM_PRE if use_prefix else EMPTY
-        return self._joiner(
-            pre, pack(FOUR_D_PACK_CODE, self.x, self.y, self.z, self.m))
+        return pre + pack(FOUR_D_PACK_CODE, self.x, self.y, self.z, self.m)
     # End to_wkb method
 
     @classmethod
@@ -1219,9 +1216,9 @@ class MultiLineString(AbstractGeometry):
         """
         To WKB
         """
-        return self._joiner(
-            WKB_MULTI_LINESTRING_PRE, pack(COUNT_CODE, len(self.lines)),
-            self._joiner(*[line.to_wkb() for line in self.lines]))
+        geoms = self.lines
+        return (WKB_MULTI_LINESTRING_PRE + pack(COUNT_CODE, len(geoms)) +
+                self._join_geometries(geoms))
     # End to_wkb method
 
     @classmethod
@@ -1287,9 +1284,9 @@ class MultiLineStringZ(AbstractGeometry):
         """
         To WKB
         """
-        return self._joiner(
-            WKB_MULTI_LINESTRING_Z_PRE, pack(COUNT_CODE, len(self.lines)),
-            self._joiner(*[line.to_wkb() for line in self.lines]))
+        geoms = self.lines
+        return (WKB_MULTI_LINESTRING_Z_PRE + pack(COUNT_CODE, len(geoms)) +
+                self._join_geometries(geoms))
     # End to_wkb method
 
     @classmethod
@@ -1355,9 +1352,9 @@ class MultiLineStringM(AbstractGeometry):
         """
         To WKB
         """
-        return self._joiner(
-            WKB_MULTI_LINESTRING_M_PRE, pack(COUNT_CODE, len(self.lines)),
-            self._joiner(*[line.to_wkb() for line in self.lines]))
+        geoms = self.lines
+        return (WKB_MULTI_LINESTRING_M_PRE + pack(COUNT_CODE, len(geoms)) +
+                self._join_geometries(geoms))
     # End to_wkb method
 
     @classmethod
@@ -1423,9 +1420,9 @@ class MultiLineStringZM(AbstractGeometry):
         """
         To WKB
         """
-        return self._joiner(
-            WKB_MULTI_LINESTRING_ZM_PRE, pack(COUNT_CODE, len(self.lines)),
-            self._joiner(*[line.to_wkb() for line in self.lines]))
+        geoms = self.lines
+        return (WKB_MULTI_LINESTRING_ZM_PRE + pack(COUNT_CODE, len(geoms)) +
+                self._join_geometries(geoms))
     # End to_wkb method
 
     @classmethod
@@ -1789,9 +1786,9 @@ class Polygon(AbstractGeometry):
         """
         To WKB
         """
-        return self._joiner(
-            WKB_POLYGON_PRE, pack(COUNT_CODE, len(self.rings)),
-            self._joiner(*[ring.to_wkb() for ring in self.rings]))
+        geoms = self.rings
+        return (WKB_POLYGON_PRE + pack(COUNT_CODE, len(geoms)) +
+                self._join_geometries(geoms))
     # End to_wkb method
 
     @classmethod
@@ -1857,9 +1854,9 @@ class PolygonZ(AbstractGeometry):
         """
         To WKB
         """
-        return self._joiner(
-            WKB_POLYGON_Z_PRE, pack(COUNT_CODE, len(self.rings)),
-            self._joiner(*[ring.to_wkb() for ring in self.rings]))
+        geoms = self.rings
+        return (WKB_POLYGON_Z_PRE + pack(COUNT_CODE, len(geoms)) +
+                self._join_geometries(geoms))
     # End to_wkb method
 
     @classmethod
@@ -1925,9 +1922,9 @@ class PolygonM(AbstractGeometry):
         """
         To WKB
         """
-        return self._joiner(
-            WKB_POLYGON_M_PRE, pack(COUNT_CODE, len(self.rings)),
-            self._joiner(*[ring.to_wkb() for ring in self.rings]))
+        geoms = self.rings
+        return (WKB_POLYGON_M_PRE + pack(COUNT_CODE, len(geoms)) +
+                self._join_geometries(geoms))
     # End to_wkb method
 
     @classmethod
@@ -1993,9 +1990,9 @@ class PolygonZM(AbstractGeometry):
         """
         To WKB
         """
-        return self._joiner(
-            WKB_POLYGON_ZM_PRE, pack(COUNT_CODE, len(self.rings)),
-            self._joiner(*[ring.to_wkb() for ring in self.rings]))
+        geoms = self.rings
+        return (WKB_POLYGON_ZM_PRE + pack(COUNT_CODE, len(geoms)) +
+                self._join_geometries(geoms))
     # End to_wkb method
 
     @classmethod
@@ -2061,9 +2058,9 @@ class MultiPolygon(AbstractGeometry):
         """
         To WKB
         """
-        return self._joiner(
-            WKB_MULTI_POLYGON_PRE, pack(COUNT_CODE, len(self.polygons)),
-            self._joiner(*[polygon.to_wkb() for polygon in self.polygons]))
+        geoms = self.polygons
+        return (WKB_MULTI_POLYGON_PRE + pack(COUNT_CODE, len(geoms)) +
+                self._join_geometries(geoms))
     # End to_wkb method
 
     @classmethod
@@ -2129,9 +2126,9 @@ class MultiPolygonZ(AbstractGeometry):
         """
         To WKB
         """
-        return self._joiner(
-            WKB_MULTI_POLYGON_Z_PRE, pack(COUNT_CODE, len(self.polygons)),
-            self._joiner(*[polygon.to_wkb() for polygon in self.polygons]))
+        geoms = self.polygons
+        return (WKB_MULTI_POLYGON_Z_PRE + pack(COUNT_CODE, len(geoms)) +
+                self._join_geometries(geoms))
     # End to_wkb method
 
     @classmethod
@@ -2197,9 +2194,9 @@ class MultiPolygonM(AbstractGeometry):
         """
         To WKB
         """
-        return self._joiner(
-            WKB_MULTI_POLYGON_M_PRE, pack(COUNT_CODE, len(self.polygons)),
-            self._joiner(*[polygon.to_wkb() for polygon in self.polygons]))
+        geoms = self.polygons
+        return (WKB_MULTI_POLYGON_M_PRE + pack(COUNT_CODE, len(geoms)) +
+                self._join_geometries(geoms))
     # End to_wkb method
 
     @classmethod
@@ -2265,9 +2262,9 @@ class MultiPolygonZM(AbstractGeometry):
         """
         To WKB
         """
-        return self._joiner(
-            WKB_MULTI_POLYGON_ZM_PRE, pack(COUNT_CODE, len(self.polygons)),
-            self._joiner(*[polygon.to_wkb() for polygon in self.polygons]))
+        geoms = self.polygons
+        return (WKB_MULTI_POLYGON_ZM_PRE + pack(COUNT_CODE, len(geoms)) +
+                self._join_geometries(geoms))
     # End to_wkb method
 
     @classmethod
