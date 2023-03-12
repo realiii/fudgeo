@@ -2,6 +2,7 @@
 """
 Test Geometry
 """
+from math import isnan
 
 from pytest import fixture, mark, raises
 
@@ -34,7 +35,7 @@ from fudgeo.geometry import (
     MultiLineStringZ, MultiLineStringZM, MultiPoint, MultiPointM, MultiPointZ,
     MultiPointZM, MultiPolygon, MultiPolygonM, MultiPolygonZ, MultiPolygonZM,
     Point, PointM, PointZ, PointZM, Polygon, PolygonM, PolygonZ, PolygonZM,
-    _unpack_header_srs_id_and_offset)
+    _make_header, _unpack_header)
 
 
 @fixture(scope='session')
@@ -52,6 +53,7 @@ def test_point(header, pt):
     Test Point
     """
     with raises(AttributeError):
+        # noinspection PyDunderSlots,PyUnresolvedReferences
         pt.attribute = 10
     values = 1, 2
     assert pt.to_wkb() == point_to_wkb_point(*values)
@@ -67,6 +69,7 @@ def test_point_z(header, pt):
     Test Point Z
     """
     with raises(AttributeError):
+        # noinspection PyDunderSlots,PyUnresolvedReferences
         pt.attribute = 10
     values = 1, 2, 3
     assert pt.to_wkb() == point_z_to_wkb_point_z(*values)
@@ -82,6 +85,7 @@ def test_point_m(header, pt):
     Test Point M
     """
     with raises(AttributeError):
+        # noinspection PyDunderSlots,PyUnresolvedReferences
         pt.attribute = 10
     values = 1, 2, 3
     assert pt.to_wkb() == point_m_to_wkb_point_m(*values)
@@ -98,6 +102,7 @@ def test_point_zm(header, pt):
     Test Point ZM
     """
     with raises(AttributeError):
+        # noinspection PyDunderSlots,PyUnresolvedReferences
         pt.attribute = 10
     values = 1, 2, 3, 4
     assert pt.to_wkb() == point_zm_to_wkb_point_zm(*values)
@@ -114,6 +119,7 @@ def test_multi_point(header):
     values = [(0, 0), (1, 1)]
     pts = MultiPoint(values)
     with raises(AttributeError):
+        # noinspection PyDunderSlots,PyUnresolvedReferences
         pts.attribute = 10
     assert pts.coordinates == values
     wkb = pts.to_wkb()
@@ -132,6 +138,7 @@ def test_multi_point_z(header):
     values = [(0, 0, 0), (1, 1, 1)]
     pts = MultiPointZ(values)
     with raises(AttributeError):
+        # noinspection PyDunderSlots,PyUnresolvedReferences
         pts.attribute = 10
     assert pts.coordinates == values
     wkb = pts.to_wkb()
@@ -148,6 +155,7 @@ def test_multi_point_m(header):
     values = [(0, 0, 0), (1, 1, 1)]
     pts = MultiPointM(values)
     with raises(AttributeError):
+        # noinspection PyDunderSlots,PyUnresolvedReferences
         pts.attribute = 10
     assert pts.coordinates == values
     wkb = pts.to_wkb()
@@ -164,6 +172,7 @@ def test_multi_point_zm(header):
     values = [(0, 0, 0, 0), (1, 1, 1, 1)]
     pts = MultiPointZM(values)
     with raises(AttributeError):
+        # noinspection PyDunderSlots,PyUnresolvedReferences
         pts.attribute = 10
     assert pts.coordinates == values
     wkb = pts.to_wkb()
@@ -180,6 +189,7 @@ def test_line_string(header):
     values = [(0, 0), (1, 1)]
     line = LineString(values)
     with raises(AttributeError):
+        # noinspection PyDunderSlots,PyUnresolvedReferences
         line.attribute = 10
     assert line.coordinates == values
     wkb = line.to_wkb()
@@ -197,6 +207,7 @@ def test_line_string_z(header):
     values = [(0, 0, 0), (1, 1, 1)]
     line = LineStringZ(values)
     with raises(AttributeError):
+        # noinspection PyDunderSlots,PyUnresolvedReferences
         line.attribute = 10
     assert line.coordinates == values
     wkb = line.to_wkb()
@@ -214,6 +225,7 @@ def test_line_string_m(header):
     values = [(0, 0, 0), (1, 1, 1)]
     line = LineStringM(values)
     with raises(AttributeError):
+        # noinspection PyDunderSlots,PyUnresolvedReferences
         line.attribute = 10
     assert line.coordinates == values
     wkb = line.to_wkb()
@@ -231,6 +243,7 @@ def test_line_string_zm(header):
     values = [(0, 0, 0, 0), (1, 1, 1, 1)]
     line = LineStringZM(values)
     with raises(AttributeError):
+        # noinspection PyDunderSlots,PyUnresolvedReferences
         line.attribute = 10
     assert line.coordinates == values
     wkb = line.to_wkb()
@@ -251,6 +264,7 @@ def test_multi_line_string(header):
               [(4.4, 5.5), (7.7, 8.8)]]
     multi = MultiLineString(values)
     with raises(AttributeError):
+        # noinspection PyDunderSlots,PyUnresolvedReferences
         multi.attribute = 10
     assert multi.to_wkb() == point_lists_to_multi_line_string(values)
     assert multi.to_gpkg() == point_lists_to_gpkg_multi_line_string(header, values)
@@ -269,6 +283,7 @@ def test_multi_line_string_z(header):
               [(4.4, 5.5, 6.6), (7.7, 8.8, 9.9)]]
     multi = MultiLineStringZ(values)
     with raises(AttributeError):
+        # noinspection PyDunderSlots,PyUnresolvedReferences
         multi.attribute = 10
     assert multi.to_wkb() == point_lists_z_to_multi_line_string_z(values)
     assert MultiLineStringZ.from_wkb(multi.to_wkb()) == multi
@@ -286,6 +301,7 @@ def test_multi_line_string_m(header):
               [(4.4, 5.5, 6.6), (7.7, 8.8, 9.9)]]
     multi = MultiLineStringM(values)
     with raises(AttributeError):
+        # noinspection PyDunderSlots,PyUnresolvedReferences
         multi.attribute = 10
     assert multi.to_wkb() == point_lists_m_to_multi_line_string_m(values)
     assert MultiLineStringM.from_wkb(multi.to_wkb()) == multi
@@ -303,6 +319,7 @@ def test_multi_line_string_zm(header):
               [(4.4, 5.5, 6.6, 7.7), (7.7, 8.8, 9.9, 10.1)]]
     multi = MultiLineStringZM(values)
     with raises(AttributeError):
+        # noinspection PyDunderSlots,PyUnresolvedReferences
         multi.attribute = 10
     assert multi.to_wkb() == point_lists_zm_to_multi_line_string_zm(values)
     assert MultiLineStringZM.from_wkb(multi.to_wkb()) == multi
@@ -317,6 +334,7 @@ def test_linear_ring(header):
     values = [(0, 0), (1, 1), (2, 0), (0, 0)]
     ring = LinearRing(values)
     with raises(AttributeError):
+        # noinspection PyDunderSlots,PyUnresolvedReferences
         ring.attribute = 10
     assert ring.coordinates == values
     wkb = ring.to_wkb()
@@ -336,6 +354,7 @@ def test_linear_ring_z(header):
     values = [(0, 0, 0), (1, 1, 1), (2, 0, 2), (0, 0, 0)]
     ring = LinearRingZ(values)
     with raises(AttributeError):
+        # noinspection PyDunderSlots,PyUnresolvedReferences
         ring.attribute = 10
     assert ring.coordinates == values
     wkb = ring.to_wkb()
@@ -355,6 +374,7 @@ def test_linear_ring_m(header):
     values = [(0, 0, 0), (1, 1, 1), (2, 0, 2), (0, 0, 0)]
     ring = LinearRingM(values)
     with raises(AttributeError):
+        # noinspection PyDunderSlots,PyUnresolvedReferences
         ring.attribute = 10
     assert ring.coordinates == values
     wkb = ring.to_wkb()
@@ -374,6 +394,7 @@ def test_linear_ring_zm(header):
     values = [(0, 0, 0, 0), (1, 1, 1, 1), (2, 0, 2, 0), (0, 0, 0, 0)]
     ring = LinearRingZM(values)
     with raises(AttributeError):
+        # noinspection PyDunderSlots,PyUnresolvedReferences
         ring.attribute = 10
     assert ring.coordinates == values
     wkb = ring.to_wkb()
@@ -394,6 +415,7 @@ def test_polygon(header):
               [(5, 5), (5, 15), (15, 15), (15, 5), (5, 5)]]
     poly = Polygon(values)
     with raises(AttributeError):
+        # noinspection PyDunderSlots,PyUnresolvedReferences
         poly.attribute = 10
     assert poly.to_wkb() == point_lists_to_wkb_polygon(values)
     assert poly.to_gpkg() == point_lists_to_gpkg_polygon(header, values)
@@ -410,6 +432,7 @@ def test_polygon_z(header):
               [(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]]
     poly = PolygonZ(values)
     with raises(AttributeError):
+        # noinspection PyDunderSlots,PyUnresolvedReferences
         poly.attribute = 10
     assert poly.to_wkb() == point_lists_z_to_wkb_polygon_z(values)
     assert PolygonZ.from_wkb(poly.to_wkb()) == poly
@@ -425,6 +448,7 @@ def test_polygon_m(header):
               [(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]]
     poly = PolygonM(values)
     with raises(AttributeError):
+        # noinspection PyDunderSlots,PyUnresolvedReferences
         poly.attribute = 10
     assert poly.to_wkb() == point_lists_m_to_wkb_polygon_m(values)
     assert PolygonM.from_wkb(poly.to_wkb()) == poly
@@ -442,6 +466,7 @@ def test_polygon_zm(header):
                (15, 5, 20, 80), (5, 5, 5, 90)]]
     poly = PolygonZM(values)
     with raises(AttributeError):
+        # noinspection PyDunderSlots,PyUnresolvedReferences
         poly.attribute = 10
     assert poly.to_wkb() == point_lists_zm_to_wkb_polygon_zm(values)
     assert PolygonZM.from_wkb(poly.to_wkb()) == poly
@@ -458,6 +483,7 @@ def test_multi_polygon(header):
               [[(7, 7), (7, 17), (17, 17), (7, 7)]]]
     poly = MultiPolygon(values)
     with raises(AttributeError):
+        # noinspection PyDunderSlots,PyUnresolvedReferences
         poly.attribute = 10
     assert poly.to_wkb() == point_lists_to_wkb_multipolygon(values)
     assert poly.to_gpkg() == point_lists_to_gpkg_multi_polygon(header, values)
@@ -474,6 +500,7 @@ def test_multi_polygon_z(header):
               [[(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]]]
     poly = MultiPolygonZ(values)
     with raises(AttributeError):
+        # noinspection PyDunderSlots,PyUnresolvedReferences
         poly.attribute = 10
     assert poly.to_wkb() == point_lists_z_to_wkb_multipolygon_z(values)
     assert MultiPolygonZ.from_wkb(poly.to_wkb()) == poly
@@ -489,6 +516,7 @@ def test_multi_polygon_m(header):
               [[(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]]]
     poly = MultiPolygonM(values)
     with raises(AttributeError):
+        # noinspection PyDunderSlots,PyUnresolvedReferences
         poly.attribute = 10
     assert poly.to_wkb() == point_lists_m_to_wkb_multipolygon_m(values)
     assert MultiPolygonM.from_wkb(poly.to_wkb()) == poly
@@ -506,6 +534,7 @@ def test_multi_polygon_zm(header):
                 (15, 5, 20, 90), (5, 5, 5, 100)]]]
     poly = MultiPolygonZM(values)
     with raises(AttributeError):
+        # noinspection PyDunderSlots,PyUnresolvedReferences
         poly.attribute = 10
     assert poly.to_wkb() == point_lists_zm_to_wkb_multipolygon_zm(values)
     assert MultiPolygonZM.from_wkb(poly.to_wkb()) == poly
@@ -527,12 +556,180 @@ def test_geometry_header(cls, srs_id, offset, data):
     """
     Test geometry header
     """
-    sid, off = _unpack_header_srs_id_and_offset(data[:8])
+    sid, off, _ = _unpack_header(data[:8])
     assert sid == srs_id
     assert off == offset
     geom = cls.from_gpkg(data)
     assert isinstance(geom, cls)
 # End test_geometry_header function
+
+
+@mark.parametrize('cls, prefix, wkb', [
+    (Point, True, b'\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\xf8\x7f\x00\x00\x00\x00\x00\x00\xf8\x7f'),
+    (PointZ, True, b'\x01\xe9\x03\x00\x00\x00\x00\x00\x00\x00\x00\xf8\x7f\x00\x00\x00\x00\x00\x00\xf8\x7f\x00\x00\x00\x00\x00\x00\xf8\x7f'),
+    (PointM, True, b'\x01\xd1\x07\x00\x00\x00\x00\x00\x00\x00\x00\xf8\x7f\x00\x00\x00\x00\x00\x00\xf8\x7f\x00\x00\x00\x00\x00\x00\xf8\x7f'),
+    (PointZM, True, b'\x01\xb9\x0b\x00\x00\x00\x00\x00\x00\x00\x00\xf8\x7f\x00\x00\x00\x00\x00\x00\xf8\x7f\x00\x00\x00\x00\x00\x00\xf8\x7f\x00\x00\x00\x00\x00\x00\xf8\x7f'),
+    (Point, False, b'\x00\x00\x00\x00\x00\x00\xf8\x7f\x00\x00\x00\x00\x00\x00\xf8\x7f'),
+    (PointZ, False, b'\x00\x00\x00\x00\x00\x00\xf8\x7f\x00\x00\x00\x00\x00\x00\xf8\x7f\x00\x00\x00\x00\x00\x00\xf8\x7f'),
+    (PointM, False, b'\x00\x00\x00\x00\x00\x00\xf8\x7f\x00\x00\x00\x00\x00\x00\xf8\x7f\x00\x00\x00\x00\x00\x00\xf8\x7f'),
+    (PointZM, False, b'\x00\x00\x00\x00\x00\x00\xf8\x7f\x00\x00\x00\x00\x00\x00\xf8\x7f\x00\x00\x00\x00\x00\x00\xf8\x7f\x00\x00\x00\x00\x00\x00\xf8\x7f')
+])
+def test_empty_point(cls, prefix, wkb):
+    """
+    Test Empty Point
+    """
+    geom = cls.empty()
+    assert geom.to_wkb(use_prefix=prefix) == wkb
+    assert isinstance(geom, cls)
+    assert isnan(geom.x)
+    assert isnan(geom.y)
+    if hasattr(geom, 'z'):
+        assert isnan(geom.z)
+    if hasattr(geom, 'm'):
+        assert isnan(geom.m)
+# End test_empty_point function
+
+
+@mark.parametrize('cls', [
+    MultiPoint,
+    MultiPointZ,
+    MultiPointM,
+    MultiPointZM
+])
+def test_empty_multi_point(cls):
+    """
+    Test Empty Multi Point
+    """
+    geom = cls.from_wkb(b'\x01\x04\x00\x00\x00\x00\x00\x00\x00')
+    assert isinstance(geom, cls)
+    assert geom.coordinates == []
+# End test_empty_point function
+
+
+@mark.parametrize('cls, wkb', [
+    (LineString, b'\x01\x02\x00\x00\x00\x00\x00\x00\x00'),
+    (LineStringZ, b'\x01\xea\x03\x00\x00\x00\x00\x00\x00'),
+    (LineStringM, b'\x01\xd2\x07\x00\x00\x00\x00\x00\x00'),
+    (LineStringZM, b'\x01\xba\x0b\x00\x00\x00\x00\x00\x00'),
+])
+def test_empty_line_string(cls, wkb):
+    """
+    Test Empty LineString
+    """
+    geom = cls([])
+    assert geom.to_wkb() == wkb
+    assert isinstance(geom, cls)
+    assert geom.coordinates == []
+# End test_empty_line_string function
+
+
+@mark.parametrize('cls, wkb', [
+    (MultiLineString, b'\x01\x05\x00\x00\x00\x00\x00\x00\x00'),
+    (MultiLineStringZ, b'\x01\xed\x03\x00\x00\x00\x00\x00\x00'),
+    (MultiLineStringM, b'\x01\xd5\x07\x00\x00\x00\x00\x00\x00'),
+    (MultiLineStringZM, b'\x01\xbd\x0b\x00\x00\x00\x00\x00\x00')
+])
+def test_empty_multi_line_string(cls, wkb):
+    """
+    Test Empty MultiLineString
+    """
+    geom = cls([])
+    assert geom.to_wkb() == wkb
+    assert isinstance(geom, cls)
+    assert geom.lines == []
+# End test_empty_multi_line_string function
+
+
+@mark.parametrize('cls, wkb', [
+    (Polygon, b'\x01\x03\x00\x00\x00\x00\x00\x00\x00'),
+    (PolygonZ, b'\x01\xeb\x03\x00\x00\x00\x00\x00\x00'),
+    (PolygonM, b'\x01\xd3\x07\x00\x00\x00\x00\x00\x00'),
+    (PolygonZM, b'\x01\xbb\x0b\x00\x00\x00\x00\x00\x00')
+])
+def test_empty_polygon(cls, wkb):
+    """
+    Test Empty Polygon
+    """
+    geom = cls([])
+    assert geom.to_wkb() == wkb
+    assert isinstance(geom, cls)
+    assert geom.rings == []
+# End test_empty_polygon function
+
+
+@mark.parametrize('cls, wkb', [
+    (MultiPolygon, b'\x01\x06\x00\x00\x00\x00\x00\x00\x00'),
+    (MultiPolygonZ, b'\x01\xee\x03\x00\x00\x00\x00\x00\x00'),
+    (MultiPolygonM, b'\x01\xd6\x07\x00\x00\x00\x00\x00\x00'),
+    (MultiPolygonZM, b'\x01\xbe\x0b\x00\x00\x00\x00\x00\x00')
+])
+def test_empty_multi_polygon(cls, wkb):
+    """
+    Test Empty Multi Polygon
+    """
+    geom = cls([])
+    assert geom.to_wkb() == wkb
+    assert isinstance(geom, cls)
+    assert geom.polygons == []
+# End test_empty_multi_polygon function
+
+
+def test_empty_point_gpkg():
+    """
+    Test Empty Point from GeoPackage
+    """
+    data = b'GP\x00\x11\xe6\x10\x00\x00\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\xf8\x7f\x00\x00\x00\x00\x00\x00\xf8\x7f'
+    srs_id, offset, is_empty = _unpack_header(data[:8])
+    assert srs_id == 4326
+    assert offset == 8
+    assert is_empty
+    header = _make_header(srs_id, is_empty)
+    assert header
+    assert data[:len(header)] == header
+    pt = Point.from_gpkg(data)
+    assert pt.to_gpkg() == data
+    assert isinstance(pt, Point)
+    assert isnan(pt.x)
+    assert isnan(pt.y)
+# End test_empty_point_gpkg function
+
+
+def test_empty_linestring_gpkg():
+    """
+    Test empty LineString GeoPackage
+    """
+    data = b'GP\x00\x11\xe6\x10\x00\x00\x01\x02\x00\x00\x00\x00\x00\x00\x00'
+    srs_id, offset, is_empty = _unpack_header(data[:8])
+    assert srs_id == 4326
+    assert offset == 8
+    assert is_empty
+    header = _make_header(srs_id, is_empty)
+    assert header
+    assert data[:len(header)] == header
+    line = LineString.from_gpkg(data)
+    assert line.to_gpkg() == data
+    assert isinstance(line, LineString)
+    assert line.coordinates == []
+# End test_empty_linestring_gpkg function
+
+
+def test_empty_polygon_gpkg():
+    """
+    Test empty Polygon GeoPackage
+    """
+    data = b'GP\x00\x11\xe6\x10\x00\x00\x01\x03\x00\x00\x00\x00\x00\x00\x00'
+    srs_id, offset, is_empty = _unpack_header(data[:8])
+    assert srs_id == 4326
+    assert offset == 8
+    assert is_empty
+    header = _make_header(srs_id, is_empty)
+    assert header
+    assert data[:len(header)] == header
+    poly = Polygon.from_gpkg(data)
+    assert poly.to_gpkg() == data
+    assert isinstance(poly, Polygon)
+    assert poly.rings == []
+# End test_empty_polygon_gpkg function
 
 
 if __name__ == '__main__':
