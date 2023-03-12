@@ -52,6 +52,8 @@ def _unpack_points(value: bytes, dimension: int) -> List[Tuple[float, ...]]:
     offset = 5
     size = (8 * dimension) + offset
     count, data = _get_count_and_data(value)
+    if not count:
+        return []
     total = dimension * count
     data = [data[i + offset:i + size] for i in range(0, len(data), size)]
     values: Tuple[float, ...] = unpack(f'<{total}d', reduce(add, data))
