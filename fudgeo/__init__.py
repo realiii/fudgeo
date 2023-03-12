@@ -4,7 +4,7 @@ Package Initialization
 """
 
 
-__version__ = '0.3.6'
+__version__ = '0.3.7'
 
 
 if __name__ == '__main__':
