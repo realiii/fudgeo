@@ -595,19 +595,24 @@ def test_keyword_columns(setup_geopackage):
     union = Field('UnIoN', SQLFieldType.text, 20)
     all_ = Field('ALL', SQLFieldType.text, 50)
     fields = select, union, all_
-    assert repr(select) == "'select' INTEGER"
-    assert repr(union) == "'UnIoN' TEXT20"
-    assert repr(all_) == "'ALL' TEXT50"
+    assert repr(select) == '"select" INTEGER'
+    assert repr(union) == '"UnIoN" TEXT20'
+    assert repr(all_) == '"ALL" TEXT50'
     fc = gpkg.create_feature_class(name=name, srs=srs, fields=fields)
     assert fc.field_names == ['fid', SHAPE, select.name, union.name, all_.name]
     rows = [(Point(x=1, y=2), 1, 'asdf', 'lmnop'),
             (Point(x=3, y=4), 2, 'qwerty', 'xyz'),]
     with fc.geopackage.connection as conn:
         conn.executemany(
-            f"""INSERT INTO {fc.name} (SHAPE, 'SELECT', 'UNION', 'ALL') VALUES (?, ?, ?, ?)""", rows)
-    cursor = conn.execute(f"""SELECT COUNT(fid) FROM {fc.name}""")
-    count, = cursor.fetchone()
-    assert count == 2
+            f"""INSERT INTO {fc.name} (SHAPE, {select.escaped_name}, {union.escaped_name}, {all_.escaped_name}) 
+                VALUES (?, ?, ?, ?)""", rows)
+    cursor = conn.execute(
+        f"""SELECT {select.escaped_name}, {union.escaped_name}, {all_.escaped_name} 
+            FROM {fc.name}""")
+    records = cursor.fetchall()
+    assert len(records) == 2
+    assert records[0] == (1, 'asdf', 'lmnop')
+    assert records[1] == (2, 'qwerty', 'xyz')
 # End test_keyword_columns function
 
 
