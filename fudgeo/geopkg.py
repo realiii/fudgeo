@@ -269,6 +269,25 @@ class BaseTable:
         self.geopackage: GeoPackage = geopackage
         self.name: str = name
     # End init built-in
+
+    @property
+    def fields(self) -> List['Field']:
+        """
+        Fields
+        """
+        cursor = self.geopackage.connection.execute(
+            f"""PRAGMA table_info({self.name})""")
+        return [Field(name=name, data_type=type_)
+                for _, name, type_, _, _, _ in cursor.fetchall()]
+    # End fields property
+
+    @property
+    def field_names(self) -> List[str]:
+        """
+        Field Names
+        """
+        return [f.name for f in self.fields]
+    # End field_names property
 # End BaseTable class
 
 
