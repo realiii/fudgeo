@@ -518,7 +518,7 @@ class Field:
         """
         name = self.name
         if name.upper() in KEYWORDS:
-            name = f"'{name}'"
+            name = f'"{name}"'
         return name
     # End escaped_name property
 
