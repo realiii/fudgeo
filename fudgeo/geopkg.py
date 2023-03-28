@@ -25,7 +25,7 @@ from fudgeo.sql import (
     CHECK_SRS_EXISTS, CREATE_FEATURE_TABLE, CREATE_TABLE, DEFAULT_EPSG_RECS,
     DEFAULT_ESRI_RECS, GPKG_OGR_CONTENTS_DELETE_TRIGGER,
     GPKG_OGR_CONTENTS_INSERT_TRIGGER, INSERT_GPKG_CONTENTS_SHORT,
-    INSERT_GPKG_GEOM_COL, INSERT_GPKG_OGR_CONTENTS, INSERT_GPKG_SRS,
+    INSERT_GPKG_GEOM_COL, INSERT_GPKG_OGR_CONTENTS, INSERT_GPKG_SRS, KEYWORDS,
     REMOVE_FEATURE_CLASS, REMOVE_TABLE, SELECT_EXTENT, SELECT_GEOMETRY_COLUMN,
     SELECT_GEOMETRY_TYPE, SELECT_HAS_ZM, SELECT_SRS, SELECT_TABLES_BY_TYPE,
     TABLE_EXISTS, UPDATE_EXTENT)
@@ -492,14 +492,25 @@ class Field:
         self.size: Optional[int] = size
     # End init built-in
 
+    @property
+    def escaped_name(self) -> str:
+        """
+        Escaped Name, only adds quotes if needed
+        """
+        name = self.name
+        if name.upper() in KEYWORDS:
+            name = f"'{name}'"
+        return name
+    # End escaped_name property
+
     def __repr__(self) -> str:
         """
         String representation
         """
         types = SQLFieldType.blob, SQLFieldType.text
         if self.size and self.data_type in types:
-            return f'{self.name} {self.data_type}{self.size}'
-        return f'{self.name} {self.data_type}'
+            return f'{self.escaped_name} {self.data_type}{self.size}'
+        return f'{self.escaped_name} {self.data_type}'
     # End repr built-in
 # End Field class
 
