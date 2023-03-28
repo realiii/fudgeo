@@ -585,5 +585,31 @@ def test_custom_spatial_reference(tmp_path, fields):
 # End test_custom_spatial_reference function
 
 
+def test_keyword_columns(setup_geopackage):
+    """
+    Test ability to add columns that are considered keywords
+    """
+    _, gpkg, srs, _ = setup_geopackage
+    name = 'keyword_column_fc'
+    select = Field('select', SQLFieldType.integer)
+    union = Field('UnIoN', SQLFieldType.text, 20)
+    all_ = Field('ALL', SQLFieldType.text, 50)
+    fields = select, union, all_
+    assert repr(select) == "'select' INTEGER"
+    assert repr(union) == "'UnIoN' TEXT20"
+    assert repr(all_) == "'ALL' TEXT50"
+    fc = gpkg.create_feature_class(name=name, srs=srs, fields=fields)
+    assert fc.field_names == ['fid', SHAPE, select.name, union.name, all_.name]
+    rows = [(Point(x=1, y=2), 1, 'asdf', 'lmnop'),
+            (Point(x=3, y=4), 2, 'qwerty', 'xyz'),]
+    with fc.geopackage.connection as conn:
+        conn.executemany(
+            f"""INSERT INTO {fc.name} (SHAPE, 'SELECT', 'UNION', 'ALL') VALUES (?, ?, ?, ?)""", rows)
+    cursor = conn.execute(f"""SELECT COUNT(fid) FROM {fc.name}""")
+    count, = cursor.fetchone()
+    assert count == 2
+# End test_keyword_columns function
+
+
 if __name__ == '__main__':
     pass
