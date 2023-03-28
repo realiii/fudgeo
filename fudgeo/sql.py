@@ -11,12 +11,12 @@ INSERT_GPKG_CONTENTS_SHORT = """
 """
 
 
-INSERT_GPKG_OGR_CONTENTS = """
+INSERT_GPKG_OGR_CONTENTS: str = """
     INSERT INTO gpkg_ogr_contents (table_name, feature_count) VALUES (?, ?)
 """
 
 
-REMOVE_FEATURE_CLASS = """
+REMOVE_FEATURE_CLASS: str = """
     DELETE FROM gpkg_ogr_contents WHERE lower(table_name) = lower('{0}');
     DELETE FROM gpkg_contents WHERE lower(table_name) = lower('{0}');
     DELETE FROM gpkg_geometry_columns WHERE lower(table_name) = lower('{0}');
@@ -26,7 +26,7 @@ REMOVE_FEATURE_CLASS = """
 """
 
 
-REMOVE_TABLE = """
+REMOVE_TABLE: str = """
     DELETE FROM gpkg_ogr_contents WHERE lower(table_name) = lower('{0}');
     DELETE FROM gpkg_contents WHERE lower(table_name) = lower('{0}');
     DROP TRIGGER IF EXISTS trigger_insert_feature_count_{0};
@@ -35,7 +35,7 @@ REMOVE_TABLE = """
 """
 
 
-GPKG_OGR_CONTENTS_INSERT_TRIGGER = """
+GPKG_OGR_CONTENTS_INSERT_TRIGGER: str = """
     CREATE TRIGGER trigger_insert_feature_count_{0}
     AFTER INSERT ON {0}
     BEGIN UPDATE gpkg_ogr_contents SET feature_count = feature_count + 1 
@@ -43,7 +43,7 @@ GPKG_OGR_CONTENTS_INSERT_TRIGGER = """
 """
 
 
-GPKG_OGR_CONTENTS_DELETE_TRIGGER = """
+GPKG_OGR_CONTENTS_DELETE_TRIGGER: str = """
     CREATE TRIGGER trigger_delete_feature_count_{0}
     AFTER DELETE ON {0}
     BEGIN UPDATE gpkg_ogr_contents SET feature_count = feature_count - 1 
@@ -51,21 +51,21 @@ GPKG_OGR_CONTENTS_DELETE_TRIGGER = """
 """
 
 
-INSERT_GPKG_GEOM_COL = """
+INSERT_GPKG_GEOM_COL: str = """
     INSERT INTO gpkg_geometry_columns (
         table_name, column_name, geometry_type_name, srs_id, z, m) 
     VALUES (?, ?, ?, ?, ?, ?)
 """
 
 
-CREATE_FEATURE_TABLE = """
+CREATE_FEATURE_TABLE: str = """
     CREATE TABLE {name} (
         fid INTEGER not null primary key autoincrement, 
         SHAPE {feature_type}{other_fields})
 """
 
 
-CREATE_TABLE = """
+CREATE_TABLE: str = """
     CREATE TABLE {name} (
         fid INTEGER not null 
         primary key autoincrement  
@@ -73,7 +73,7 @@ CREATE_TABLE = """
 """
 
 
-INSERT_GPKG_SRS = """
+INSERT_GPKG_SRS: str = """
     INSERT INTO gpkg_spatial_ref_sys (
         srs_name, srs_id, organization, organization_coordsys_id, 
         definition, description)  
@@ -81,20 +81,20 @@ INSERT_GPKG_SRS = """
 """
 
 
-TABLE_EXISTS = """
+TABLE_EXISTS: str = """
     SELECT name FROM sqlite_master 
     WHERE type = 'table' AND lower(name) = lower(?)
 """
 
 
-CHECK_SRS_EXISTS = """
+CHECK_SRS_EXISTS: str = """
     SELECT srs_id 
     FROM gpkg_spatial_ref_sys 
     WHERE srs_id = ?
 """
 
 
-SELECT_SRS = """
+SELECT_SRS: str = """
     SELECT gpkg_spatial_ref_sys.srs_name,
            gpkg_spatial_ref_sys.organization,
            gpkg_spatial_ref_sys.organization_coordsys_id,
@@ -107,21 +107,21 @@ SELECT_SRS = """
 """
 
 
-SELECT_HAS_ZM = """
+SELECT_HAS_ZM: str = """
     SELECT z, m
     FROM gpkg_geometry_columns
     WHERE lower(table_name) = lower(?)
 """
 
 
-SELECT_GEOMETRY_COLUMN = """
+SELECT_GEOMETRY_COLUMN: str = """
     SELECT column_name
     FROM gpkg_geometry_columns
     WHERE lower(table_name) = lower(?)
 """
 
 
-SELECT_GEOMETRY_TYPE = """
+SELECT_GEOMETRY_TYPE: str = """
     SELECT GEOM || Z || M
     FROM (SELECT CASE
                      WHEN geometry_type_name == 'POINT'
@@ -154,37 +154,37 @@ SELECT_GEOMETRY_TYPE = """
 """
 
 
-UPDATE_EXTENT = """    
+UPDATE_EXTENT: str = """    
     UPDATE gpkg_contents 
     SET min_x = ?, min_y = ?, max_x = ?, max_y = ? 
     WHERE lower(table_name) = lower(?)
 """
 
 
-SELECT_EXTENT = """
+SELECT_EXTENT: str = """
     SELECT min_x, min_y, max_x, max_y
     FROM gpkg_contents
     WHERE lower(table_name) = lower(?)
 """
 
 
-SELECT_TABLES_BY_TYPE = (
+SELECT_TABLES_BY_TYPE: str = (
     """SELECT table_name FROM gpkg_contents WHERE data_type = ?""")
 
 
-DEFAULT_SRS_RECS = (
+DEFAULT_SRS_RECS: Tuple[Tuple[str, int, str, int, str, str], ...] = (
     ('Undefined Cartesian SRS', -1, 'NONE', -1, 'undefined',
      'undefined cartesian coordinate reference system'),
     ('Undefined Geographic SRS', 0, 'NONE', 0, 'undefined',
      'undefined geographic coordinate reference system'))
 
-EPSG_4326 = """GEOGCS["WGS 84",DATUM["WGS_1984",SPHEROID["WGS 84",6378137,298.257223563,AUTHORITY["EPSG","7030"]],AUTHORITY["EPSG","6326"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.01745329251994328,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4326"]]"""
-ESRI_4326 = """GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137,298.257223563]],PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]]"""
+EPSG_4326: str = """GEOGCS["WGS 84",DATUM["WGS_1984",SPHEROID["WGS 84",6378137,298.257223563,AUTHORITY["EPSG","7030"]],AUTHORITY["EPSG","6326"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.01745329251994328,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4326"]]"""
+ESRI_4326: str = """GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137,298.257223563]],PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]]"""
 
-DEFAULT_EPSG_RECS = DEFAULT_SRS_RECS + (
-    ('WGS 84', 4326, 'EPSG', 4326, EPSG_4326, ''),)
-DEFAULT_ESRI_RECS = DEFAULT_SRS_RECS + (
-    ('GCS_WGS_1984', 4326, 'EPSG', 4326, ESRI_4326, ''),)
+DEFAULT_EPSG_RECS: Tuple[Tuple[str, int, str, int, str, str], ...] = (
+        DEFAULT_SRS_RECS + (('WGS 84', 4326, 'EPSG', 4326, EPSG_4326, ''),))
+DEFAULT_ESRI_RECS: Tuple[Tuple[str, int, str, int, str, str], ...] = (
+        DEFAULT_SRS_RECS + (('GCS_WGS_1984', 4326, 'EPSG', 4326, ESRI_4326, ''),))
 
 
 if __name__ == '__main__':
