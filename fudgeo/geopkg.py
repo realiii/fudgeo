@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 from math import nan
 from os import PathLike
 from pathlib import Path
+from re import search
 from sqlite3 import (
     Connection, Cursor, PARSE_COLNAMES, PARSE_DECLTYPES, connect,
     register_adapter, register_converter)
@@ -517,7 +518,7 @@ class Field:
         Escaped Name, only adds quotes if needed
         """
         name = self.name
-        if name.upper() in KEYWORDS:
+        if name.upper() in KEYWORDS or search(r'\W', name):
             name = f'"{name}"'
         return name
     # End escaped_name property
