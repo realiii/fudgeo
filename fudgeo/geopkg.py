@@ -517,7 +517,7 @@ class Field:
         Escaped Name, only adds quotes if needed
         """
         name = self.name
-        if name.upper() in KEYWORDS:
+        if name.upper() in KEYWORDS or any((c in set('.-/[]()')) for c in name):
             name = f'"{name}"'
         return name
     # End escaped_name property
