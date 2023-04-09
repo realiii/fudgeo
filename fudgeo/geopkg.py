@@ -8,11 +8,11 @@ from datetime import datetime, timedelta, timezone
 from math import nan
 from os import PathLike
 from pathlib import Path
-from re import search
+from re import IGNORECASE, compile as recompile
 from sqlite3 import (
     Connection, Cursor, PARSE_COLNAMES, PARSE_DECLTYPES, connect,
     register_adapter, register_converter)
-from typing import Dict, List, Optional, Tuple, Type, Union
+from typing import Callable, Dict, List, Optional, Tuple, Type, Union
 
 from fudgeo.enumeration import (
     DataType, GPKGFlavors, GeometryType, SQLFieldType)
@@ -33,11 +33,22 @@ from fudgeo.sql import (
 
 
 FIELDS = Union[Tuple['Field', ...], List['Field']]
+NAME_MATCHER: Callable = recompile(r'^[A-Z]\w*$', IGNORECASE).match
 
 
 COMMA_SPACE = ', '
 GPKG_EXT = '.gpkg'
 SHAPE = 'SHAPE'
+
+
+def _escape_name(name: str) -> str:
+    """
+    Escape Name
+    """
+    if name.upper() in KEYWORDS or not NAME_MATCHER(name):
+        name = f'"{name}"'
+    return name
+# End _escape_name function
 
 
 def _now() -> str:
