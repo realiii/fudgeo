@@ -296,7 +296,7 @@ class BaseTable:
         Fields
         """
         cursor = self.geopackage.connection.execute(
-            f"""PRAGMA table_info({self.name})""")
+            f"""PRAGMA table_info({self.escaped_name})""")
         return [Field(name=name, data_type=type_)
                 for _, name, type_, _, _, _ in cursor.fetchall()]
     # End fields property
