@@ -323,14 +323,18 @@ class Table(BaseTable):
         """
         cols = f', {", ".join(repr(f) for f in fields)}' if fields else ''
         with geopackage.connection as conn:
+            escaped_name = _escape_name(name)
             if overwrite:
-                conn.executescript(REMOVE_TABLE.format(name))
-            conn.execute(CREATE_TABLE.format(name=name, other_fields=cols))
+                conn.executescript(REMOVE_TABLE.format(name, escaped_name))
+            conn.execute(CREATE_TABLE.format(
+                name=escaped_name, other_fields=cols))
             conn.execute(INSERT_GPKG_CONTENTS_SHORT, (
                 name, DataType.attributes, name, description, _now(), None))
             conn.execute(INSERT_GPKG_OGR_CONTENTS, (name, 0))
-            conn.execute(GPKG_OGR_CONTENTS_INSERT_TRIGGER.format(name))
-            conn.execute(GPKG_OGR_CONTENTS_DELETE_TRIGGER.format(name))
+            conn.execute(
+                GPKG_OGR_CONTENTS_INSERT_TRIGGER.format(name, escaped_name))
+            conn.execute(
+                GPKG_OGR_CONTENTS_DELETE_TRIGGER.format(name, escaped_name))
         return cls(geopackage=geopackage, name=name)
     # End create_table method
 
@@ -339,7 +343,8 @@ class Table(BaseTable):
         Drop table from Geopackage
         """
         with self.geopackage.connection as conn:
-            conn.executescript(REMOVE_TABLE.format(self.name))
+            conn.executescript(
+                REMOVE_TABLE.format(self.name, self.escaped_name))
     # End drop method
 # End Table class
 
@@ -359,10 +364,12 @@ class FeatureClass(BaseTable):
         """
         cols = f', {", ".join(repr(f) for f in fields)}' if fields else ''
         with geopackage.connection as conn:
+            escaped_name = _escape_name(name)
             if overwrite:
-                conn.executescript(REMOVE_FEATURE_CLASS.format(name))
+                conn.executescript(
+                    REMOVE_FEATURE_CLASS.format(name, escaped_name))
             conn.execute(CREATE_FEATURE_TABLE.format(
-                name=name, feature_type=shape_type, other_fields=cols))
+                name=escaped_name, feature_type=shape_type, other_fields=cols))
             if not geopackage.check_srs_exists(srs.srs_id):
                 conn.execute(INSERT_GPKG_SRS, srs.as_record())
             conn.execute(INSERT_GPKG_GEOM_COL,
@@ -371,8 +378,10 @@ class FeatureClass(BaseTable):
             conn.execute(INSERT_GPKG_CONTENTS_SHORT, (
                 name, DataType.features, name, description, _now(), srs.srs_id))
             conn.execute(INSERT_GPKG_OGR_CONTENTS, (name, 0))
-            conn.execute(GPKG_OGR_CONTENTS_INSERT_TRIGGER.format(name))
-            conn.execute(GPKG_OGR_CONTENTS_DELETE_TRIGGER.format(name))
+            conn.execute(
+                GPKG_OGR_CONTENTS_INSERT_TRIGGER.format(name, escaped_name))
+            conn.execute(
+                GPKG_OGR_CONTENTS_DELETE_TRIGGER.format(name, escaped_name))
         return cls(geopackage=geopackage, name=name)
     # End create method
 
@@ -381,7 +390,8 @@ class FeatureClass(BaseTable):
         Drop feature class from Geopackage
         """
         with self.geopackage.connection as conn:
-            conn.executescript(REMOVE_FEATURE_CLASS.format(self.name))
+            conn.executescript(
+                REMOVE_FEATURE_CLASS.format(self.name, self.escaped_name))
     # End drop method
 
     @staticmethod
