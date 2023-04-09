@@ -283,6 +283,14 @@ class BaseTable:
     # End init built-in
 
     @property
+    def escaped_name(self) -> str:
+        """
+        Escaped Name
+        """
+        return _escape_name(self.name)
+    # End escaped_name property
+
+    @property
     def fields(self) -> List['Field']:
         """
         Fields
@@ -528,10 +536,7 @@ class Field:
         """
         Escaped Name, only adds quotes if needed
         """
-        name = self.name
-        if name.upper() in KEYWORDS or search(r'\W', name):
-            name = f'"{name}"'
-        return name
+        return _escape_name(self.name)
     # End escaped_name property
 
     def __repr__(self) -> str:
