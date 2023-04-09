@@ -48,7 +48,7 @@ REMOVE_FEATURE_CLASS: str = """
     DELETE FROM gpkg_geometry_columns WHERE lower(table_name) = lower('{0}');
     DROP TRIGGER IF EXISTS trigger_insert_feature_count_{0};
     DROP TRIGGER IF EXISTS trigger_delete_feature_count_{0};
-    DROP TABLE IF EXISTS {0};
+    DROP TABLE IF EXISTS {1};
 """
 
 
@@ -57,13 +57,13 @@ REMOVE_TABLE: str = """
     DELETE FROM gpkg_contents WHERE lower(table_name) = lower('{0}');
     DROP TRIGGER IF EXISTS trigger_insert_feature_count_{0};
     DROP TRIGGER IF EXISTS trigger_delete_feature_count_{0};
-    DROP TABLE IF EXISTS {0};
+    DROP TABLE IF EXISTS {1};
 """
 
 
 GPKG_OGR_CONTENTS_INSERT_TRIGGER: str = """
     CREATE TRIGGER trigger_insert_feature_count_{0}
-    AFTER INSERT ON {0}
+    AFTER INSERT ON {1}
     BEGIN UPDATE gpkg_ogr_contents SET feature_count = feature_count + 1 
           WHERE lower(table_name) = lower('{0}'); END;
 """
@@ -71,7 +71,7 @@ GPKG_OGR_CONTENTS_INSERT_TRIGGER: str = """
 
 GPKG_OGR_CONTENTS_DELETE_TRIGGER: str = """
     CREATE TRIGGER trigger_delete_feature_count_{0}
-    AFTER DELETE ON {0}
+    AFTER DELETE ON {1}
     BEGIN UPDATE gpkg_ogr_contents SET feature_count = feature_count - 1 
           WHERE lower(table_name) = lower('{0}'); END;
 """
