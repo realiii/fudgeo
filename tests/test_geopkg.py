@@ -9,7 +9,7 @@ from math import isnan
 from random import randint, choice
 from string import ascii_uppercase, digits
 
-from pytest import fixture, mark, raises
+from pytest import mark, raises
 
 from fudgeo.enumeration import GeometryType, SQLFieldType
 from fudgeo.geometry import (
@@ -19,23 +19,7 @@ from fudgeo.geopkg import (
     FeatureClass, Field, GeoPackage, SHAPE, SpatialReferenceSystem, Table,
     _convert_datetime)
 from fudgeo.sql import SELECT_SRS
-
-
-WGS_1984_UTM_Zone_23N = (
-    """PROJCS["WGS_1984_UTM_Zone_23N",
-       GEOGCS["GCS_WGS_1984",
-       DATUM["D_WGS_1984",
-       SPHEROID["WGS_1984",6378137.0,298.257223563]],
-       PRIMEM["Greenwich",0.0],
-       UNIT["Degree",0.0174532925199433]],
-       PROJECTION["Transverse_Mercator"],
-       PARAMETER["False_Easting",500000.0],
-       PARAMETER["False_Northing",0.0],
-       PARAMETER["Central_Meridian",-45.0],
-       PARAMETER["Scale_Factor",0.9996],
-       PARAMETER["Latitude_Of_Origin",0.0],
-       UNIT["Meter",1.0]];IsHighPrecision""")
-
+from tests.crs import WGS_1984_UTM_Zone_23N
 
 INSERT_ROWS = """
     INSERT INTO {} (SHAPE, "int.fld", text_fld, test_fld_size, test_bool) 
@@ -44,41 +28,6 @@ INSERT_ROWS = """
 
 INSERT_SHAPE = """INSERT INTO {} (SHAPE) VALUES (?)"""
 SELECT_FID_SHAPE = """SELECT fid, SHAPE "[{}]" FROM {}"""
-
-
-@fixture
-def setup_geopackage(tmp_path):
-    """
-    Setup Basics
-    """
-    path = tmp_path.joinpath('test.gpkg')
-    gpkg = GeoPackage.create(path)
-    srs = SpatialReferenceSystem(
-        'WGS_1984_UTM_Zone_23N', 'EPSG', 32623, WGS_1984_UTM_Zone_23N)
-    fields = (
-        Field('int.fld', SQLFieldType.integer),
-        Field('text_fld', SQLFieldType.text),
-        Field('test_fld_size', SQLFieldType.text, 100),
-        Field('test_bool', SQLFieldType.boolean),
-        Field('test_timestamp', SQLFieldType.timestamp))
-    yield path, gpkg, srs, fields
-    if path.exists():
-        path.unlink()
-# End setup_geopackage function
-
-
-@fixture
-def fields():
-    """
-    Fields
-    """
-    return [Field('AAA', SQLFieldType.integer),
-            Field('BBB', SQLFieldType.text, size=10),
-            Field('CCC', SQLFieldType.text),
-            Field('DDD', SQLFieldType.double),
-            Field('EEE', SQLFieldType.datetime),
-            Field('SELECT', SQLFieldType.timestamp)]
-# End fields function
 
 
 def random_points_and_attrs(count, srs_id):

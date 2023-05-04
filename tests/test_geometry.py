@@ -4,16 +4,16 @@ Test Geometry
 """
 from math import isnan
 
-from pytest import fixture, mark, raises
+from pytest import mark, raises
 
 
 from tests.conversion.geo import (
-    make_gpkg_geom_header, point_lists_to_gpkg_multi_line_string,
-    point_lists_to_gpkg_multi_polygon, point_lists_to_gpkg_polygon,
-    point_m_to_gpkg_point_m, point_to_gpkg_point, point_z_to_gpkg_point_z,
-    point_zm_to_gpkg_point_zm, points_m_to_gpkg_line_string_m,
-    points_to_gpkg_line_string, points_to_gpkg_multipoint,
-    points_z_to_gpkg_line_string_z, points_zm_to_gpkg_line_string_zm)
+    point_lists_to_gpkg_multi_line_string, point_lists_to_gpkg_multi_polygon,
+    point_lists_to_gpkg_polygon, point_m_to_gpkg_point_m, point_to_gpkg_point,
+    point_z_to_gpkg_point_z, point_zm_to_gpkg_point_zm,
+    points_m_to_gpkg_line_string_m, points_to_gpkg_line_string,
+    points_to_gpkg_multipoint, points_z_to_gpkg_line_string_z,
+    points_zm_to_gpkg_line_string_zm)
 from tests.conversion.wkb import (
     _linear_ring_m_to_wkb, _linear_ring_to_wkb, _linear_ring_z_to_wkb,
     _linear_ring_zm_to_wkb, multipoint_m_to_wkb_multipoint_m,
@@ -36,15 +36,6 @@ from fudgeo.geometry import (
     MultiPointZM, MultiPolygon, MultiPolygonM, MultiPolygonZ, MultiPolygonZM,
     Point, PointM, PointZ, PointZM, Polygon, PolygonM, PolygonZ, PolygonZM,
     _make_header, _unpack_header)
-
-
-@fixture(scope='session')
-def header():
-    """
-    Header
-    """
-    return make_gpkg_geom_header(4326)
-# End header function
 
 
 @mark.parametrize('pt', [Point(x=1, y=2), Point.from_tuple((1, 2))])
