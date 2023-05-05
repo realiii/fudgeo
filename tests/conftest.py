@@ -4,6 +4,8 @@ Fixtures
 """
 
 
+from random import randint
+
 from pytest import fixture
 
 from fudgeo.enumeration import SQLFieldType
@@ -54,6 +56,18 @@ def fields():
             Field('EEE', SQLFieldType.datetime),
             Field('SELECT', SQLFieldType.timestamp)]
 # End fields function
+
+
+@fixture(scope='session')
+def random_utm_coordinates():
+    """
+    Random UTM Coordinates
+    """
+    count = 10_000
+    eastings = [randint(300000, 700000) for _ in range(count)]
+    northings = [randint(0, 4000000) for _ in range(count)]
+    return eastings, northings
+# End random_utm_coordinates function
 
 
 if __name__ == '__main__':  # pragma: no cover
