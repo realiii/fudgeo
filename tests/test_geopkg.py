@@ -2,8 +2,7 @@
 """
 Test GeoPackage
 """
-
-
+import sys
 from datetime import datetime, timedelta, timezone
 from math import isnan
 from random import randint, choice
@@ -603,6 +602,20 @@ def test_escaped_table(setup_geopackage):
     assert records[0] == (1, 'asdf', 'lmnop')
     assert records[1] == (2, 'qwerty', 'xyz')
 # End test_escaped_table function
+
+
+@mark.skipif(sys.platform != 'darwin', reason='will be different on windows')
+def test_representation():
+    """
+    Test string representation
+    """
+    gpkg = GeoPackage('/some/path/to/geopackage.gpkg')
+    assert repr(gpkg) == "GeoPackage(path=PosixPath('/some/path/to/geopackage.gpkg'))"
+    fc = FeatureClass(gpkg, '/some/path/to/geopackage.gpkg')
+    assert repr(fc) == "FeatureClass(geopackage=GeoPackage(path=PosixPath('/some/path/to/geopackage.gpkg')), name='/some/path/to/geopackage.gpkg')"
+    tbl = Table(gpkg, '/some/path/to/geopackage.gpkg')
+    assert repr(tbl) == "Table(geopackage=GeoPackage(path=PosixPath('/some/path/to/geopackage.gpkg')), name='/some/path/to/geopackage.gpkg')"
+# End test_representation function
 
 
 if __name__ == '__main__':

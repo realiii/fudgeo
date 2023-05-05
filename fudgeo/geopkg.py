@@ -139,6 +139,13 @@ class GeoPackage:
         self._conn: Optional[Connection] = None
     # End init built-in
 
+    def __repr__(self) -> str:
+        """
+        String Representation
+        """
+        return f'GeoPackage(path={self._path!r})'
+    # End repr built-in
+
     @property
     def path(self) -> Path:
         """
@@ -315,6 +322,13 @@ class Table(BaseTable):
     """
     GeoPackage Table
     """
+    def __repr__(self) -> str:
+        """
+        String Representation
+        """
+        return f'Table(geopackage={self.geopackage!r}, name={self.name!r})'
+    # End repr built-in
+
     @classmethod
     def create(cls, geopackage: GeoPackage, name: str, fields: FIELDS,
                description: str = '', overwrite: bool = False) -> 'Table':
@@ -353,6 +367,14 @@ class FeatureClass(BaseTable):
     """
     GeoPackage Feature Class
     """
+    def __repr__(self) -> str:
+        """
+        String Representation
+        """
+        return (f'FeatureClass(geopackage={self.geopackage!r}, '
+                f'name={self.name!r})')
+    # End repr built-in
+
     @classmethod
     def create(cls, geopackage: GeoPackage, name: str, shape_type: str,
                srs: 'SpatialReferenceSystem', z_enabled: bool = False,
