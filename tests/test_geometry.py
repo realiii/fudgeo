@@ -2,18 +2,21 @@
 """
 Test Geometry
 """
-from math import isnan
 
-from pytest import fixture, mark, raises
+
+from math import isnan
+from time import perf_counter
+
+from pytest import mark, raises
 
 
 from tests.conversion.geo import (
-    make_gpkg_geom_header, point_lists_to_gpkg_multi_line_string,
-    point_lists_to_gpkg_multi_polygon, point_lists_to_gpkg_polygon,
-    point_m_to_gpkg_point_m, point_to_gpkg_point, point_z_to_gpkg_point_z,
-    point_zm_to_gpkg_point_zm, points_m_to_gpkg_line_string_m,
-    points_to_gpkg_line_string, points_to_gpkg_multipoint,
-    points_z_to_gpkg_line_string_z, points_zm_to_gpkg_line_string_zm)
+    point_lists_to_gpkg_multi_line_string, point_lists_to_gpkg_multi_polygon,
+    point_lists_to_gpkg_polygon, point_m_to_gpkg_point_m, point_to_gpkg_point,
+    point_z_to_gpkg_point_z, point_zm_to_gpkg_point_zm,
+    points_m_to_gpkg_line_string_m, points_to_gpkg_line_string,
+    points_to_gpkg_multipoint, points_z_to_gpkg_line_string_z,
+    points_zm_to_gpkg_line_string_zm)
 from tests.conversion.wkb import (
     _linear_ring_m_to_wkb, _linear_ring_to_wkb, _linear_ring_z_to_wkb,
     _linear_ring_zm_to_wkb, multipoint_m_to_wkb_multipoint_m,
@@ -36,15 +39,6 @@ from fudgeo.geometry import (
     MultiPointZM, MultiPolygon, MultiPolygonM, MultiPolygonZ, MultiPolygonZM,
     Point, PointM, PointZ, PointZM, Polygon, PolygonM, PolygonZ, PolygonZM,
     _make_header, _unpack_header)
-
-
-@fixture(scope='session')
-def header():
-    """
-    Header
-    """
-    return make_gpkg_geom_header(4326)
-# End header function
 
 
 @mark.parametrize('pt', [Point(x=1, y=2), Point.from_tuple((1, 2))])
@@ -730,6 +724,39 @@ def test_empty_polygon_gpkg():
     assert isinstance(poly, Polygon)
     assert poly.rings == []
 # End test_empty_polygon_gpkg function
+
+
+@mark.parametrize('scale, geom_type, expected', [
+    (1, Point, 0.045),
+    (1, LineString, 0.03),
+    (1, Polygon, 0.025),
+])
+def test_performance(random_utm_coordinates, scale, geom_type, expected):
+    """
+    Test Performance, garbage test of round trips,
+    just used to check for accidental slowdown
+    """
+    start = perf_counter()
+    srs_id = 32623
+    eastings, northings = random_utm_coordinates
+    pairs = zip(eastings * scale, northings * scale)
+    if geom_type is Point:
+        start = perf_counter()
+        points1 = [Point(x=x, y=y, srs_id=srs_id) for x, y in pairs]
+        points2 = [Point.from_gpkg(pt.to_gpkg()) for pt in points1]
+        assert points1 == points2
+    elif geom_type is LineString:
+        start = perf_counter()
+        line1 = LineString(list(pairs), srs_id=srs_id)
+        line2 = LineString.from_gpkg(line1.to_gpkg())
+        assert line1 == line2
+    elif geom_type is Polygon:
+        start = perf_counter()
+        polygon1 = Polygon([list(pairs)], srs_id=srs_id)
+        polygon2 = Polygon.from_gpkg(polygon1.to_gpkg())
+        assert polygon1 == polygon2
+    assert (perf_counter() - start) <= expected
+# End test_performance function
 
 
 if __name__ == '__main__':
