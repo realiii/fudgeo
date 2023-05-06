@@ -141,7 +141,8 @@ class LineStringZ(AbstractGeopackageGeometryExtent):
         if is_empty:
             return cls([], srs_id=srs_id)
         # noinspection PyTypeChecker
-        return cls(unpack_line(value[offset:], dimension=THREE_D), srs_id=srs_id)
+        return cls(
+            unpack_line(value[offset:], dimension=THREE_D), srs_id=srs_id)
     # End from_gpkg method
 # End LineStringZ class
 
@@ -508,7 +509,6 @@ class MultiLineStringZM(AbstractGeopackageGeometryExtent):
             value[offset:], dimension=FOUR_D), srs_id=srs_id)
     # End from_gpkg method
 # End MultiLineStringZM class
-
 
 
 if __name__ == '__main__':  # pragma: no cover
