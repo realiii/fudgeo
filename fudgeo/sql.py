@@ -42,8 +42,26 @@ INSERT_GPKG_OGR_CONTENTS: str = """
 """
 
 
-REMOVE_FEATURE_CLASS: str = """
+CREATE_OGR_CONTENTS: str = """
+    CREATE TABLE gpkg_ogr_contents (
+        table_name    TEXT NOT NULL PRIMARY KEY,
+        feature_count INTEGER DEFAULT NULL
+    );
+"""
+
+
+HAS_OGR_CONTENTS: str = """
+    SELECT name FROM sqlite_master 
+    WHERE type = 'table' AND name = 'gpkg_ogr_contents'
+"""
+
+
+DELETE_OGR_CONTENTS: str = """
     DELETE FROM gpkg_ogr_contents WHERE lower(table_name) = lower('{0}');
+"""
+
+
+REMOVE_FEATURE_CLASS: str = """
     DELETE FROM gpkg_contents WHERE lower(table_name) = lower('{0}');
     DELETE FROM gpkg_geometry_columns WHERE lower(table_name) = lower('{0}');
     DROP TRIGGER IF EXISTS trigger_insert_feature_count_{0};
@@ -53,7 +71,6 @@ REMOVE_FEATURE_CLASS: str = """
 
 
 REMOVE_TABLE: str = """
-    DELETE FROM gpkg_ogr_contents WHERE lower(table_name) = lower('{0}');
     DELETE FROM gpkg_contents WHERE lower(table_name) = lower('{0}');
     DROP TRIGGER IF EXISTS trigger_insert_feature_count_{0};
     DROP TRIGGER IF EXISTS trigger_delete_feature_count_{0};
