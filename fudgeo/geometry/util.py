@@ -42,8 +42,8 @@ def unpack_points(value: bytes, dimension: int) -> List[Tuple[float, ...]]:
 # End unpack_points function
 
 
-def pack_points(coordinates: COORDINATES, has_z: bool = False,
-                has_m: bool = False, use_prefix: bool = False) -> bytes:
+def pack_coordinates(coordinates: COORDINATES, has_z: bool = False,
+                     has_m: bool = False, use_prefix: bool = False) -> bytes:
     """
     Pack Coordinates
     """
@@ -60,7 +60,7 @@ def pack_points(coordinates: COORDINATES, has_z: bool = False,
     prefix = POINT_PREFIX.get((has_z, has_m))
     parts = [prefix + data[i:i + step] for i in range(0, length, step)]
     return pack(COUNT_CODE, count) + EMPTY.join(parts)
-# End pack_points function
+# End pack_coordinates function
 
 
 def unpack_lines(value: bytes, dimension: int, is_ring: bool = False) \

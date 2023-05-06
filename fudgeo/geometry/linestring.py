@@ -16,7 +16,7 @@ from fudgeo.constant import (
 from fudgeo.geometry.base import AbstractGeometryExtent
 from fudgeo.geometry.point import Point, PointM, PointZ, PointZM
 from fudgeo.geometry.util import (
-    pack_points, unpack_header, unpack_line, unpack_lines)
+    pack_coordinates, unpack_header, unpack_line, unpack_lines)
 
 
 class LineString(AbstractGeometryExtent):
@@ -64,7 +64,7 @@ class LineString(AbstractGeometryExtent):
         """
         To WKB
         """
-        return WKB_LINESTRING_PRE + pack_points(self.coordinates)
+        return WKB_LINESTRING_PRE + pack_coordinates(self.coordinates)
     # End to_wkb method
 
     @classmethod
@@ -135,7 +135,7 @@ class LineStringZ(AbstractGeometryExtent):
         """
         To WKB
         """
-        return WKB_LINESTRING_Z_PRE + pack_points(self.coordinates, has_z=True)
+        return WKB_LINESTRING_Z_PRE + pack_coordinates(self.coordinates, has_z=True)
     # End to_wkb method
 
     @classmethod
@@ -206,7 +206,7 @@ class LineStringM(AbstractGeometryExtent):
         """
         To WKB
         """
-        return WKB_LINESTRING_M_PRE + pack_points(self.coordinates, has_m=True)
+        return WKB_LINESTRING_M_PRE + pack_coordinates(self.coordinates, has_m=True)
     # End to_wkb method
 
     @classmethod
@@ -279,7 +279,7 @@ class LineStringZM(AbstractGeometryExtent):
         """
         To WKB
         """
-        return WKB_LINESTRING_ZM_PRE + pack_points(
+        return WKB_LINESTRING_ZM_PRE + pack_coordinates(
             self.coordinates, has_z=True, has_m=True)
     # End to_wkb method
 

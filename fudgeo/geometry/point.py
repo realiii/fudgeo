@@ -15,7 +15,7 @@ from fudgeo.constant import (
     WKB_MULTI_POINT_PRE, WKB_MULTI_POINT_ZM_PRE, WKB_MULTI_POINT_Z_PRE,
     WKB_POINT_M_PRE, WKB_POINT_PRE, WKB_POINT_ZM_PRE, WKB_POINT_Z_PRE)
 from fudgeo.geometry.base import AbstractGeometry, AbstractGeometryExtent
-from fudgeo.geometry.util import pack_points, unpack_header, unpack_points
+from fudgeo.geometry.util import pack_coordinates, unpack_header, unpack_points
 
 
 class Point(AbstractGeometry):
@@ -438,7 +438,7 @@ class MultiPoint(AbstractGeometryExtent):
         """
         To WKB
         """
-        return WKB_MULTI_POINT_PRE + pack_points(
+        return WKB_MULTI_POINT_PRE + pack_coordinates(
             self.coordinates, use_prefix=True)
     # End to_wkb method
 
@@ -511,7 +511,7 @@ class MultiPointZ(AbstractGeometryExtent):
         """
         To WKB
         """
-        return WKB_MULTI_POINT_Z_PRE + pack_points(
+        return WKB_MULTI_POINT_Z_PRE + pack_coordinates(
             self.coordinates, has_z=True, use_prefix=True)
     # End to_wkb method
 
@@ -583,7 +583,7 @@ class MultiPointM(AbstractGeometryExtent):
         """
         To WKB
         """
-        return WKB_MULTI_POINT_M_PRE + pack_points(
+        return WKB_MULTI_POINT_M_PRE + pack_coordinates(
             self.coordinates, has_m=True, use_prefix=True)
     # End to_wkb method
 
@@ -656,7 +656,7 @@ class MultiPointZM(AbstractGeometryExtent):
         """
         To WKB
         """
-        return WKB_MULTI_POINT_ZM_PRE + pack_points(
+        return WKB_MULTI_POINT_ZM_PRE + pack_coordinates(
             self.coordinates, has_z=True, has_m=True, use_prefix=True)
     # End to_wkb method
 

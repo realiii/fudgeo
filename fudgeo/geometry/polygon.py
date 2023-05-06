@@ -15,7 +15,7 @@ from fudgeo.constant import (
 from fudgeo.geometry.base import AbstractGeometryExtent
 from fudgeo.geometry.point import Point, PointM, PointZ, PointZM
 from fudgeo.geometry.util import (
-    pack_points, unpack_header, unpack_line, unpack_lines, unpack_polygons)
+    pack_coordinates, unpack_header, unpack_line, unpack_lines, unpack_polygons)
 
 
 MSG_LINEAR_RINGS: str = 'Linear Rings not supported for Geopackage'
@@ -67,7 +67,7 @@ class LinearRing(AbstractGeometryExtent):
         """
         To WKB
         """
-        return pack_points(self.coordinates)
+        return pack_coordinates(self.coordinates)
     # End to_wkb method
 
     @classmethod
@@ -141,7 +141,7 @@ class LinearRingZ(AbstractGeometryExtent):
         """
         To WKB
         """
-        return pack_points(self.coordinates, has_z=True)
+        return pack_coordinates(self.coordinates, has_z=True)
     # End to_wkb method
 
     @classmethod
@@ -215,7 +215,7 @@ class LinearRingM(AbstractGeometryExtent):
         """
         To WKB
         """
-        return pack_points(self.coordinates, has_m=True)
+        return pack_coordinates(self.coordinates, has_m=True)
     # End to_wkb method
 
     @classmethod
@@ -290,7 +290,7 @@ class LinearRingZM(AbstractGeometryExtent):
         """
         To WKB
         """
-        return pack_points(self.coordinates, has_z=True, has_m=True)
+        return pack_coordinates(self.coordinates, has_z=True, has_m=True)
     # End to_wkb method
 
     @classmethod
