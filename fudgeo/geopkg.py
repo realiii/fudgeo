@@ -354,7 +354,7 @@ class Table(BaseTable):
             if has_ogr_contents:
                 _add_ogr_contents(conn, name=name, escaped_name=escaped_name)
         return cls(geopackage=geopackage, name=name)
-    # End create_table method
+    # End create method
 
     def drop(self) -> None:
         """
