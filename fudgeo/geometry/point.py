@@ -10,8 +10,8 @@ from typing import List
 
 from fudgeo.constant import (
     DOUBLE, EMPTY, FOUR_D, FOUR_D_PACK_CODE, FOUR_D_UNPACK_CODE, HEADER_OFFSET,
-    QUADRUPLE, THREE_D_PACK_CODE, THREE_D_UNPACK_CODE, TRIPLE, TWO_D,
-    TWO_D_PACK_CODE, TWO_D_UNPACK_CODE, WGS84, WKB_MULTI_POINT_M_PRE,
+    QUADRUPLE, THREE_D, THREE_D_PACK_CODE, THREE_D_UNPACK_CODE, TRIPLE, TWO_D,
+    TWO_D_PACK_CODE, TWO_D_UNPACK_CODE, WKB_MULTI_POINT_M_PRE,
     WKB_MULTI_POINT_PRE, WKB_MULTI_POINT_ZM_PRE, WKB_MULTI_POINT_Z_PRE,
     WKB_POINT_M_PRE, WKB_POINT_PRE, WKB_POINT_ZM_PRE, WKB_POINT_Z_PRE)
 from fudgeo.geometry.base import (
@@ -479,7 +479,8 @@ class MultiPointZ(AbstractGeopackageGeometryExtent):
         if is_empty:
             return cls([], srs_id=srs_id)
         # noinspection PyTypeChecker
-        return cls(unpack_points(value[offset:], dimension=3), srs_id=srs_id)
+        return cls(
+            unpack_points(value[offset:], dimension=THREE_D), srs_id=srs_id)
     # End from_gpkg method
 # End MultiPointZ class
 
@@ -544,7 +545,8 @@ class MultiPointM(AbstractGeopackageGeometryExtent):
         if is_empty:
             return cls([], srs_id=srs_id)
         # noinspection PyTypeChecker
-        return cls(unpack_points(value[offset:], dimension=3), srs_id=srs_id)
+        return cls(
+            unpack_points(value[offset:], dimension=THREE_D), srs_id=srs_id)
     # End from_gpkg method
 # End MultiPointM class
 
