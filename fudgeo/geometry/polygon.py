@@ -12,16 +12,14 @@ from fudgeo.constant import (
     TWO_D, WGS84, WKB_MULTI_POLYGON_M_PRE, WKB_MULTI_POLYGON_PRE,
     WKB_MULTI_POLYGON_ZM_PRE, WKB_MULTI_POLYGON_Z_PRE, WKB_POLYGON_M_PRE,
     WKB_POLYGON_PRE, WKB_POLYGON_ZM_PRE, WKB_POLYGON_Z_PRE)
-from fudgeo.geometry.base import AbstractGeometryExtent
+from fudgeo.geometry.base import (
+    AbstractGeopackageGeometryExtent, AbstractSpatialGeometryExtent)
 from fudgeo.geometry.point import Point, PointM, PointZ, PointZM
 from fudgeo.geometry.util import (
     pack_coordinates, unpack_header, unpack_line, unpack_lines, unpack_polygons)
 
 
-MSG_LINEAR_RINGS: str = 'Linear Rings not supported for Geopackage'
-
-
-class LinearRing(AbstractGeometryExtent):
+class LinearRing(AbstractSpatialGeometryExtent):
     """
     Linear Ring
     """
@@ -78,25 +76,10 @@ class LinearRing(AbstractGeometryExtent):
         # noinspection PyTypeChecker
         return cls(unpack_line(wkb, dimension=TWO_D, is_ring=True))
     # End from_wkb method
-
-    def to_gpkg(self) -> bytes:
-        """
-        To Geopackage
-        """
-        raise NotImplementedError(MSG_LINEAR_RINGS)
-    # End to_gpkg method
-
-    @classmethod
-    def from_gpkg(cls, value: bytes) -> 'LinearRing':
-        """
-        From Geopackage
-        """
-        raise NotImplementedError(MSG_LINEAR_RINGS)
-    # End from_gpkg method
 # End LinearRing class
 
 
-class LinearRingZ(AbstractGeometryExtent):
+class LinearRingZ(AbstractSpatialGeometryExtent):
     """
     Linear Ring Z
     """
@@ -152,25 +135,10 @@ class LinearRingZ(AbstractGeometryExtent):
         # noinspection PyTypeChecker
         return cls(unpack_line(wkb, dimension=THREE_D, is_ring=True))
     # End from_wkb method
-
-    def to_gpkg(self) -> bytes:
-        """
-        To Geopackage
-        """
-        raise NotImplementedError(MSG_LINEAR_RINGS)
-    # End to_gpkg method
-
-    @classmethod
-    def from_gpkg(cls, value: bytes) -> 'LinearRingZ':
-        """
-        From Geopackage
-        """
-        raise NotImplementedError(MSG_LINEAR_RINGS)
-    # End from_gpkg method
 # End LinearRingZ class
 
 
-class LinearRingM(AbstractGeometryExtent):
+class LinearRingM(AbstractSpatialGeometryExtent):
     """
     Linear Ring M
     """
@@ -226,25 +194,10 @@ class LinearRingM(AbstractGeometryExtent):
         # noinspection PyTypeChecker
         return cls(unpack_line(wkb, dimension=THREE_D, is_ring=True))
     # End from_wkb method
-
-    def to_gpkg(self) -> bytes:
-        """
-        To Geopackage
-        """
-        raise NotImplementedError(MSG_LINEAR_RINGS)
-    # End to_gpkg method
-
-    @classmethod
-    def from_gpkg(cls, value: bytes) -> 'LinearRingM':
-        """
-        From Geopackage
-        """
-        raise NotImplementedError(MSG_LINEAR_RINGS)
-    # End from_gpkg method
 # End LinearRingM class
 
 
-class LinearRingZM(AbstractGeometryExtent):
+class LinearRingZM(AbstractSpatialGeometryExtent):
     """
     Linear Ring ZM
     """
@@ -273,8 +226,6 @@ class LinearRingZM(AbstractGeometryExtent):
         """
         if not isinstance(other, LinearRingZM):  # pragma: nocover
             return NotImplemented
-        if self.srs_id != other.srs_id:
-            return False
         return self.points == other.points
     # End eq built-in
 
@@ -301,25 +252,10 @@ class LinearRingZM(AbstractGeometryExtent):
         # noinspection PyTypeChecker
         return cls(unpack_line(wkb, dimension=FOUR_D, is_ring=True))
     # End from_wkb method
-
-    def to_gpkg(self) -> bytes:
-        """
-        To Geopackage
-        """
-        raise NotImplementedError(MSG_LINEAR_RINGS)
-    # End to_gpkg method
-
-    @classmethod
-    def from_gpkg(cls, value: bytes) -> 'LinearRingZM':
-        """
-        From Geopackage
-        """
-        raise NotImplementedError(MSG_LINEAR_RINGS)
-    # End from_gpkg method
 # End LinearRingZM class
 
 
-class Polygon(AbstractGeometryExtent):
+class Polygon(AbstractGeopackageGeometryExtent):
     """
     Polygon
     """
@@ -332,7 +268,7 @@ class Polygon(AbstractGeometryExtent):
         """
         super().__init__(srs_id=srs_id)
         self.rings: List[LinearRing] = [
-            LinearRing(coords) for coords in coordinates]
+            LinearRing(coords, srs_id=srs_id) for coords in coordinates]
     # End init built-in
 
     def __eq__(self, other: 'Polygon') -> bool:
@@ -387,7 +323,7 @@ class Polygon(AbstractGeometryExtent):
 # End Polygon class
 
 
-class PolygonZ(AbstractGeometryExtent):
+class PolygonZ(AbstractGeopackageGeometryExtent):
     """
     Polygon Z
     """
@@ -455,7 +391,7 @@ class PolygonZ(AbstractGeometryExtent):
 # End PolygonZ class
 
 
-class PolygonM(AbstractGeometryExtent):
+class PolygonM(AbstractGeopackageGeometryExtent):
     """
     Polygon M
     """
@@ -523,7 +459,7 @@ class PolygonM(AbstractGeometryExtent):
 # End PolygonM class
 
 
-class PolygonZM(AbstractGeometryExtent):
+class PolygonZM(AbstractGeopackageGeometryExtent):
     """
     Polygon ZM
     """
@@ -591,7 +527,7 @@ class PolygonZM(AbstractGeometryExtent):
 # End PolygonZM class
 
 
-class MultiPolygon(AbstractGeometryExtent):
+class MultiPolygon(AbstractGeopackageGeometryExtent):
     """
     Multi Polygon
     """
@@ -659,7 +595,7 @@ class MultiPolygon(AbstractGeometryExtent):
 # End MultiPolygon class
 
 
-class MultiPolygonZ(AbstractGeometryExtent):
+class MultiPolygonZ(AbstractGeopackageGeometryExtent):
     """
     Multi Polygon Z
     """
@@ -727,7 +663,7 @@ class MultiPolygonZ(AbstractGeometryExtent):
 # End MultiPolygonZ class
 
 
-class MultiPolygonM(AbstractGeometryExtent):
+class MultiPolygonM(AbstractGeopackageGeometryExtent):
     """
     Multi Polygon M
     """
@@ -795,7 +731,7 @@ class MultiPolygonM(AbstractGeometryExtent):
 # End MultiPolygonM class
 
 
-class MultiPolygonZM(AbstractGeometryExtent):
+class MultiPolygonZM(AbstractGeopackageGeometryExtent):
     """
     Multi Polygon M
     """

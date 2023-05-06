@@ -13,13 +13,13 @@ from fudgeo.constant import (
     WKB_LINESTRING_ZM_PRE, WKB_LINESTRING_Z_PRE, WKB_MULTI_LINESTRING_M_PRE,
     WKB_MULTI_LINESTRING_PRE, WKB_MULTI_LINESTRING_ZM_PRE,
     WKB_MULTI_LINESTRING_Z_PRE)
-from fudgeo.geometry.base import AbstractGeometryExtent
+from fudgeo.geometry.base import AbstractGeopackageGeometryExtent
 from fudgeo.geometry.point import Point, PointM, PointZ, PointZM
 from fudgeo.geometry.util import (
     pack_coordinates, unpack_header, unpack_line, unpack_lines)
 
 
-class LineString(AbstractGeometryExtent):
+class LineString(AbstractGeopackageGeometryExtent):
     """
     LineString
     """
@@ -90,7 +90,7 @@ class LineString(AbstractGeometryExtent):
 # End LineString class
 
 
-class LineStringZ(AbstractGeometryExtent):
+class LineStringZ(AbstractGeopackageGeometryExtent):
     """
     LineStringZ
     """
@@ -161,7 +161,7 @@ class LineStringZ(AbstractGeometryExtent):
 # End LineStringZ class
 
 
-class LineStringM(AbstractGeometryExtent):
+class LineStringM(AbstractGeopackageGeometryExtent):
     """
     LineStringM
     """
@@ -233,7 +233,7 @@ class LineStringM(AbstractGeometryExtent):
 # End LineStringM class
 
 
-class LineStringZM(AbstractGeometryExtent):
+class LineStringZM(AbstractGeopackageGeometryExtent):
     """
     LineStringZM
     """
@@ -307,7 +307,7 @@ class LineStringZM(AbstractGeometryExtent):
 # End LineStringZM class
 
 
-class MultiLineString(AbstractGeometryExtent):
+class MultiLineString(AbstractGeopackageGeometryExtent):
     """
     Multi LineString
     """
@@ -375,7 +375,7 @@ class MultiLineString(AbstractGeometryExtent):
 # End MultiLineString class
 
 
-class MultiLineStringZ(AbstractGeometryExtent):
+class MultiLineStringZ(AbstractGeopackageGeometryExtent):
     """
     Multi LineString Z
     """
@@ -443,7 +443,7 @@ class MultiLineStringZ(AbstractGeometryExtent):
 # End MultiLineStringZ class
 
 
-class MultiLineStringM(AbstractGeometryExtent):
+class MultiLineStringM(AbstractGeopackageGeometryExtent):
     """
     Multi LineString M
     """
@@ -511,7 +511,7 @@ class MultiLineStringM(AbstractGeometryExtent):
 # End MultiLineStringM class
 
 
-class MultiLineStringZM(AbstractGeometryExtent):
+class MultiLineStringZM(AbstractGeopackageGeometryExtent):
     """
     Multi LineString ZM
     """

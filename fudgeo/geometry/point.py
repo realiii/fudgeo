@@ -14,11 +14,12 @@ from fudgeo.constant import (
     TWO_D_PACK_CODE, TWO_D_UNPACK_CODE, WGS84, WKB_MULTI_POINT_M_PRE,
     WKB_MULTI_POINT_PRE, WKB_MULTI_POINT_ZM_PRE, WKB_MULTI_POINT_Z_PRE,
     WKB_POINT_M_PRE, WKB_POINT_PRE, WKB_POINT_ZM_PRE, WKB_POINT_Z_PRE)
-from fudgeo.geometry.base import AbstractGeometry, AbstractGeometryExtent
+from fudgeo.geometry.base import (
+    AbstractGeopackageGeometry, AbstractGeopackageGeometryExtent)
 from fudgeo.geometry.util import pack_coordinates, unpack_header, unpack_points
 
 
-class Point(AbstractGeometry):
+class Point(AbstractGeopackageGeometry):
     """
     Point
     """
@@ -109,7 +110,7 @@ class Point(AbstractGeometry):
 # End Point class
 
 
-class PointZ(AbstractGeometry):
+class PointZ(AbstractGeopackageGeometry):
     """
     Point Z
     """
@@ -202,7 +203,7 @@ class PointZ(AbstractGeometry):
 # End PointZ class
 
 
-class PointM(AbstractGeometry):
+class PointM(AbstractGeopackageGeometry):
     """
     Point M
     """
@@ -295,7 +296,7 @@ class PointM(AbstractGeometry):
 # End PointM class
 
 
-class PointZM(AbstractGeometry):
+class PointZM(AbstractGeopackageGeometry):
     """
     Point ZM
     """
@@ -391,9 +392,7 @@ class PointZM(AbstractGeometry):
 # End PointZM class
 
 
-
-
-class MultiPoint(AbstractGeometryExtent):
+class MultiPoint(AbstractGeopackageGeometryExtent):
     """
     Multi Point
     """
@@ -466,7 +465,7 @@ class MultiPoint(AbstractGeometryExtent):
 # End MultiPoint class
 
 
-class MultiPointZ(AbstractGeometryExtent):
+class MultiPointZ(AbstractGeopackageGeometryExtent):
     """
     Multi Point Z
     """
@@ -538,7 +537,7 @@ class MultiPointZ(AbstractGeometryExtent):
 # End MultiPointZ class
 
 
-class MultiPointM(AbstractGeometryExtent):
+class MultiPointM(AbstractGeopackageGeometryExtent):
     """
     Multi Point M
     """
@@ -610,7 +609,7 @@ class MultiPointM(AbstractGeometryExtent):
 # End MultiPointM class
 
 
-class MultiPointZM(AbstractGeometryExtent):
+class MultiPointZM(AbstractGeopackageGeometryExtent):
     """
     Multi Point ZM
     """

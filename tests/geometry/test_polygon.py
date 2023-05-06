@@ -87,11 +87,7 @@ def test_linear_ring(header):
     assert ring.coordinates == values
     wkb = ring.to_wkb()
     assert wkb == _linear_ring_to_wkb(values)
-    with raises(NotImplementedError):
-        assert ring.to_gpkg()
     assert LinearRing.from_wkb(wkb) == ring
-    with raises(NotImplementedError):
-        assert LinearRing.from_gpkg(b'')
 # End test_linear_ring function
 
 
@@ -107,11 +103,7 @@ def test_linear_ring_z(header):
     assert ring.coordinates == values
     wkb = ring.to_wkb()
     assert wkb == _linear_ring_z_to_wkb(values)
-    with raises(NotImplementedError):
-        assert ring.to_gpkg()
     assert LinearRingZ.from_wkb(wkb) == ring
-    with raises(NotImplementedError):
-        assert LinearRingZ.from_gpkg(b'')
 # End test_linear_ring_z function
 
 
@@ -127,11 +119,7 @@ def test_linear_ring_m(header):
     assert ring.coordinates == values
     wkb = ring.to_wkb()
     assert wkb == _linear_ring_m_to_wkb(values)
-    with raises(NotImplementedError):
-        assert ring.to_gpkg()
     assert LinearRingM.from_wkb(wkb) == ring
-    with raises(NotImplementedError):
-        assert LinearRingM.from_gpkg(b'')
 # End test_linear_ring_m function
 
 
@@ -147,11 +135,7 @@ def test_linear_ring_zm(header):
     assert ring.coordinates == values
     wkb = ring.to_wkb()
     assert wkb == _linear_ring_zm_to_wkb(values)
-    with raises(NotImplementedError):
-        assert ring.to_gpkg()
     assert LinearRingZM.from_wkb(wkb) == ring
-    with raises(NotImplementedError):
-        assert LinearRingZM.from_gpkg(b'')
 # End test_linear_ring_zm function
 
 

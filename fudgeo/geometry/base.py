@@ -17,15 +17,7 @@ class AbstractGeometry:
     """
     Abstract Geometry
     """
-    __slots__ = 'srs_id',
-
-    def __init__(self, srs_id: int) -> None:
-        """
-        Initialize the AbstractGeometry class
-        """
-        super().__init__()
-        self.srs_id: int = srs_id
-    # End init built-in
+    __slots__ = []
 
     @staticmethod
     def _join_geometries(geoms: List['AbstractGeometry']) -> bytes:
@@ -60,14 +52,55 @@ class AbstractGeometry:
         """
         pass
     # End from_wkb method
+# End AbstractGeometry class
+
+
+# noinspection PyAbstractClass
+class AbstractSpatialGeometry(AbstractGeometry):
+    """
+    Abstract Spatial Geometry
+    """
+    __slots__ = 'srs_id',
+
+    def __init__(self, srs_id: int) -> None:
+        """
+        Initialize the AbstractSpatialGeometry class
+        """
+        super().__init__()
+        self.srs_id: int = srs_id
+    # End init built-in
+# End AbstractSpatialGeometry class
+
+
+# noinspection PyAbstractClass
+class AbstractSpatialGeometryExtent(AbstractSpatialGeometry):
+    """
+    Abstract Spatial Geometry with Extent
+    """
+    __slots__ = '_extent',
+
+    def __init__(self, srs_id: int) -> None:
+        """
+        Initialize the AbstractSpatialGeometryExtent class
+        """
+        super().__init__(srs_id=srs_id)
+        self._extent: Tuple[float, ...] = ()
+    # End init built-in
+# End AbstractSpatialGeometryExtent class
+
+
+class AbstractGeopackageGeometry(AbstractSpatialGeometry):
+    """
+    Abstract Geopackage Geometry
+    """
+    __slots__ = 'srs_id',
 
     def to_gpkg(self) -> bytes:
         """
         To Geopackage
         """
-        return (
-            make_header(srs_id=self.srs_id, is_empty=self.is_empty) +
-            self.to_wkb())
+        return (make_header(srs_id=self.srs_id, is_empty=self.is_empty) +
+                self.to_wkb())
     # End to_gpkg method
 
     @classmethod
@@ -78,23 +111,24 @@ class AbstractGeometry:
         """
         pass
     # End from_gpkg method
-# End AbstractGeometry class
+# End AbstractGeopackageGeometry class
 
 
-class AbstractGeometryExtent(AbstractGeometry):
+# noinspection PyAbstractClass
+class AbstractGeopackageGeometryExtent(AbstractGeopackageGeometry):
     """
-    Abstract Geometry with Extent
+    Abstract Spatial Geometry with Extent
     """
     __slots__ = '_extent',
 
     def __init__(self, srs_id: int) -> None:
         """
-        Initialize the AbstractGeometryExtent class
+        Initialize the AbstractSpatialGeometryExtent class
         """
         super().__init__(srs_id=srs_id)
         self._extent: Tuple[float, ...] = ()
     # End init built-in
-# End AbstractGeometryExtent class
+# End AbstractGeopackageGeometryExtent class
 
 
 if __name__ == '__main__':  # pragma: no cover
