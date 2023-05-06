@@ -10,8 +10,8 @@ from os import PathLike
 from pathlib import Path
 from re import IGNORECASE, compile as recompile
 from sqlite3 import (
-    Connection, Cursor, PARSE_COLNAMES, PARSE_DECLTYPES, connect,
-    register_adapter, register_converter)
+    Connection, Cursor, DatabaseError, OperationalError, PARSE_COLNAMES,
+    PARSE_DECLTYPES, connect, register_adapter, register_converter)
 from typing import Callable, Dict, List, Optional, Tuple, Type, Union
 
 from fudgeo.enumeration import (
@@ -585,6 +585,28 @@ class Field:
         return f'{self.escaped_name} {self.data_type}'
     # End repr built-in
 # End Field class
+
+
+def _has_ogr_contents(conn: 'Connection') -> bool:
+    """
+    Has gpkg_ogr_contents table
+    """
+    try:
+        cursor = conn.execute(HAS_OGR_CONTENTS)
+    except (DatabaseError, OperationalError):
+        return False
+    return bool(cursor.fetchone())
+# End _has_ogr_contents function
+
+
+def _add_ogr_contents(conn: Connection, name: str, escaped_name: str) -> None:
+    """
+    Add OGR Contents Table Entry and Triggers
+    """
+    conn.execute(INSERT_GPKG_OGR_CONTENTS, (name, 0))
+    conn.execute(GPKG_OGR_CONTENTS_INSERT_TRIGGER.format(name, escaped_name))
+    conn.execute(GPKG_OGR_CONTENTS_DELETE_TRIGGER.format(name, escaped_name))
+# End _add_ogr_contents function
 
 
 if __name__ == '__main__':
