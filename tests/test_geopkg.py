@@ -2,6 +2,8 @@
 """
 Test GeoPackage
 """
+
+
 import sys
 from datetime import datetime, timedelta, timezone
 from math import isnan
@@ -16,14 +18,16 @@ from fudgeo.geometry import (
     MultiPoint, MultiPolygon, Point, Polygon, PolygonM)
 from fudgeo.geopkg import (
     FeatureClass, Field, GeoPackage, SHAPE, SpatialReferenceSystem, Table,
-    _convert_datetime)
+    _convert_datetime, _has_ogr_contents)
 from fudgeo.sql import SELECT_SRS
 from tests.crs import WGS_1984_UTM_Zone_23N
+
 
 INSERT_ROWS = """
     INSERT INTO {} (SHAPE, "int.fld", text_fld, test_fld_size, test_bool) 
     VALUES (?, ?, ?, ?, ?)
 """
+
 
 INSERT_SHAPE = """INSERT INTO {} (SHAPE) VALUES (?)"""
 SELECT_FID_SHAPE = """SELECT fid, SHAPE "[{}]" FROM {}"""
@@ -87,7 +91,7 @@ def test_create_table(tmp_path, fields):
     with raises(ValueError):
         geo.create_table(name, fields)
     conn = geo.connection
-    cursor = conn.execute(f"""SELECT count(fid) FROM {table.escaped_name}""")
+    cursor = conn.execute(f"""SELECT count(fid) AS C FROM {table.escaped_name}""")
     count, = cursor.fetchone()
     assert count == 0
     now = datetime.now()
@@ -99,7 +103,7 @@ def test_create_table(tmp_path, fields):
     sql = f"""INSERT INTO {table.escaped_name} ({field_names}) VALUES (?, ?, ?, ?, ?, ?)"""
     conn.executemany(sql, records)
     conn.commit()
-    cursor = conn.execute(f"""SELECT count(fid) FROM {table.escaped_name}""")
+    cursor = conn.execute(f"""SELECT count(fid) AS C FROM {table.escaped_name}""")
     count, = cursor.fetchone()
     assert count == 2
     *_, eee, select = fields
@@ -114,7 +118,7 @@ def test_create_table(tmp_path, fields):
     table = geo.create_table('ANOTHER')
     assert isinstance(table, Table)
     cursor = conn.execute(
-        """SELECT count(type) FROM sqlite_master WHERE type = 'trigger'""")
+        """SELECT count(type) AS C FROM sqlite_master WHERE type = 'trigger'""")
     count, = cursor.fetchone()
     assert count == 4
     conn.close()
@@ -123,24 +127,28 @@ def test_create_table(tmp_path, fields):
 # End test_create_table function
 
 
-def test_create_table_drop_table(tmp_path, fields):
+@mark.parametrize('ogr_contents, has_table, trigger_count', [
+    (True, True, 2), (False, False, 0)
+])
+def test_create_table_drop_table(tmp_path, fields, ogr_contents, has_table, trigger_count):
     """
     Create Table, overwrite Table, and Drop Table
     """
     path = tmp_path / 'tbl_drop'
-    geo = GeoPackage.create(path)
+    geo = GeoPackage.create(path, ogr_contents=ogr_contents)
+    conn = geo.connection
+    assert _has_ogr_contents(conn) is has_table
     name = 'SELECT'
     table = geo.create_table(name, fields)
     assert isinstance(table, Table)
     tbl = geo.create_table(name, fields, overwrite=True)
-    conn = geo.connection
-    cursor = conn.execute(f"""SELECT count(fid) FROM {table.escaped_name}""")
+    cursor = conn.execute(f"""SELECT count(fid) AS C FROM {table.escaped_name}""")
     count, = cursor.fetchone()
     assert count == 0
-    sql = """SELECT count(type) FROM sqlite_master WHERE type = 'trigger'"""
+    sql = """SELECT count(type) AS C FROM sqlite_master WHERE type = 'trigger'"""
     cursor = conn.execute(sql)
     count, = cursor.fetchone()
-    assert count == 2
+    assert count == trigger_count
     tbl.drop()
     assert not geo._check_table_exists(name)
     cursor = conn.execute(sql)
@@ -165,13 +173,13 @@ def test_create_feature_class(tmp_path, fields):
     assert isinstance(fc, FeatureClass)
     with raises(ValueError):
         geo.create_feature_class(name, srs=srs, fields=fields)
-    cursor = geo.connection.execute(f"""SELECT count(fid) FROM {fc.escaped_name}""")
+    cursor = geo.connection.execute(f"""SELECT count(fid) AS C FROM {fc.escaped_name}""")
     count, = cursor.fetchone()
     assert count == 0
     fc = geo.create_feature_class('ANOTHER', srs=srs)
     assert isinstance(fc, FeatureClass)
     cursor = geo.connection.execute(
-        """SELECT count(type) FROM sqlite_master WHERE type = 'trigger'""")
+        """SELECT count(type) AS C FROM sqlite_master WHERE type = 'trigger'""")
     count, = cursor.fetchone()
     assert count == 4
     geo.connection.close()
@@ -180,31 +188,36 @@ def test_create_feature_class(tmp_path, fields):
 # End test_create_feature_class function
 
 
-def test_create_feature_drop_feature(tmp_path, fields):
+@mark.parametrize('ogr_contents, has_table, trigger_count', [
+    (True, True, 2), (False, False, 0)
+])
+def test_create_feature_drop_feature(tmp_path, fields, ogr_contents, has_table, trigger_count):
     """
     Create Feature Class, Overwrite it, and then Drop it
     """
     path = tmp_path / 'fc_drop'
-    geo = GeoPackage.create(path)
+    geo = GeoPackage.create(path, ogr_contents=ogr_contents)
+    conn = geo.connection
+    assert _has_ogr_contents(conn) is has_table
     name = 'SELECT'
     srs = SpatialReferenceSystem(
         'WGS_1984_UTM_Zone_23N', 'EPSG', 32623, WGS_1984_UTM_Zone_23N)
     fc = geo.create_feature_class(name, srs=srs, fields=fields)
     assert isinstance(fc, FeatureClass)
     fc = geo.create_feature_class(name, srs=srs, fields=fields, overwrite=True)
-    cursor = geo.connection.execute(f"""SELECT count(fid) FROM {fc.escaped_name}""")
+    cursor = conn.execute(f"""SELECT count(fid) AS C FROM {fc.escaped_name}""")
     count, = cursor.fetchone()
     assert count == 0
-    sql = """SELECT count(type) FROM sqlite_master WHERE type = 'trigger'"""
-    cursor = geo.connection.execute(sql)
+    sql = """SELECT count(type) AS C FROM sqlite_master WHERE type = 'trigger'"""
+    cursor = conn.execute(sql)
     count, = cursor.fetchone()
-    assert count == 2
+    assert count == trigger_count
     fc.drop()
     assert not geo._check_table_exists(name)
-    cursor = geo.connection.execute(sql)
+    cursor = conn.execute(sql)
     count, = cursor.fetchone()
     assert count == 0
-    geo.connection.close()
+    conn.close()
     if path.exists():
         path.unlink()
 # End test_create_feature_drop_feature function
@@ -256,7 +269,7 @@ def test_create_feature_class_options(setup_geopackage, name, geom, has_z, has_m
         m_enabled=has_m, z_enabled=has_z)
     assert isinstance(fc, FeatureClass)
     conn = gpkg.connection
-    cursor = conn.execute(f"""SELECT count(fid) FROM {name}""")
+    cursor = conn.execute(f"""SELECT count(fid) AS C FROM {name}""")
     count, = cursor.fetchone()
     assert count == 0
     assert fc.spatial_reference_system.srs_id == 32623
@@ -301,7 +314,7 @@ def test_insert_point_rows(setup_geopackage):
     rows = random_points_and_attrs(count, srs.srs_id)
     with gpkg.connection as conn:
         conn.executemany(INSERT_ROWS.format(fc.escaped_name), rows)
-        cursor = conn.execute(f"""SELECT count(fid) from {fc.escaped_name}""")
+        cursor = conn.execute(f"""SELECT count(fid) AS C from {fc.escaped_name}""")
         row_count, = cursor.fetchone()
     assert row_count == count
     with gpkg.connection as conn:
