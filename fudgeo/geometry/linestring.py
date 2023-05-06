@@ -5,7 +5,7 @@ Line String
 
 
 from struct import pack
-from typing import List
+from typing import Any, List, Type, Union
 
 from fudgeo.constant import (
     COUNT_CODE, DOUBLE, FOUR_D, HEADER_OFFSET, QUADRUPLE, THREE_D, TRIPLE,
@@ -16,6 +16,39 @@ from fudgeo.geometry.base import AbstractGeopackageGeometryExtent
 from fudgeo.geometry.point import Point, PointM, PointZ, PointZM
 from fudgeo.geometry.util import (
     pack_coordinates, unpack_header, unpack_line, unpack_lines)
+
+
+LINE_STRING_TYPES = Union[Type['LineString'], Type['LineStringZ'],
+                          Type['LineStringM'], Type['LineStringZM']]
+MULTI_LINE_STRING_TYPES = Union[
+    Type['MultiLineString'], Type['MultiLineStringZ'],
+    Type['MultiLineStringM'], Type['MultiLineStringZM']]
+
+
+def _unpack_linestring(cls: LINE_STRING_TYPES, value: bytes,
+                       dimension: int) -> Any:
+    """
+    Unpack LineString
+    """
+    srs_id, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
+    if is_empty:
+        return cls([], srs_id=srs_id)
+    # noinspection PyTypeChecker
+    return cls(unpack_line(value[offset:], dimension=dimension), srs_id=srs_id)
+# End _unpack_linestring function
+
+
+def _unpack_multi_linestring(cls: MULTI_LINE_STRING_TYPES, value: bytes,
+                             dimension: int) -> Any:
+    """
+    Unpack LineStrings into MultiLineString
+    """
+    srs_id, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
+    if is_empty:
+        return cls([], srs_id=srs_id)
+    # noinspection PyTypeChecker
+    return cls(unpack_lines(value[offset:], dimension=dimension), srs_id=srs_id)
+# End _unpack_multi_linestring function
 
 
 class LineString(AbstractGeopackageGeometryExtent):
@@ -72,11 +105,7 @@ class LineString(AbstractGeopackageGeometryExtent):
         """
         From Geopackage
         """
-        srs_id, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
-        if is_empty:
-            return cls([], srs_id=srs_id)
-        # noinspection PyTypeChecker
-        return cls(unpack_line(value[offset:], dimension=TWO_D), srs_id=srs_id)
+        return _unpack_linestring(cls=cls, value=value, dimension=TWO_D)
     # End from_gpkg method
 # End LineString class
 
@@ -137,12 +166,7 @@ class LineStringZ(AbstractGeopackageGeometryExtent):
         """
         From Geopackage
         """
-        srs_id, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
-        if is_empty:
-            return cls([], srs_id=srs_id)
-        # noinspection PyTypeChecker
-        return cls(
-            unpack_line(value[offset:], dimension=THREE_D), srs_id=srs_id)
+        return _unpack_linestring(cls=cls, value=value, dimension=THREE_D)
     # End from_gpkg method
 # End LineStringZ class
 
@@ -203,12 +227,7 @@ class LineStringM(AbstractGeopackageGeometryExtent):
         """
         From Geopackage
         """
-        srs_id, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
-        if is_empty:
-            return cls([], srs_id=srs_id)
-        # noinspection PyTypeChecker
-        return cls(unpack_line(
-            value[offset:], dimension=THREE_D), srs_id=srs_id)
+        return _unpack_linestring(cls=cls, value=value, dimension=THREE_D)
     # End from_gpkg method
 # End LineStringM class
 
@@ -269,12 +288,7 @@ class LineStringZM(AbstractGeopackageGeometryExtent):
         """
         From Geopackage
         """
-        srs_id, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
-        if is_empty:
-            return cls([], srs_id=srs_id)
-        # noinspection PyTypeChecker
-        return cls(unpack_line(
-            value[offset:], dimension=FOUR_D), srs_id=srs_id)
+        return _unpack_linestring(cls=cls, value=value, dimension=FOUR_D)
     # End from_gpkg method
 # End LineStringZM class
 
@@ -327,12 +341,7 @@ class MultiLineString(AbstractGeopackageGeometryExtent):
         """
         From Geopackage
         """
-        srs_id, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
-        if is_empty:
-            return cls([], srs_id=srs_id)
-        # noinspection PyTypeChecker
-        return cls(unpack_lines(
-            value[offset:], dimension=TWO_D), srs_id=srs_id)
+        return _unpack_multi_linestring(cls=cls, value=value, dimension=TWO_D)
     # End from_gpkg method
 # End MultiLineString class
 
@@ -385,12 +394,7 @@ class MultiLineStringZ(AbstractGeopackageGeometryExtent):
         """
         From Geopackage
         """
-        srs_id, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
-        if is_empty:
-            return cls([], srs_id=srs_id)
-        # noinspection PyTypeChecker
-        return cls(unpack_lines(
-            value[offset:], dimension=THREE_D), srs_id=srs_id)
+        return _unpack_multi_linestring(cls=cls, value=value, dimension=THREE_D)
     # End from_gpkg method
 # End MultiLineStringZ class
 
@@ -443,12 +447,7 @@ class MultiLineStringM(AbstractGeopackageGeometryExtent):
         """
         From Geopackage
         """
-        srs_id, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
-        if is_empty:
-            return cls([], srs_id=srs_id)
-        # noinspection PyTypeChecker
-        return cls(unpack_lines(
-            value[offset:], dimension=THREE_D), srs_id=srs_id)
+        return _unpack_multi_linestring(cls=cls, value=value, dimension=THREE_D)
     # End from_gpkg method
 # End MultiLineStringM class
 
@@ -501,12 +500,7 @@ class MultiLineStringZM(AbstractGeopackageGeometryExtent):
         """
         From Geopackage
         """
-        srs_id, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
-        if is_empty:
-            return cls([], srs_id=srs_id)
-        # noinspection PyTypeChecker
-        return cls(unpack_lines(
-            value[offset:], dimension=FOUR_D), srs_id=srs_id)
+        return _unpack_multi_linestring(cls=cls, value=value, dimension=FOUR_D)
     # End from_gpkg method
 # End MultiLineStringZM class
 

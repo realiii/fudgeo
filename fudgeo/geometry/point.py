@@ -6,7 +6,7 @@ Points
 
 from math import isnan, nan
 from struct import pack, unpack
-from typing import List
+from typing import Any, List, Type, Union
 
 from fudgeo.constant import (
     DOUBLE, EMPTY, FOUR_D, FOUR_D_PACK_CODE, FOUR_D_UNPACK_CODE, HEADER_OFFSET,
@@ -17,6 +17,24 @@ from fudgeo.constant import (
 from fudgeo.geometry.base import (
     AbstractGeopackageGeometry, AbstractGeopackageGeometryExtent)
 from fudgeo.geometry.util import pack_coordinates, unpack_header, unpack_points
+
+
+MULTI_POINT_TYPES = Union[Type['MultiPoint'], Type['MultiPointZ'],
+                          Type['MultiPointM'], Type['MultiPointZM']]
+
+
+def _unpack_multi_point(cls: MULTI_POINT_TYPES, value: bytes,
+                        dimension: int) -> Any:
+    """
+    Unpack Points into MultiPoint
+    """
+    srs_id, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
+    if is_empty:
+        return cls([], srs_id=srs_id)
+    # noinspection PyTypeChecker
+    return cls(unpack_points(
+        value[offset:], dimension=dimension), srs_id=srs_id)
+# End _unpack_multi_point function
 
 
 class Point(AbstractGeopackageGeometry):
@@ -409,12 +427,7 @@ class MultiPoint(AbstractGeopackageGeometryExtent):
         """
         From Geopackage
         """
-        srs_id, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
-        if is_empty:
-            return cls([], srs_id=srs_id)
-        # noinspection PyTypeChecker
-        return cls(unpack_points(
-            value[offset:], dimension=TWO_D), srs_id=srs_id)
+        return _unpack_multi_point(cls=cls, value=value, dimension=TWO_D)
     # End from_gpkg method
 # End MultiPoint class
 
@@ -475,12 +488,7 @@ class MultiPointZ(AbstractGeopackageGeometryExtent):
         """
         From Geopackage
         """
-        srs_id, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
-        if is_empty:
-            return cls([], srs_id=srs_id)
-        # noinspection PyTypeChecker
-        return cls(
-            unpack_points(value[offset:], dimension=THREE_D), srs_id=srs_id)
+        return _unpack_multi_point(cls=cls, value=value, dimension=THREE_D)
     # End from_gpkg method
 # End MultiPointZ class
 
@@ -541,12 +549,7 @@ class MultiPointM(AbstractGeopackageGeometryExtent):
         """
         From Geopackage
         """
-        srs_id, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
-        if is_empty:
-            return cls([], srs_id=srs_id)
-        # noinspection PyTypeChecker
-        return cls(
-            unpack_points(value[offset:], dimension=THREE_D), srs_id=srs_id)
+        return _unpack_multi_point(cls=cls, value=value, dimension=THREE_D)
     # End from_gpkg method
 # End MultiPointM class
 
@@ -607,12 +610,7 @@ class MultiPointZM(AbstractGeopackageGeometryExtent):
         """
         From Geopackage
         """
-        srs_id, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
-        if is_empty:
-            return cls([], srs_id=srs_id)
-        # noinspection PyTypeChecker
-        return cls(unpack_points(
-            value[offset:], dimension=FOUR_D), srs_id=srs_id)
+        return _unpack_multi_point(cls=cls, value=value, dimension=FOUR_D)
     # End from_gpkg method
 # End MultiPointZM class
 

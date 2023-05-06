@@ -5,7 +5,7 @@ Polygons
 
 
 from struct import pack
-from typing import List
+from typing import Any, List, Type, Union
 
 from fudgeo.constant import (
     COUNT_CODE, DOUBLE, FOUR_D, HEADER_OFFSET, QUADRUPLE, THREE_D, TRIPLE,
@@ -17,6 +17,39 @@ from fudgeo.geometry.base import (
 from fudgeo.geometry.point import Point, PointM, PointZ, PointZM
 from fudgeo.geometry.util import (
     pack_coordinates, unpack_header, unpack_lines, unpack_polygons)
+
+
+POLYGON_TYPES = Union[Type['Polygon'], Type['PolygonZ'],
+                      Type['PolygonM'], Type['PolygonZM']]
+MULTI_POLYGON_TYPES = Union[Type['MultiPolygon'], Type['MultiPolygonZ'],
+                            Type['MultiPolygonM'], Type['MultiPolygonZM']]
+
+
+def _unpack_polygon(cls: POLYGON_TYPES, value: bytes, dimension: int) -> Any:
+    """
+    Unpack Linear Rings into Polygon
+    """
+    srs_id, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
+    if is_empty:
+        return cls([], srs_id=srs_id)
+    # noinspection PyTypeChecker
+    return cls(unpack_lines(value[offset:], dimension=dimension, is_ring=True),
+               srs_id=srs_id)
+# End _unpack_polygon function
+
+
+def _unpack_multi_polygon(cls: MULTI_POLYGON_TYPES, value: bytes,
+                          dimension: int) -> Any:
+    """
+    Unpack Polygons into MultiPolygon
+    """
+    srs_id, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
+    if is_empty:
+        return cls([], srs_id=srs_id)
+    # noinspection PyTypeChecker
+    return cls(unpack_polygons(value[offset:], dimension=dimension),
+               srs_id=srs_id)
+# End _unpack_multi_polygon function
 
 
 class LinearRing(AbstractSpatialGeometryExtent):
@@ -272,12 +305,7 @@ class Polygon(AbstractGeopackageGeometryExtent):
         """
         From Geopackage
         """
-        srs_id, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
-        if is_empty:
-            return cls([], srs_id=srs_id)
-        # noinspection PyTypeChecker
-        return cls(unpack_lines(
-            value[offset:], dimension=TWO_D, is_ring=True), srs_id=srs_id)
+        return _unpack_polygon(cls=cls, value=value, dimension=TWO_D)
     # End from_gpkg method
 # End Polygon class
 
@@ -330,12 +358,7 @@ class PolygonZ(AbstractGeopackageGeometryExtent):
         """
         From Geopackage
         """
-        srs_id, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
-        if is_empty:
-            return cls([], srs_id=srs_id)
-        # noinspection PyTypeChecker
-        return cls(unpack_lines(
-            value[offset:], dimension=THREE_D, is_ring=True), srs_id=srs_id)
+        return _unpack_polygon(cls=cls, value=value, dimension=THREE_D)
     # End from_gpkg method
 # End PolygonZ class
 
@@ -388,12 +411,7 @@ class PolygonM(AbstractGeopackageGeometryExtent):
         """
         From Geopackage
         """
-        srs_id, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
-        if is_empty:
-            return cls([], srs_id=srs_id)
-        # noinspection PyTypeChecker
-        return cls(unpack_lines(
-            value[offset:], dimension=THREE_D, is_ring=True), srs_id=srs_id)
+        return _unpack_polygon(cls=cls, value=value, dimension=THREE_D)
     # End from_gpkg method
 # End PolygonM class
 
@@ -446,12 +464,7 @@ class PolygonZM(AbstractGeopackageGeometryExtent):
         """
         From Geopackage
         """
-        srs_id, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
-        if is_empty:
-            return cls([], srs_id=srs_id)
-        # noinspection PyTypeChecker
-        return cls(unpack_lines(
-            value[offset:], dimension=FOUR_D, is_ring=True), srs_id=srs_id)
+        return _unpack_polygon(cls=cls, value=value, dimension=FOUR_D)
     # End from_gpkg method
 # End PolygonZM class
 
@@ -505,12 +518,7 @@ class MultiPolygon(AbstractGeopackageGeometryExtent):
         """
         From Geopackage
         """
-        srs_id, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
-        if is_empty:
-            return cls([], srs_id=srs_id)
-        # noinspection PyTypeChecker
-        return cls(unpack_polygons(
-            value[offset:], dimension=TWO_D), srs_id=srs_id)
+        return _unpack_multi_polygon(cls=cls, value=value, dimension=TWO_D)
     # End from_gpkg method
 # End MultiPolygon class
 
@@ -564,12 +572,7 @@ class MultiPolygonZ(AbstractGeopackageGeometryExtent):
         """
         From Geopackage
         """
-        srs_id, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
-        if is_empty:
-            return cls([], srs_id=srs_id)
-        # noinspection PyTypeChecker
-        return cls(unpack_polygons(
-            value[offset:], dimension=THREE_D), srs_id=srs_id)
+        return _unpack_multi_polygon(cls=cls, value=value, dimension=THREE_D)
     # End from_gpkg method
 # End MultiPolygonZ class
 
@@ -623,12 +626,7 @@ class MultiPolygonM(AbstractGeopackageGeometryExtent):
         """
         From Geopackage
         """
-        srs_id, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
-        if is_empty:
-            return cls([], srs_id=srs_id)
-        # noinspection PyTypeChecker
-        return cls(unpack_polygons(
-            value[offset:], dimension=THREE_D), srs_id=srs_id)
+        return _unpack_multi_polygon(cls=cls, value=value, dimension=THREE_D)
     # End from_gpkg method
 # End MultiPolygonM class
 
@@ -682,12 +680,7 @@ class MultiPolygonZM(AbstractGeopackageGeometryExtent):
         """
         From Geopackage
         """
-        srs_id, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
-        if is_empty:
-            return cls([], srs_id=srs_id)
-        # noinspection PyTypeChecker
-        return cls(unpack_polygons(
-            value[offset:], dimension=FOUR_D), srs_id=srs_id)
+        return _unpack_multi_polygon(cls=cls, value=value, dimension=FOUR_D)
     # End from_gpkg method
 # End MultiPolygonZM class
 
