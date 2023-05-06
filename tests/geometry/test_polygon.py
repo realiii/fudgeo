@@ -5,6 +5,7 @@ Test Polygons
 
 from pytest import mark, raises
 
+from fudgeo.constant import WGS84
 from fudgeo.geometry import (
     MultiPolygon, MultiPolygonM, MultiPolygonZ, MultiPolygonZM, Polygon,
     PolygonM, PolygonZ, PolygonZM)
@@ -51,8 +52,8 @@ def test_empty_polygon(cls, wkb):
     """
     Test Empty Polygon
     """
-    geom = cls([])
-    assert geom.to_wkb() == wkb
+    geom = cls([], srs_id=WGS84)
+    assert geom._to_wkb() == wkb
     assert isinstance(geom, cls)
     assert geom.rings == []
 # End test_empty_polygon function
@@ -68,8 +69,8 @@ def test_empty_multi_polygon(cls, wkb):
     """
     Test Empty Multi Polygon
     """
-    geom = cls([])
-    assert geom.to_wkb() == wkb
+    geom = cls([], srs_id=WGS84)
+    assert geom._to_wkb() == wkb
     assert isinstance(geom, cls)
     assert geom.polygons == []
 # End test_empty_multi_polygon function
@@ -80,14 +81,13 @@ def test_linear_ring(header):
     Test linear ring wkb
     """
     values = [(0, 0), (1, 1), (2, 0), (0, 0)]
-    ring = LinearRing(values)
+    ring = LinearRing(values, srs_id=WGS84)
     with raises(AttributeError):
         # noinspection PyDunderSlots,PyUnresolvedReferences
         ring.attribute = 10
     assert ring.coordinates == values
-    wkb = ring.to_wkb()
+    wkb = ring._to_wkb()
     assert wkb == _linear_ring_to_wkb(values)
-    assert LinearRing.from_wkb(wkb) == ring
 # End test_linear_ring function
 
 
@@ -96,14 +96,13 @@ def test_linear_ring_z(header):
     Test linear ring Z wkb
     """
     values = [(0, 0, 0), (1, 1, 1), (2, 0, 2), (0, 0, 0)]
-    ring = LinearRingZ(values)
+    ring = LinearRingZ(values, srs_id=WGS84)
     with raises(AttributeError):
         # noinspection PyDunderSlots,PyUnresolvedReferences
         ring.attribute = 10
     assert ring.coordinates == values
-    wkb = ring.to_wkb()
+    wkb = ring._to_wkb()
     assert wkb == _linear_ring_z_to_wkb(values)
-    assert LinearRingZ.from_wkb(wkb) == ring
 # End test_linear_ring_z function
 
 
@@ -112,14 +111,13 @@ def test_linear_ring_m(header):
     Test linear ring M wkb
     """
     values = [(0, 0, 0), (1, 1, 1), (2, 0, 2), (0, 0, 0)]
-    ring = LinearRingM(values)
+    ring = LinearRingM(values, srs_id=WGS84)
     with raises(AttributeError):
         # noinspection PyDunderSlots,PyUnresolvedReferences
         ring.attribute = 10
     assert ring.coordinates == values
-    wkb = ring.to_wkb()
+    wkb = ring._to_wkb()
     assert wkb == _linear_ring_m_to_wkb(values)
-    assert LinearRingM.from_wkb(wkb) == ring
 # End test_linear_ring_m function
 
 
@@ -128,14 +126,13 @@ def test_linear_ring_zm(header):
     Test linear ring ZM wkb
     """
     values = [(0, 0, 0, 0), (1, 1, 1, 1), (2, 0, 2, 0), (0, 0, 0, 0)]
-    ring = LinearRingZM(values)
+    ring = LinearRingZM(values, srs_id=WGS84)
     with raises(AttributeError):
         # noinspection PyDunderSlots,PyUnresolvedReferences
         ring.attribute = 10
     assert ring.coordinates == values
-    wkb = ring.to_wkb()
+    wkb = ring._to_wkb()
     assert wkb == _linear_ring_zm_to_wkb(values)
-    assert LinearRingZM.from_wkb(wkb) == ring
 # End test_linear_ring_zm function
 
 
@@ -145,13 +142,12 @@ def test_polygon(header):
     """
     values = [[(0, 0), (0, 1), (1, 1), (1, 0), (0, 0)],
               [(5, 5), (5, 15), (15, 15), (15, 5), (5, 5)]]
-    poly = Polygon(values)
+    poly = Polygon(values, srs_id=WGS84)
     with raises(AttributeError):
         # noinspection PyDunderSlots,PyUnresolvedReferences
         poly.attribute = 10
-    assert poly.to_wkb() == point_lists_to_wkb_polygon(values)
+    assert poly._to_wkb() == point_lists_to_wkb_polygon(values)
     assert poly.to_gpkg() == point_lists_to_gpkg_polygon(header, values)
-    assert Polygon.from_wkb(poly.to_wkb()) == poly
     assert Polygon.from_gpkg(poly.to_gpkg()) == poly
 # End test_polygon function
 
@@ -162,12 +158,11 @@ def test_polygon_z(header):
     """
     values = [[(0, 0, 0), (0, 1, 1), (1, 1, 1), (1, 0, 1), (0, 0, 0)],
               [(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]]
-    poly = PolygonZ(values)
+    poly = PolygonZ(values, srs_id=WGS84)
     with raises(AttributeError):
         # noinspection PyDunderSlots,PyUnresolvedReferences
         poly.attribute = 10
-    assert poly.to_wkb() == point_lists_z_to_wkb_polygon_z(values)
-    assert PolygonZ.from_wkb(poly.to_wkb()) == poly
+    assert poly._to_wkb() == point_lists_z_to_wkb_polygon_z(values)
     assert PolygonZ.from_gpkg(poly.to_gpkg()) == poly
 # End test_polygon_z function
 
@@ -178,12 +173,11 @@ def test_polygon_m(header):
     """
     values = [[(0, 0, 0), (0, 1, 1), (1, 1, 1), (1, 0, 1), (0, 0, 0)],
               [(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]]
-    poly = PolygonM(values)
+    poly = PolygonM(values, srs_id=WGS84)
     with raises(AttributeError):
         # noinspection PyDunderSlots,PyUnresolvedReferences
         poly.attribute = 10
-    assert poly.to_wkb() == point_lists_m_to_wkb_polygon_m(values)
-    assert PolygonM.from_wkb(poly.to_wkb()) == poly
+    assert poly._to_wkb() == point_lists_m_to_wkb_polygon_m(values)
     assert PolygonM.from_gpkg(poly.to_gpkg()) == poly
 # End test_polygon_m function
 
@@ -196,12 +190,11 @@ def test_polygon_zm(header):
                (1, 0, 1, 30), (0, 0, 0, 40)],
               [(5, 5, 5, 50), (5, 15, 10, 60), (15, 15, 15, 70),
                (15, 5, 20, 80), (5, 5, 5, 90)]]
-    poly = PolygonZM(values)
+    poly = PolygonZM(values, srs_id=WGS84)
     with raises(AttributeError):
         # noinspection PyDunderSlots,PyUnresolvedReferences
         poly.attribute = 10
-    assert poly.to_wkb() == point_lists_zm_to_wkb_polygon_zm(values)
-    assert PolygonZM.from_wkb(poly.to_wkb()) == poly
+    assert poly._to_wkb() == point_lists_zm_to_wkb_polygon_zm(values)
     assert PolygonZM.from_gpkg(poly.to_gpkg()) == poly
 # End test_polygon_zm function
 
@@ -213,13 +206,12 @@ def test_multi_polygon(header):
     values = [[[(0, 0), (0, 1), (1, 1), (1, 0), (0, 0)]],
               [[(5, 5), (5, 15), (15, 15), (15, 5), (5, 5)]],
               [[(7, 7), (7, 17), (17, 17), (7, 7)]]]
-    poly = MultiPolygon(values)
+    poly = MultiPolygon(values, srs_id=WGS84)
     with raises(AttributeError):
         # noinspection PyDunderSlots,PyUnresolvedReferences
         poly.attribute = 10
-    assert poly.to_wkb() == point_lists_to_wkb_multipolygon(values)
+    assert poly._to_wkb() == point_lists_to_wkb_multipolygon(values)
     assert poly.to_gpkg() == point_lists_to_gpkg_multi_polygon(header, values)
-    assert MultiPolygon.from_wkb(poly.to_wkb()) == poly
     assert MultiPolygon.from_gpkg(poly.to_gpkg()) == poly
 # End test_polygon function
 
@@ -230,12 +222,11 @@ def test_multi_polygon_z(header):
     """
     values = [[[(0, 0, 0), (0, 1, 1), (1, 1, 1), (1, 0, 1), (0, 0, 0)]],
               [[(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]]]
-    poly = MultiPolygonZ(values)
+    poly = MultiPolygonZ(values, srs_id=WGS84)
     with raises(AttributeError):
         # noinspection PyDunderSlots,PyUnresolvedReferences
         poly.attribute = 10
-    assert poly.to_wkb() == point_lists_z_to_wkb_multipolygon_z(values)
-    assert MultiPolygonZ.from_wkb(poly.to_wkb()) == poly
+    assert poly._to_wkb() == point_lists_z_to_wkb_multipolygon_z(values)
     assert MultiPolygonZ.from_gpkg(poly.to_gpkg()) == poly
 # End test_multi_polygon_z function
 
@@ -246,12 +237,11 @@ def test_multi_polygon_m(header):
     """
     values = [[[(0, 0, 0), (0, 1, 1), (1, 1, 1), (1, 0, 1), (0, 0, 0)]],
               [[(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]]]
-    poly = MultiPolygonM(values)
+    poly = MultiPolygonM(values, srs_id=WGS84)
     with raises(AttributeError):
         # noinspection PyDunderSlots,PyUnresolvedReferences
         poly.attribute = 10
-    assert poly.to_wkb() == point_lists_m_to_wkb_multipolygon_m(values)
-    assert MultiPolygonM.from_wkb(poly.to_wkb()) == poly
+    assert poly._to_wkb() == point_lists_m_to_wkb_multipolygon_m(values)
     assert MultiPolygonM.from_gpkg(poly.to_gpkg()) == poly
 # End test_multi_polygon_m function
 
@@ -264,12 +254,11 @@ def test_multi_polygon_zm(header):
                 (0, 0, 0, 50)]],
               [[(5, 5, 5, 60), (5, 15, 10, 70), (15, 15, 15, 80),
                 (15, 5, 20, 90), (5, 5, 5, 100)]]]
-    poly = MultiPolygonZM(values)
+    poly = MultiPolygonZM(values, srs_id=WGS84)
     with raises(AttributeError):
         # noinspection PyDunderSlots,PyUnresolvedReferences
         poly.attribute = 10
-    assert poly.to_wkb() == point_lists_zm_to_wkb_multipolygon_zm(values)
-    assert MultiPolygonZM.from_wkb(poly.to_wkb()) == poly
+    assert poly._to_wkb() == point_lists_zm_to_wkb_multipolygon_zm(values)
     assert MultiPolygonZM.from_gpkg(poly.to_gpkg()) == poly
 # End test_multi_polygon_zm function
 
