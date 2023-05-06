@@ -25,8 +25,7 @@ class LinearRing(AbstractSpatialGeometryExtent):
     """
     __slots__ = 'coordinates',
 
-    def __init__(self, coordinates: List[DOUBLE],
-                 srs_id: int = WGS84) -> None:
+    def __init__(self, coordinates: List[DOUBLE], srs_id: int) -> None:
         """
         Initialize the LinearRing class
         """
@@ -58,7 +57,8 @@ class LinearRing(AbstractSpatialGeometryExtent):
         """
         Points
         """
-        return [Point(x=x, y=y) for x, y in self.coordinates]
+        srs_id = self.srs_id
+        return [Point(x=x, y=y, srs_id=srs_id) for x, y in self.coordinates]
     # End points property
 
     def _to_wkb(self, use_prefix: bool = True) -> bytes:
@@ -76,7 +76,7 @@ class LinearRingZ(AbstractSpatialGeometryExtent):
     """
     __slots__ = 'coordinates',
 
-    def __init__(self, coordinates: List[TRIPLE], srs_id: int = WGS84) -> None:
+    def __init__(self, coordinates: List[TRIPLE], srs_id: int) -> None:
         """
         Initialize the LinearRingZ class
         """
@@ -108,7 +108,9 @@ class LinearRingZ(AbstractSpatialGeometryExtent):
         """
         Points
         """
-        return [PointZ(x=x, y=y, z=z) for x, y, z in self.coordinates]
+        srs_id = self.srs_id
+        return [PointZ(x=x, y=y, z=z, srs_id=srs_id)
+                for x, y, z in self.coordinates]
     # End points property
 
     def _to_wkb(self, use_prefix: bool = True) -> bytes:
@@ -126,7 +128,7 @@ class LinearRingM(AbstractSpatialGeometryExtent):
     """
     __slots__ = 'coordinates',
 
-    def __init__(self, coordinates: List[TRIPLE], srs_id: int = WGS84) -> None:
+    def __init__(self, coordinates: List[TRIPLE], srs_id: int) -> None:
         """
         Initialize the LinearRingM class
         """
@@ -158,7 +160,9 @@ class LinearRingM(AbstractSpatialGeometryExtent):
         """
         Points
         """
-        return [PointM(x=x, y=y, m=m) for x, y, m in self.coordinates]
+        srs_id = self.srs_id
+        return [PointM(x=x, y=y, m=m, srs_id=srs_id)
+                for x, y, m in self.coordinates]
     # End points property
 
     def _to_wkb(self, use_prefix: bool = True) -> bytes:
@@ -176,8 +180,7 @@ class LinearRingZM(AbstractSpatialGeometryExtent):
     """
     __slots__ = 'coordinates',
 
-    def __init__(self, coordinates: List[QUADRUPLE],
-                 srs_id: int = WGS84) -> None:
+    def __init__(self, coordinates: List[QUADRUPLE], srs_id: int) -> None:
         """
         Initialize the LinearRingZM class
         """
@@ -207,7 +210,9 @@ class LinearRingZM(AbstractSpatialGeometryExtent):
         """
         Points
         """
-        return [PointZM(x=x, y=y, z=z, m=m) for x, y, z, m in self.coordinates]
+        srs_id = self.srs_id
+        return [PointZM(x=x, y=y, z=z, m=m, srs_id=srs_id)
+                for x, y, z, m in self.coordinates]
     # End points property
 
     def _to_wkb(self, use_prefix: bool = True) -> bytes:
@@ -225,8 +230,7 @@ class Polygon(AbstractGeopackageGeometryExtent):
     """
     __slots__ = 'rings',
 
-    def __init__(self, coordinates: List[List[DOUBLE]],
-                 srs_id: int = WGS84) -> None:
+    def __init__(self, coordinates: List[List[DOUBLE]], srs_id: int) -> None:
         """
         Initialize the Polygon class
         """
@@ -284,14 +288,13 @@ class PolygonZ(AbstractGeopackageGeometryExtent):
     """
     __slots__ = 'rings',
 
-    def __init__(self, coordinates: List[List[TRIPLE]],
-                 srs_id: int = WGS84) -> None:
+    def __init__(self, coordinates: List[List[TRIPLE]], srs_id: int) -> None:
         """
         Initialize the PolygonZ class
         """
         super().__init__(srs_id=srs_id)
         self.rings: List[LinearRingZ] = [
-            LinearRingZ(coords) for coords in coordinates]
+            LinearRingZ(coords, srs_id=srs_id) for coords in coordinates]
     # End init built-in
 
     def __eq__(self, other: 'PolygonZ') -> bool:
@@ -343,14 +346,13 @@ class PolygonM(AbstractGeopackageGeometryExtent):
     """
     __slots__ = 'rings',
 
-    def __init__(self, coordinates: List[List[TRIPLE]],
-                 srs_id: int = WGS84) -> None:
+    def __init__(self, coordinates: List[List[TRIPLE]], srs_id: int) -> None:
         """
         Initialize the PolygonM class
         """
         super().__init__(srs_id=srs_id)
         self.rings: List[LinearRingM] = [
-            LinearRingM(coords) for coords in coordinates]
+            LinearRingM(coords, srs_id=srs_id) for coords in coordinates]
     # End init built-in
 
     def __eq__(self, other: 'PolygonM') -> bool:
@@ -402,14 +404,13 @@ class PolygonZM(AbstractGeopackageGeometryExtent):
     """
     __slots__ = 'rings',
 
-    def __init__(self, coordinates: List[List[QUADRUPLE]],
-                 srs_id: int = WGS84) -> None:
+    def __init__(self, coordinates: List[List[QUADRUPLE]], srs_id: int) -> None:
         """
         Initialize the PolygonZM class
         """
         super().__init__(srs_id=srs_id)
         self.rings: List[LinearRingZM] = [
-            LinearRingZM(coords) for coords in coordinates]
+            LinearRingZM(coords, srs_id=srs_id) for coords in coordinates]
     # End init built-in
 
     def __eq__(self, other: 'PolygonZM') -> bool:
@@ -462,13 +463,13 @@ class MultiPolygon(AbstractGeopackageGeometryExtent):
     __slots__ = 'polygons',
 
     def __init__(self, coordinates: List[List[List[DOUBLE]]],
-                 srs_id: int = WGS84) -> None:
+                 srs_id: int) -> None:
         """
         Initialize the MultiPolygon class
         """
         super().__init__(srs_id=srs_id)
         self.polygons: List[Polygon] = [
-            Polygon(coords) for coords in coordinates]
+            Polygon(coords, srs_id=srs_id) for coords in coordinates]
     # End init built-in
 
     def __eq__(self, other: 'MultiPolygon') -> bool:
@@ -521,13 +522,13 @@ class MultiPolygonZ(AbstractGeopackageGeometryExtent):
     __slots__ = 'polygons',
 
     def __init__(self, coordinates: List[List[List[TRIPLE]]],
-                 srs_id: int = WGS84) -> None:
+                 srs_id: int) -> None:
         """
         Initialize the MultiPolygonZ class
         """
         super().__init__(srs_id=srs_id)
         self.polygons: List[PolygonZ] = [
-            PolygonZ(coords) for coords in coordinates]
+            PolygonZ(coords, srs_id=srs_id) for coords in coordinates]
     # End init built-in
 
     def __eq__(self, other: 'MultiPolygonZ') -> bool:
@@ -580,13 +581,13 @@ class MultiPolygonM(AbstractGeopackageGeometryExtent):
     __slots__ = 'polygons',
 
     def __init__(self, coordinates: List[List[List[TRIPLE]]],
-                 srs_id: int = WGS84) -> None:
+                 srs_id: int) -> None:
         """
         Initialize the MultiPolygonM class
         """
         super().__init__(srs_id=srs_id)
         self.polygons: List[PolygonM] = [
-            PolygonM(coords) for coords in coordinates]
+            PolygonM(coords, srs_id=srs_id) for coords in coordinates]
     # End init built-in
 
     def __eq__(self, other: 'MultiPolygonM') -> bool:
@@ -639,13 +640,13 @@ class MultiPolygonZM(AbstractGeopackageGeometryExtent):
     __slots__ = 'polygons',
 
     def __init__(self, coordinates: List[List[List[QUADRUPLE]]],
-                 srs_id: int = WGS84) -> None:
+                 srs_id: int) -> None:
         """
         Initialize the MultiPolygonZM class
         """
         super().__init__(srs_id=srs_id)
         self.polygons: List[PolygonZM] = [
-            PolygonZM(coords) for coords in coordinates]
+            PolygonZM(coords, srs_id=srs_id) for coords in coordinates]
     # End init built-in
 
     def __eq__(self, other: 'MultiPolygonZM') -> bool:

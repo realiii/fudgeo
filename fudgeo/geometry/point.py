@@ -25,7 +25,7 @@ class Point(AbstractGeopackageGeometry):
     """
     __slots__ = 'x', 'y'
 
-    def __init__(self, *, x: float, y: float, srs_id: int = WGS84) -> None:
+    def __init__(self, *, x: float, y: float, srs_id: int) -> None:
         """
         Initialize the Point class
         """
@@ -83,7 +83,7 @@ class Point(AbstractGeopackageGeometry):
     # End from_gpkg method
 
     @classmethod
-    def from_tuple(cls, xy: DOUBLE, srs_id: int = WGS84) -> 'Point':
+    def from_tuple(cls, xy: DOUBLE, srs_id: int) -> 'Point':
         """
         From Tuple
         """
@@ -92,7 +92,7 @@ class Point(AbstractGeopackageGeometry):
     # End from_tuple method
 
     @classmethod
-    def empty(cls, srs_id: int = WGS84) -> 'Point':
+    def empty(cls, srs_id: int) -> 'Point':
         """
         Empty Point
         """
@@ -107,8 +107,7 @@ class PointZ(AbstractGeopackageGeometry):
     """
     __slots__ = 'x', 'y', 'z'
 
-    def __init__(self, *, x: float, y: float, z: float,
-                 srs_id: int = WGS84) -> None:
+    def __init__(self, *, x: float, y: float, z: float, srs_id: int) -> None:
         """
         Initialize the PointZ class
         """
@@ -167,7 +166,7 @@ class PointZ(AbstractGeopackageGeometry):
     # End from_gpkg method
 
     @classmethod
-    def from_tuple(cls, xyz: TRIPLE, srs_id: int = WGS84) -> 'PointZ':
+    def from_tuple(cls, xyz: TRIPLE, srs_id: int) -> 'PointZ':
         """
         From Tuple
         """
@@ -176,7 +175,7 @@ class PointZ(AbstractGeopackageGeometry):
     # End from_tuple method
 
     @classmethod
-    def empty(cls, srs_id: int = WGS84) -> 'PointZ':
+    def empty(cls, srs_id: int) -> 'PointZ':
         """
         Empty PointZ
         """
@@ -191,8 +190,7 @@ class PointM(AbstractGeopackageGeometry):
     """
     __slots__ = 'x', 'y', 'm'
 
-    def __init__(self, *, x: float, y: float, m: float,
-                 srs_id: int = WGS84) -> None:
+    def __init__(self, *, x: float, y: float, m: float, srs_id: int) -> None:
         """
         Initialize the PointM class
         """
@@ -251,7 +249,7 @@ class PointM(AbstractGeopackageGeometry):
     # End from_gpkg method
 
     @classmethod
-    def from_tuple(cls, xym: TRIPLE, srs_id: int = WGS84) -> 'PointM':
+    def from_tuple(cls, xym: TRIPLE, srs_id: int) -> 'PointM':
         """
         From Tuple
         """
@@ -260,7 +258,7 @@ class PointM(AbstractGeopackageGeometry):
     # End from_tuple method
 
     @classmethod
-    def empty(cls, srs_id: int = WGS84) -> 'PointM':
+    def empty(cls, srs_id: int) -> 'PointM':
         """
         Empty PointM
         """
@@ -276,7 +274,7 @@ class PointZM(AbstractGeopackageGeometry):
     __slots__ = 'x', 'y', 'z', 'm'
 
     def __init__(self, *, x: float, y: float, z: float, m: float,
-                 srs_id: int = WGS84) -> None:
+                 srs_id: int) -> None:
         """
         Initialize the PointZM class
         """
@@ -338,7 +336,7 @@ class PointZM(AbstractGeopackageGeometry):
     # End from_gpkg method
 
     @classmethod
-    def from_tuple(cls, xyzm: QUADRUPLE, srs_id: int = WGS84) -> 'PointZM':
+    def from_tuple(cls, xyzm: QUADRUPLE, srs_id: int) -> 'PointZM':
         """
         From Tuple
         """
@@ -347,7 +345,7 @@ class PointZM(AbstractGeopackageGeometry):
     # End from_tuple method
 
     @classmethod
-    def empty(cls, srs_id: int = WGS84) -> 'PointZM':
+    def empty(cls, srs_id: int) -> 'PointZM':
         """
         Empty Point
         """
@@ -362,7 +360,7 @@ class MultiPoint(AbstractGeopackageGeometryExtent):
     """
     __slots__ = 'coordinates',
 
-    def __init__(self, coordinates: List[DOUBLE], srs_id: int = WGS84) -> None:
+    def __init__(self, coordinates: List[DOUBLE], srs_id: int) -> None:
         """
         Initialize the MultiPoint class
         """
@@ -394,7 +392,8 @@ class MultiPoint(AbstractGeopackageGeometryExtent):
         """
         Points
         """
-        return [Point(x=x, y=y) for x, y in self.coordinates]
+        srs_id = self.srs_id
+        return [Point(x=x, y=y, srs_id=srs_id) for x, y in self.coordinates]
     # End points property
 
     def _to_wkb(self, use_prefix: bool = True) -> bytes:
@@ -426,7 +425,7 @@ class MultiPointZ(AbstractGeopackageGeometryExtent):
     """
     __slots__ = 'coordinates',
 
-    def __init__(self, coordinates: List[TRIPLE], srs_id: int = WGS84) -> None:
+    def __init__(self, coordinates: List[TRIPLE], srs_id: int) -> None:
         """
         Initialize the MultiPointZ class
         """
@@ -458,7 +457,9 @@ class MultiPointZ(AbstractGeopackageGeometryExtent):
         """
         Points
         """
-        return [PointZ(x=x, y=y, z=z) for x, y, z in self.coordinates]
+        srs_id = self.srs_id
+        return [PointZ(x=x, y=y, z=z, srs_id=srs_id)
+                for x, y, z in self.coordinates]
     # End points property
 
     def _to_wkb(self, use_prefix: bool = True) -> bytes:
@@ -489,7 +490,7 @@ class MultiPointM(AbstractGeopackageGeometryExtent):
     """
     __slots__ = 'coordinates',
 
-    def __init__(self, coordinates: List[TRIPLE], srs_id: int = WGS84) -> None:
+    def __init__(self, coordinates: List[TRIPLE], srs_id: int) -> None:
         """
         Initialize the MultiPointM class
         """
@@ -521,7 +522,9 @@ class MultiPointM(AbstractGeopackageGeometryExtent):
         """
         Points
         """
-        return [PointM(x=x, y=y, m=m) for x, y, m in self.coordinates]
+        srs_id = self.srs_id
+        return [PointM(x=x, y=y, m=m, srs_id=srs_id)
+                for x, y, m in self.coordinates]
     # End points property
 
     def _to_wkb(self, use_prefix: bool = True) -> bytes:
@@ -552,8 +555,7 @@ class MultiPointZM(AbstractGeopackageGeometryExtent):
     """
     __slots__ = 'coordinates',
 
-    def __init__(self, coordinates: List[QUADRUPLE],
-                 srs_id: int = WGS84) -> None:
+    def __init__(self, coordinates: List[QUADRUPLE], srs_id: int) -> None:
         """
         Initialize the MultiPointZM class
         """
@@ -585,7 +587,9 @@ class MultiPointZM(AbstractGeopackageGeometryExtent):
         """
         Points
         """
-        return [PointZM(x=x, y=y, z=z, m=m) for x, y, z, m in self.coordinates]
+        srs_id = self.srs_id
+        return [PointZM(x=x, y=y, z=z, m=m, srs_id=srs_id)
+                for x, y, z, m in self.coordinates]
     # End points property
 
     def _to_wkb(self, use_prefix: bool = True) -> bytes:

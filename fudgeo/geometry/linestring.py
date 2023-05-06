@@ -9,10 +9,9 @@ from typing import List
 
 from fudgeo.constant import (
     COUNT_CODE, DOUBLE, FOUR_D, HEADER_OFFSET, QUADRUPLE, THREE_D, TRIPLE,
-    TWO_D, WGS84, WKB_LINESTRING_M_PRE, WKB_LINESTRING_PRE,
-    WKB_LINESTRING_ZM_PRE, WKB_LINESTRING_Z_PRE, WKB_MULTI_LINESTRING_M_PRE,
-    WKB_MULTI_LINESTRING_PRE, WKB_MULTI_LINESTRING_ZM_PRE,
-    WKB_MULTI_LINESTRING_Z_PRE)
+    TWO_D, WKB_LINESTRING_M_PRE, WKB_LINESTRING_PRE, WKB_LINESTRING_ZM_PRE,
+    WKB_LINESTRING_Z_PRE, WKB_MULTI_LINESTRING_M_PRE, WKB_MULTI_LINESTRING_PRE,
+    WKB_MULTI_LINESTRING_ZM_PRE, WKB_MULTI_LINESTRING_Z_PRE)
 from fudgeo.geometry.base import AbstractGeopackageGeometryExtent
 from fudgeo.geometry.point import Point, PointM, PointZ, PointZM
 from fudgeo.geometry.util import (
@@ -25,7 +24,7 @@ class LineString(AbstractGeopackageGeometryExtent):
     """
     __slots__ = 'coordinates',
 
-    def __init__(self, coordinates: List[DOUBLE], srs_id: int = WGS84) -> None:
+    def __init__(self, coordinates: List[DOUBLE], srs_id: int) -> None:
         """
         Initialize the LineString class
         """
@@ -57,7 +56,8 @@ class LineString(AbstractGeopackageGeometryExtent):
         """
         Points
         """
-        return [Point(x=x, y=y) for x, y in self.coordinates]
+        srs_id = self.srs_id
+        return [Point(x=x, y=y, srs_id=srs_id) for x, y in self.coordinates]
     # End points property
 
     def _to_wkb(self, use_prefix: bool = True) -> bytes:
@@ -87,7 +87,7 @@ class LineStringZ(AbstractGeopackageGeometryExtent):
     """
     __slots__ = 'coordinates',
 
-    def __init__(self, coordinates: List[TRIPLE], srs_id: int = WGS84) -> None:
+    def __init__(self, coordinates: List[TRIPLE], srs_id: int) -> None:
         """
         Initialize the LineStringZ class
         """
@@ -119,7 +119,9 @@ class LineStringZ(AbstractGeopackageGeometryExtent):
         """
         Points
         """
-        return [PointZ(x=x, y=y, z=z) for x, y, z in self.coordinates]
+        srs_id = self.srs_id
+        return [PointZ(x=x, y=y, z=z, srs_id=srs_id)
+                for x, y, z in self.coordinates]
     # End points property
 
     def _to_wkb(self, use_prefix: bool = True) -> bytes:
@@ -150,7 +152,7 @@ class LineStringM(AbstractGeopackageGeometryExtent):
     """
     __slots__ = 'coordinates',
 
-    def __init__(self, coordinates: List[TRIPLE], srs_id: int = WGS84) -> None:
+    def __init__(self, coordinates: List[TRIPLE], srs_id: int) -> None:
         """
         Initialize the LineStringM class
         """
@@ -182,7 +184,9 @@ class LineStringM(AbstractGeopackageGeometryExtent):
         """
         Points
         """
-        return [PointM(x=x, y=y, m=m) for x, y, m in self.coordinates]
+        srs_id = self.srs_id
+        return [PointM(x=x, y=y, m=m, srs_id=srs_id)
+                for x, y, m in self.coordinates]
     # End points property
 
     def _to_wkb(self, use_prefix: bool = True) -> bytes:
@@ -214,8 +218,7 @@ class LineStringZM(AbstractGeopackageGeometryExtent):
     """
     __slots__ = 'coordinates',
 
-    def __init__(self, coordinates: List[QUADRUPLE],
-                 srs_id: int = WGS84) -> None:
+    def __init__(self, coordinates: List[QUADRUPLE], srs_id: int) -> None:
         """
         Initialize the LineStringZM class
         """
@@ -247,7 +250,9 @@ class LineStringZM(AbstractGeopackageGeometryExtent):
         """
         Points
         """
-        return [PointZM(x=x, y=y, z=z, m=m) for x, y, z, m in self.coordinates]
+        srs_id = self.srs_id
+        return [PointZM(x=x, y=y, z=z, m=m, srs_id=srs_id)
+                for x, y, z, m in self.coordinates]
     # End points property
 
     def _to_wkb(self, use_prefix: bool = True) -> bytes:
@@ -279,14 +284,13 @@ class MultiLineString(AbstractGeopackageGeometryExtent):
     """
     __slots__ = 'lines',
 
-    def __init__(self, coordinates: List[List[DOUBLE]],
-                 srs_id: int = WGS84) -> None:
+    def __init__(self, coordinates: List[List[DOUBLE]], srs_id: int) -> None:
         """
         Initialize the MultiLineString class
         """
         super().__init__(srs_id=srs_id)
         self.lines: List[LineString] = [
-            LineString(coords) for coords in coordinates]
+            LineString(coords, srs_id=srs_id) for coords in coordinates]
     # End init built-in
 
     def __eq__(self, other: 'MultiLineString') -> bool:
@@ -338,14 +342,13 @@ class MultiLineStringZ(AbstractGeopackageGeometryExtent):
     """
     __slots__ = 'lines',
 
-    def __init__(self, coordinates: List[List[TRIPLE]],
-                 srs_id: int = WGS84) -> None:
+    def __init__(self, coordinates: List[List[TRIPLE]], srs_id: int) -> None:
         """
         Initialize the MultiLineStringZ class
         """
         super().__init__(srs_id=srs_id)
         self.lines: List[LineStringZ] = [
-            LineStringZ(coords) for coords in coordinates]
+            LineStringZ(coords, srs_id=srs_id) for coords in coordinates]
     # End init built-in
 
     def __eq__(self, other: 'MultiLineStringZ') -> bool:
@@ -397,14 +400,13 @@ class MultiLineStringM(AbstractGeopackageGeometryExtent):
     """
     __slots__ = 'lines',
 
-    def __init__(self, coordinates: List[List[TRIPLE]],
-                 srs_id: int = WGS84) -> None:
+    def __init__(self, coordinates: List[List[TRIPLE]], srs_id: int) -> None:
         """
         Initialize the MultiLineStringM class
         """
         super().__init__(srs_id=srs_id)
         self.lines: List[LineStringM] = [
-            LineStringM(coords) for coords in coordinates]
+            LineStringM(coords, srs_id=srs_id) for coords in coordinates]
     # End init built-in
 
     def __eq__(self, other: 'MultiLineStringM') -> bool:
@@ -456,14 +458,13 @@ class MultiLineStringZM(AbstractGeopackageGeometryExtent):
     """
     __slots__ = 'lines',
 
-    def __init__(self, coordinates: List[List[QUADRUPLE]],
-                 srs_id: int = WGS84) -> None:
+    def __init__(self, coordinates: List[List[QUADRUPLE]], srs_id: int) -> None:
         """
         Initialize the MultiLineStringZM class
         """
         super().__init__(srs_id=srs_id)
         self.lines: List[LineStringZM] = [
-            LineStringZM(coords) for coords in coordinates]
+            LineStringZM(coords, srs_id=srs_id) for coords in coordinates]
     # End init built-in
 
     def __eq__(self, other: 'MultiLineStringZM') -> bool:
