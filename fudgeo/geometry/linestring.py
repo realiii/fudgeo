@@ -144,7 +144,7 @@ class LineStringZ(AbstractGeometryExtent):
         From WKB
         """
         # noinspection PyTypeChecker
-        return cls(unpack_line(wkb, dimension=3))
+        return cls(unpack_line(wkb, dimension=THREE_D))
     # End from_wkb method
 
     @classmethod
@@ -156,7 +156,7 @@ class LineStringZ(AbstractGeometryExtent):
         if is_empty:
             return cls([], srs_id=srs_id)
         # noinspection PyTypeChecker
-        return cls(unpack_line(value[offset:], dimension=3), srs_id=srs_id)
+        return cls(unpack_line(value[offset:], dimension=THREE_D), srs_id=srs_id)
     # End from_gpkg method
 # End LineStringZ class
 
@@ -215,7 +215,7 @@ class LineStringM(AbstractGeometryExtent):
         From WKB
         """
         # noinspection PyTypeChecker
-        return cls(unpack_line(wkb, dimension=3))
+        return cls(unpack_line(wkb, dimension=THREE_D))
     # End from_wkb method
 
     @classmethod
