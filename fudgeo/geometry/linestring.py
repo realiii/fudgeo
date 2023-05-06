@@ -12,10 +12,10 @@ from fudgeo.constant import (
     TWO_D, WKB_LINESTRING_M_PRE, WKB_LINESTRING_PRE, WKB_LINESTRING_ZM_PRE,
     WKB_LINESTRING_Z_PRE, WKB_MULTI_LINESTRING_M_PRE, WKB_MULTI_LINESTRING_PRE,
     WKB_MULTI_LINESTRING_ZM_PRE, WKB_MULTI_LINESTRING_Z_PRE)
-from fudgeo.geometry.base import AbstractGeopackageGeometryExtent
+from fudgeo.geometry.base import AbstractGeopackageGeometryEnvelope
 from fudgeo.geometry.point import Point, PointM, PointZ, PointZM
 from fudgeo.geometry.util import (
-    pack_coordinates, unpack_header, unpack_line, unpack_lines)
+    pack_coordinates, unpack_envelope, unpack_header, unpack_line, unpack_lines)
 
 
 LINE_STRING_TYPES = Union[Type['LineString'], Type['LineStringZ'],
@@ -30,11 +30,13 @@ def _unpack_linestring(cls: LINE_STRING_TYPES, value: bytes,
     """
     Unpack LineString
     """
-    srs_id, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
+    srs_id, env_code, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
     if is_empty:
         return cls([], srs_id=srs_id)
     # noinspection PyTypeChecker
-    return cls(unpack_line(value[offset:], dimension=dimension), srs_id=srs_id)
+    obj = cls(unpack_line(value[offset:], dimension=dimension), srs_id=srs_id)
+    obj._envelope = unpack_envelope(code=env_code, value=value[:offset])
+    return obj
 # End _unpack_linestring function
 
 
@@ -43,15 +45,17 @@ def _unpack_multi_linestring(cls: MULTI_LINE_STRING_TYPES, value: bytes,
     """
     Unpack LineStrings into MultiLineString
     """
-    srs_id, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
+    srs_id, env_code, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
     if is_empty:
         return cls([], srs_id=srs_id)
     # noinspection PyTypeChecker
-    return cls(unpack_lines(value[offset:], dimension=dimension), srs_id=srs_id)
+    obj = cls(unpack_lines(value[offset:], dimension=dimension), srs_id=srs_id)
+    obj._envelope = unpack_envelope(code=env_code, value=value[:offset])
+    return obj
 # End _unpack_multi_linestring function
 
 
-class LineString(AbstractGeopackageGeometryExtent):
+class LineString(AbstractGeopackageGeometryEnvelope):
     """
     LineString
     """
@@ -110,7 +114,7 @@ class LineString(AbstractGeopackageGeometryExtent):
 # End LineString class
 
 
-class LineStringZ(AbstractGeopackageGeometryExtent):
+class LineStringZ(AbstractGeopackageGeometryEnvelope):
     """
     LineStringZ
     """
@@ -171,7 +175,7 @@ class LineStringZ(AbstractGeopackageGeometryExtent):
 # End LineStringZ class
 
 
-class LineStringM(AbstractGeopackageGeometryExtent):
+class LineStringM(AbstractGeopackageGeometryEnvelope):
     """
     LineStringM
     """
@@ -232,7 +236,7 @@ class LineStringM(AbstractGeopackageGeometryExtent):
 # End LineStringM class
 
 
-class LineStringZM(AbstractGeopackageGeometryExtent):
+class LineStringZM(AbstractGeopackageGeometryEnvelope):
     """
     LineStringZM
     """
@@ -293,7 +297,7 @@ class LineStringZM(AbstractGeopackageGeometryExtent):
 # End LineStringZM class
 
 
-class MultiLineString(AbstractGeopackageGeometryExtent):
+class MultiLineString(AbstractGeopackageGeometryEnvelope):
     """
     Multi LineString
     """
@@ -346,7 +350,7 @@ class MultiLineString(AbstractGeopackageGeometryExtent):
 # End MultiLineString class
 
 
-class MultiLineStringZ(AbstractGeopackageGeometryExtent):
+class MultiLineStringZ(AbstractGeopackageGeometryEnvelope):
     """
     Multi LineString Z
     """
@@ -399,7 +403,7 @@ class MultiLineStringZ(AbstractGeopackageGeometryExtent):
 # End MultiLineStringZ class
 
 
-class MultiLineStringM(AbstractGeopackageGeometryExtent):
+class MultiLineStringM(AbstractGeopackageGeometryEnvelope):
     """
     Multi LineString M
     """
@@ -452,7 +456,7 @@ class MultiLineStringM(AbstractGeopackageGeometryExtent):
 # End MultiLineStringM class
 
 
-class MultiLineStringZM(AbstractGeopackageGeometryExtent):
+class MultiLineStringZM(AbstractGeopackageGeometryEnvelope):
     """
     Multi LineString ZM
     """

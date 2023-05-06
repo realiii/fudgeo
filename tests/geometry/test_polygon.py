@@ -28,7 +28,7 @@ def test_empty_polygon_gpkg():
     Test empty Polygon GeoPackage
     """
     data = b'GP\x00\x11\xe6\x10\x00\x00\x01\x03\x00\x00\x00\x00\x00\x00\x00'
-    srs_id, offset, is_empty = unpack_header(data[:8])
+    srs_id, env_code, offset, is_empty = unpack_header(data[:8])
     assert srs_id == 4326
     assert offset == 8
     assert is_empty

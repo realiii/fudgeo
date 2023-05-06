@@ -15,8 +15,10 @@ from fudgeo.constant import (
     WKB_MULTI_POINT_PRE, WKB_MULTI_POINT_ZM_PRE, WKB_MULTI_POINT_Z_PRE,
     WKB_POINT_M_PRE, WKB_POINT_PRE, WKB_POINT_ZM_PRE, WKB_POINT_Z_PRE)
 from fudgeo.geometry.base import (
-    AbstractGeopackageGeometry, AbstractGeopackageGeometryExtent)
-from fudgeo.geometry.util import pack_coordinates, unpack_header, unpack_points
+    AbstractGeopackageGeometry, AbstractGeopackageGeometryEnvelope)
+from fudgeo.geometry.util import (
+    pack_coordinates, unpack_envelope,
+    unpack_header, unpack_points)
 
 
 MULTI_POINT_TYPES = Union[Type['MultiPoint'], Type['MultiPointZ'],
@@ -28,12 +30,13 @@ def _unpack_multi_point(cls: MULTI_POINT_TYPES, value: bytes,
     """
     Unpack Points into MultiPoint
     """
-    srs_id, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
+    srs_id, env_code, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
     if is_empty:
         return cls([], srs_id=srs_id)
     # noinspection PyTypeChecker
-    return cls(unpack_points(
-        value[offset:], dimension=dimension), srs_id=srs_id)
+    obj = cls(unpack_points(value[offset:], dimension=dimension), srs_id=srs_id)
+    obj._envelope = unpack_envelope(code=env_code, value=value[:offset])
+    return obj
 # End _unpack_multi_point function
 
 
@@ -93,7 +96,7 @@ class Point(AbstractGeopackageGeometry):
         """
         From Geopackage
         """
-        srs_id, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
+        srs_id, _, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
         if is_empty:
             return cls.empty(srs_id)
         x, y = cls._unpack(value[offset:])
@@ -176,7 +179,7 @@ class PointZ(AbstractGeopackageGeometry):
         """
         From Geopackage
         """
-        srs_id, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
+        srs_id, _, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
         if is_empty:
             return cls.empty(srs_id)
         x, y, z = cls._unpack(value[offset:])
@@ -259,7 +262,7 @@ class PointM(AbstractGeopackageGeometry):
         """
         From Geopackage
         """
-        srs_id, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
+        srs_id, _, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
         if is_empty:
             return cls.empty(srs_id)
         x, y, m = cls._unpack(value[offset:])
@@ -346,7 +349,7 @@ class PointZM(AbstractGeopackageGeometry):
         """
         From Geopackage
         """
-        srs_id, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
+        srs_id, _, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
         if is_empty:
             return cls.empty(srs_id)
         x, y, z, m = cls._unpack(value[offset:])
@@ -372,7 +375,7 @@ class PointZM(AbstractGeopackageGeometry):
 # End PointZM class
 
 
-class MultiPoint(AbstractGeopackageGeometryExtent):
+class MultiPoint(AbstractGeopackageGeometryEnvelope):
     """
     Multi Point
     """
@@ -432,7 +435,7 @@ class MultiPoint(AbstractGeopackageGeometryExtent):
 # End MultiPoint class
 
 
-class MultiPointZ(AbstractGeopackageGeometryExtent):
+class MultiPointZ(AbstractGeopackageGeometryEnvelope):
     """
     Multi Point Z
     """
@@ -493,7 +496,7 @@ class MultiPointZ(AbstractGeopackageGeometryExtent):
 # End MultiPointZ class
 
 
-class MultiPointM(AbstractGeopackageGeometryExtent):
+class MultiPointM(AbstractGeopackageGeometryEnvelope):
     """
     Multi Point M
     """
@@ -554,7 +557,7 @@ class MultiPointM(AbstractGeopackageGeometryExtent):
 # End MultiPointM class
 
 
-class MultiPointZM(AbstractGeopackageGeometryExtent):
+class MultiPointZM(AbstractGeopackageGeometryEnvelope):
     """
     Multi Point ZM
     """

@@ -28,7 +28,7 @@ def test_empty_point_gpkg():
     Test Empty Point from GeoPackage
     """
     data = b'GP\x00\x11\xe6\x10\x00\x00\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\xf8\x7f\x00\x00\x00\x00\x00\x00\xf8\x7f'
-    srs_id, offset, is_empty = unpack_header(data[:8])
+    srs_id, env_code, offset, is_empty = unpack_header(data[:8])
     assert srs_id == 4326
     assert offset == 8
     assert is_empty

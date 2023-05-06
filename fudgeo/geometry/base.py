@@ -10,7 +10,7 @@ from operator import add
 from typing import List, Tuple
 
 from fudgeo.constant import EMPTY
-from fudgeo.geometry.util import make_header
+from fudgeo.geometry.util import EMPTY_ENVELOPE, Envelope, make_header
 
 
 class AbstractGeometry:
@@ -64,20 +64,20 @@ class AbstractSpatialGeometry(AbstractGeometry):
 
 
 # noinspection PyAbstractClass
-class AbstractSpatialGeometryExtent(AbstractSpatialGeometry):
+class AbstractSpatialGeometryEnvelope(AbstractSpatialGeometry):
     """
-    Abstract Spatial Geometry with Extent
+    Abstract Spatial Geometry with Envelope
     """
-    __slots__ = '_extent',
+    __slots__ = '_envelope',
 
     def __init__(self, srs_id: int) -> None:
         """
-        Initialize the AbstractSpatialGeometryExtent class
+        Initialize the AbstractSpatialGeometryEnvelope class
         """
         super().__init__(srs_id=srs_id)
-        self._extent: Tuple[float, ...] = ()
+        self._envelope: Envelope = EMPTY_ENVELOPE
     # End init built-in
-# End AbstractSpatialGeometryExtent class
+# End AbstractSpatialGeometryEnvelope class
 
 
 class AbstractGeopackageGeometry(AbstractSpatialGeometry):
@@ -106,20 +106,20 @@ class AbstractGeopackageGeometry(AbstractSpatialGeometry):
 
 
 # noinspection PyAbstractClass
-class AbstractGeopackageGeometryExtent(AbstractGeopackageGeometry):
+class AbstractGeopackageGeometryEnvelope(AbstractGeopackageGeometry):
     """
-    Abstract Spatial Geometry with Extent
+    Abstract Spatial Geometry with Envelope
     """
-    __slots__ = '_extent',
+    __slots__ = '_envelope',
 
     def __init__(self, srs_id: int) -> None:
         """
-        Initialize the AbstractSpatialGeometryExtent class
+        Initialize the AbstractGeopackageGeometryEnvelope class
         """
         super().__init__(srs_id=srs_id)
-        self._extent: Tuple[float, ...] = ()
+        self._envelope: Envelope = EMPTY_ENVELOPE
     # End init built-in
-# End AbstractGeopackageGeometryExtent class
+# End AbstractGeopackageGeometryEnvelope class
 
 
 if __name__ == '__main__':  # pragma: no cover

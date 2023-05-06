@@ -5,13 +5,44 @@ Utility Functions
 
 
 from functools import lru_cache, reduce
+from math import nan
 from operator import add
 from struct import pack, unpack
 from typing import List, Tuple
 
 from fudgeo.constant import (
-    COORDINATES, COUNT_CODE, EMPTY, ENVELOPE_OFFSET, GP_MAGIC, HEADER_CODE,
-    POINT_PREFIX, TWO_D)
+    COORDINATES, COUNT_CODE, EMPTY, ENVELOPE_COUNT, ENVELOPE_OFFSET, GP_MAGIC,
+    HEADER_CODE,
+    HEADER_OFFSET, POINT_PREFIX, TWO_D)
+
+
+class Envelope:
+    """
+    Envelope
+    """
+    __slots__ = ['min_x', 'max_x', 'min_y', 'max_y',
+                 'min_z', 'max_z', 'min_m', 'max_m']
+
+    def __init__(self, min_x: float, max_x: float, min_y: float, max_y: float,
+                 min_z: float = nan, max_z: float = nan,
+                 min_m: float = nan, max_m: float = nan) -> None:
+        """
+        Initialize the Envelope class
+        """
+        super().__init__()
+        self.min_x: float = min_x
+        self.max_x: float = max_x
+        self.min_y: float = min_y
+        self.max_y: float = max_y
+        self.min_z: float = min_z
+        self.max_z: float = max_z
+        self.min_m: float = min_m
+        self.max_m: float = max_m
+    # End init built-in
+# End Envelope class
+
+
+EMPTY_ENVELOPE = Envelope(min_x=nan, max_x=nan, min_y=nan, max_y=nan)
 
 
 def unpack_line(value: bytes, dimension: int,
@@ -126,15 +157,45 @@ def make_header(srs_id: int, is_empty: bool) -> bytes:
 
 
 @lru_cache(maxsize=None)
-def unpack_header(value: bytes) -> Tuple[int, int, bool]:
+def unpack_header(value: bytes) -> Tuple[int, int, int, bool]:
     """
     Cached Unpacking of a GeoPackage Geometry Header
     """
     _, _, flags, srs_id = unpack(HEADER_CODE, value)
     envelope_code = (flags & (0x07 << 1)) >> 1
     is_empty = bool((flags & (0x01 << 4)) >> 4)
-    return srs_id, ENVELOPE_OFFSET[envelope_code], is_empty
+    return srs_id, envelope_code, ENVELOPE_OFFSET[envelope_code], is_empty
 # End unpack_header function
+
+
+def unpack_envelope(code: int, value: bytes) -> Envelope:
+    """
+    Unpack Envelope
+
+    From Geopackage spec (v1.3.1)
+    0: no envelope (space saving slower indexing option), 0 bytes
+    1: envelope is [minx, maxx, miny, maxy], 32 bytes
+    2: envelope is [minx, maxx, miny, maxy, minz, maxz], 48 bytes
+    3: envelope is [minx, maxx, miny, maxy, minm, maxm], 48 bytes
+    4: envelope is [minx, maxx, miny, maxy, minz, maxz, minm, maxm], 64 bytes
+    """
+    if not code:
+        return EMPTY_ENVELOPE
+    if code not in ENVELOPE_COUNT:
+        return EMPTY_ENVELOPE
+    values = unpack(f'<{ENVELOPE_COUNT[code]}d', value[HEADER_OFFSET:])
+    min_x = max_x = min_y = max_y = min_z = max_z = min_m = max_m = nan
+    if code == 1:
+        min_x, max_x, min_y, max_y = values
+    elif code == 2:
+        min_x, max_x, min_y, max_y, min_z, max_z = values
+    elif code == 3:
+        min_x, max_x, min_y, max_y, min_m, max_m = values
+    elif code == 4:
+        min_x, max_x, min_y, max_y, min_z, max_z, min_m, max_m = values
+    return Envelope(min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y,
+                    min_z=min_z, max_z=max_z, min_m=min_m, max_m=max_m)
+# End unpack_envelope function
 
 
 if __name__ == '__main__':  # pragma: no cover

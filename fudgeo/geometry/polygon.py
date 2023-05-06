@@ -13,10 +13,11 @@ from fudgeo.constant import (
     WKB_MULTI_POLYGON_ZM_PRE, WKB_MULTI_POLYGON_Z_PRE, WKB_POLYGON_M_PRE,
     WKB_POLYGON_PRE, WKB_POLYGON_ZM_PRE, WKB_POLYGON_Z_PRE)
 from fudgeo.geometry.base import (
-    AbstractGeopackageGeometryExtent, AbstractSpatialGeometryExtent)
+    AbstractGeopackageGeometryEnvelope, AbstractSpatialGeometryEnvelope)
 from fudgeo.geometry.point import Point, PointM, PointZ, PointZM
 from fudgeo.geometry.util import (
-    pack_coordinates, unpack_header, unpack_lines, unpack_polygons)
+    pack_coordinates, unpack_envelope, unpack_header, unpack_lines,
+    unpack_polygons)
 
 
 POLYGON_TYPES = Union[Type['Polygon'], Type['PolygonZ'],
@@ -29,12 +30,14 @@ def _unpack_polygon(cls: POLYGON_TYPES, value: bytes, dimension: int) -> Any:
     """
     Unpack Linear Rings into Polygon
     """
-    srs_id, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
+    srs_id, env_code, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
     if is_empty:
         return cls([], srs_id=srs_id)
     # noinspection PyTypeChecker
-    return cls(unpack_lines(value[offset:], dimension=dimension, is_ring=True),
-               srs_id=srs_id)
+    obj = cls(unpack_lines(value[offset:], dimension=dimension, is_ring=True),
+              srs_id=srs_id)
+    obj._envelope = unpack_envelope(code=env_code, value=value[:offset])
+    return obj
 # End _unpack_polygon function
 
 
@@ -43,16 +46,18 @@ def _unpack_multi_polygon(cls: MULTI_POLYGON_TYPES, value: bytes,
     """
     Unpack Polygons into MultiPolygon
     """
-    srs_id, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
+    srs_id, env_code, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
     if is_empty:
         return cls([], srs_id=srs_id)
     # noinspection PyTypeChecker
-    return cls(unpack_polygons(value[offset:], dimension=dimension),
-               srs_id=srs_id)
+    obj = cls(unpack_polygons(value[offset:], dimension=dimension),
+              srs_id=srs_id)
+    obj._envelope = unpack_envelope(code=env_code, value=value[:offset])
+    return obj
 # End _unpack_multi_polygon function
 
 
-class LinearRing(AbstractSpatialGeometryExtent):
+class LinearRing(AbstractSpatialGeometryEnvelope):
     """
     Linear Ring
     """
@@ -103,7 +108,7 @@ class LinearRing(AbstractSpatialGeometryExtent):
 # End LinearRing class
 
 
-class LinearRingZ(AbstractSpatialGeometryExtent):
+class LinearRingZ(AbstractSpatialGeometryEnvelope):
     """
     Linear Ring Z
     """
@@ -155,7 +160,7 @@ class LinearRingZ(AbstractSpatialGeometryExtent):
 # End LinearRingZ class
 
 
-class LinearRingM(AbstractSpatialGeometryExtent):
+class LinearRingM(AbstractSpatialGeometryEnvelope):
     """
     Linear Ring M
     """
@@ -207,7 +212,7 @@ class LinearRingM(AbstractSpatialGeometryExtent):
 # End LinearRingM class
 
 
-class LinearRingZM(AbstractSpatialGeometryExtent):
+class LinearRingZM(AbstractSpatialGeometryEnvelope):
     """
     Linear Ring ZM
     """
@@ -257,7 +262,7 @@ class LinearRingZM(AbstractSpatialGeometryExtent):
 # End LinearRingZM class
 
 
-class Polygon(AbstractGeopackageGeometryExtent):
+class Polygon(AbstractGeopackageGeometryEnvelope):
     """
     Polygon
     """
@@ -310,7 +315,7 @@ class Polygon(AbstractGeopackageGeometryExtent):
 # End Polygon class
 
 
-class PolygonZ(AbstractGeopackageGeometryExtent):
+class PolygonZ(AbstractGeopackageGeometryEnvelope):
     """
     Polygon Z
     """
@@ -363,7 +368,7 @@ class PolygonZ(AbstractGeopackageGeometryExtent):
 # End PolygonZ class
 
 
-class PolygonM(AbstractGeopackageGeometryExtent):
+class PolygonM(AbstractGeopackageGeometryEnvelope):
     """
     Polygon M
     """
@@ -416,7 +421,7 @@ class PolygonM(AbstractGeopackageGeometryExtent):
 # End PolygonM class
 
 
-class PolygonZM(AbstractGeopackageGeometryExtent):
+class PolygonZM(AbstractGeopackageGeometryEnvelope):
     """
     Polygon ZM
     """
@@ -469,7 +474,7 @@ class PolygonZM(AbstractGeopackageGeometryExtent):
 # End PolygonZM class
 
 
-class MultiPolygon(AbstractGeopackageGeometryExtent):
+class MultiPolygon(AbstractGeopackageGeometryEnvelope):
     """
     Multi Polygon
     """
@@ -523,7 +528,7 @@ class MultiPolygon(AbstractGeopackageGeometryExtent):
 # End MultiPolygon class
 
 
-class MultiPolygonZ(AbstractGeopackageGeometryExtent):
+class MultiPolygonZ(AbstractGeopackageGeometryEnvelope):
     """
     Multi Polygon Z
     """
@@ -577,7 +582,7 @@ class MultiPolygonZ(AbstractGeopackageGeometryExtent):
 # End MultiPolygonZ class
 
 
-class MultiPolygonM(AbstractGeopackageGeometryExtent):
+class MultiPolygonM(AbstractGeopackageGeometryEnvelope):
     """
     Multi Polygon M
     """
@@ -631,7 +636,7 @@ class MultiPolygonM(AbstractGeopackageGeometryExtent):
 # End MultiPolygonM class
 
 
-class MultiPolygonZM(AbstractGeopackageGeometryExtent):
+class MultiPolygonZM(AbstractGeopackageGeometryEnvelope):
     """
     Multi Polygon M
     """
