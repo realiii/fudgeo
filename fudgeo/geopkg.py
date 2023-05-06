@@ -10,8 +10,8 @@ from os import PathLike
 from pathlib import Path
 from re import IGNORECASE, compile as recompile
 from sqlite3 import (
-    Connection, Cursor, PARSE_COLNAMES, PARSE_DECLTYPES, connect,
-    register_adapter, register_converter)
+    Connection, Cursor, DatabaseError, OperationalError, PARSE_COLNAMES,
+    PARSE_DECLTYPES, connect, register_adapter, register_converter)
 from typing import Callable, Dict, List, Optional, Tuple, Type, Union
 
 from fudgeo.enumeration import (
@@ -23,13 +23,14 @@ from fudgeo.geometry import (
     Polygon, PolygonZ, PolygonM, PolygonZM, MultiPolygon, MultiPolygonZ,
     MultiPolygonM, MultiPolygonZM)
 from fudgeo.sql import (
-    CHECK_SRS_EXISTS, CREATE_FEATURE_TABLE, CREATE_TABLE, DEFAULT_EPSG_RECS,
-    DEFAULT_ESRI_RECS, GPKG_OGR_CONTENTS_DELETE_TRIGGER,
-    GPKG_OGR_CONTENTS_INSERT_TRIGGER, INSERT_GPKG_CONTENTS_SHORT,
-    INSERT_GPKG_GEOM_COL, INSERT_GPKG_OGR_CONTENTS, INSERT_GPKG_SRS, KEYWORDS,
-    REMOVE_FEATURE_CLASS, REMOVE_TABLE, SELECT_EXTENT, SELECT_GEOMETRY_COLUMN,
-    SELECT_GEOMETRY_TYPE, SELECT_HAS_ZM, SELECT_SRS, SELECT_TABLES_BY_TYPE,
-    TABLE_EXISTS, UPDATE_EXTENT)
+    CHECK_SRS_EXISTS, CREATE_FEATURE_TABLE, CREATE_OGR_CONTENTS, CREATE_TABLE,
+    DEFAULT_EPSG_RECS, DEFAULT_ESRI_RECS, DELETE_OGR_CONTENTS,
+    GPKG_OGR_CONTENTS_DELETE_TRIGGER, GPKG_OGR_CONTENTS_INSERT_TRIGGER,
+    HAS_OGR_CONTENTS, INSERT_GPKG_CONTENTS_SHORT, INSERT_GPKG_GEOM_COL,
+    INSERT_GPKG_OGR_CONTENTS, INSERT_GPKG_SRS, KEYWORDS, REMOVE_FEATURE_CLASS,
+    REMOVE_TABLE, SELECT_EXTENT, SELECT_GEOMETRY_COLUMN, SELECT_GEOMETRY_TYPE,
+    SELECT_HAS_ZM, SELECT_SRS, SELECT_TABLES_BY_TYPE, TABLE_EXISTS,
+    UPDATE_EXTENT)
 
 
 FIELDS = Union[Tuple['Field', ...], List['Field']]
@@ -171,7 +172,8 @@ class GeoPackage:
 
     @classmethod
     def create(cls, path: Union[PathLike, str],
-               flavor: str = GPKGFlavors.esri) -> 'GeoPackage':
+               flavor: str = GPKGFlavors.esri,
+               ogr_contents: bool = True) -> 'GeoPackage':
         """
         Create a new GeoPackage
         """
@@ -188,6 +190,8 @@ class GeoPackage:
             with Path(__file__).parent.joinpath('geopkg.sql').open() as fin:
                 conn.executescript(fin.read())
             conn.executemany(INSERT_GPKG_SRS, defaults)
+            if ogr_contents:
+                conn.execute(CREATE_OGR_CONTENTS)
         return cls(path)
     # End create method
 
@@ -338,19 +342,19 @@ class Table(BaseTable):
         cols = f', {", ".join(repr(f) for f in fields)}' if fields else ''
         with geopackage.connection as conn:
             escaped_name = _escape_name(name)
+            has_ogr_contents = _has_ogr_contents(conn)
             if overwrite:
                 conn.executescript(REMOVE_TABLE.format(name, escaped_name))
+                if has_ogr_contents:
+                    conn.execute(DELETE_OGR_CONTENTS.format(name))
             conn.execute(CREATE_TABLE.format(
                 name=escaped_name, other_fields=cols))
             conn.execute(INSERT_GPKG_CONTENTS_SHORT, (
                 name, DataType.attributes, name, description, _now(), None))
-            conn.execute(INSERT_GPKG_OGR_CONTENTS, (name, 0))
-            conn.execute(
-                GPKG_OGR_CONTENTS_INSERT_TRIGGER.format(name, escaped_name))
-            conn.execute(
-                GPKG_OGR_CONTENTS_DELETE_TRIGGER.format(name, escaped_name))
+            if has_ogr_contents:
+                _add_ogr_contents(conn, name=name, escaped_name=escaped_name)
         return cls(geopackage=geopackage, name=name)
-    # End create_table method
+    # End create method
 
     def drop(self) -> None:
         """
@@ -359,6 +363,8 @@ class Table(BaseTable):
         with self.geopackage.connection as conn:
             conn.executescript(
                 REMOVE_TABLE.format(self.name, self.escaped_name))
+            if _has_ogr_contents(conn):
+                conn.execute(DELETE_OGR_CONTENTS.format(self.name))
     # End drop method
 # End Table class
 
@@ -387,9 +393,12 @@ class FeatureClass(BaseTable):
         cols = f', {", ".join(repr(f) for f in fields)}' if fields else ''
         with geopackage.connection as conn:
             escaped_name = _escape_name(name)
+            has_ogr_contents = _has_ogr_contents(conn)
             if overwrite:
                 conn.executescript(
                     REMOVE_FEATURE_CLASS.format(name, escaped_name))
+                if has_ogr_contents:
+                    conn.execute(DELETE_OGR_CONTENTS.format(name))
             conn.execute(CREATE_FEATURE_TABLE.format(
                 name=escaped_name, feature_type=shape_type, other_fields=cols))
             if not geopackage.check_srs_exists(srs.srs_id):
@@ -399,11 +408,8 @@ class FeatureClass(BaseTable):
                           int(z_enabled), int(m_enabled)))
             conn.execute(INSERT_GPKG_CONTENTS_SHORT, (
                 name, DataType.features, name, description, _now(), srs.srs_id))
-            conn.execute(INSERT_GPKG_OGR_CONTENTS, (name, 0))
-            conn.execute(
-                GPKG_OGR_CONTENTS_INSERT_TRIGGER.format(name, escaped_name))
-            conn.execute(
-                GPKG_OGR_CONTENTS_DELETE_TRIGGER.format(name, escaped_name))
+            if has_ogr_contents:
+                _add_ogr_contents(conn, name=name, escaped_name=escaped_name)
         return cls(geopackage=geopackage, name=name)
     # End create method
 
@@ -414,6 +420,8 @@ class FeatureClass(BaseTable):
         with self.geopackage.connection as conn:
             conn.executescript(
                 REMOVE_FEATURE_CLASS.format(self.name, self.escaped_name))
+            if _has_ogr_contents(conn):
+                conn.execute(DELETE_OGR_CONTENTS.format(self.name))
     # End drop method
 
     @staticmethod
@@ -581,6 +589,28 @@ class Field:
         return f'{self.escaped_name} {self.data_type}'
     # End repr built-in
 # End Field class
+
+
+def _has_ogr_contents(conn: 'Connection') -> bool:
+    """
+    Has gpkg_ogr_contents table
+    """
+    try:
+        cursor = conn.execute(HAS_OGR_CONTENTS)
+    except (DatabaseError, OperationalError):
+        return False
+    return bool(cursor.fetchone())
+# End _has_ogr_contents function
+
+
+def _add_ogr_contents(conn: Connection, name: str, escaped_name: str) -> None:
+    """
+    Add OGR Contents Table Entry and Triggers
+    """
+    conn.execute(INSERT_GPKG_OGR_CONTENTS, (name, 0))
+    conn.execute(GPKG_OGR_CONTENTS_INSERT_TRIGGER.format(name, escaped_name))
+    conn.execute(GPKG_OGR_CONTENTS_DELETE_TRIGGER.format(name, escaped_name))
+# End _add_ogr_contents function
 
 
 if __name__ == '__main__':
