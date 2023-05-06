@@ -62,22 +62,13 @@ class Point(AbstractGeopackageGeometry):
         return x, y
     # End _unpack method
 
-    def to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
         """
         pre = WKB_POINT_PRE if use_prefix else EMPTY
         return pre + pack(TWO_D_PACK_CODE, self.x, self.y)
-    # End to_wkb method
-
-    @classmethod
-    def from_wkb(cls, wkb: bytes) -> 'Point':
-        """
-        From WKB
-        """
-        x, y = cls._unpack(wkb)
-        return cls(x=x, y=y)
-    # End from_wkb method
+    # End _to_wkb method
 
     @classmethod
     def from_gpkg(cls, value: bytes) -> 'Point':
@@ -155,22 +146,13 @@ class PointZ(AbstractGeopackageGeometry):
         return x, y, z
     # End _unpack method
 
-    def to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
         """
         pre = WKB_POINT_Z_PRE if use_prefix else EMPTY
         return pre + pack(THREE_D_PACK_CODE, self.x, self.y, self.z)
-    # End to_wkb method
-
-    @classmethod
-    def from_wkb(cls, wkb: bytes) -> 'PointZ':
-        """
-        From WKB
-        """
-        x, y, z = cls._unpack(wkb)
-        return cls(x=x, y=y, z=z)
-    # End from_wkb method
+    # End _to_wkb method
 
     @classmethod
     def from_gpkg(cls, value: bytes) -> 'PointZ':
@@ -248,22 +230,13 @@ class PointM(AbstractGeopackageGeometry):
         return x, y, m
     # End _unpack method
 
-    def to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
         """
         pre = WKB_POINT_M_PRE if use_prefix else EMPTY
         return pre + pack(THREE_D_PACK_CODE, self.x, self.y, self.m)
-    # End to_wkb method
-
-    @classmethod
-    def from_wkb(cls, wkb: bytes) -> 'PointM':
-        """
-        From WKB
-        """
-        x, y, m = cls._unpack(wkb)
-        return cls(x=x, y=y, m=m)
-    # End from_wkb method
+    # End _to_wkb method
 
     @classmethod
     def from_gpkg(cls, value: bytes) -> 'PointM':
@@ -344,22 +317,13 @@ class PointZM(AbstractGeopackageGeometry):
         return x, y, z, m
     # End _unpack method
 
-    def to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
         """
         pre = WKB_POINT_ZM_PRE if use_prefix else EMPTY
         return pre + pack(FOUR_D_PACK_CODE, self.x, self.y, self.z, self.m)
-    # End to_wkb method
-
-    @classmethod
-    def from_wkb(cls, wkb: bytes) -> 'PointZM':
-        """
-        From WKB
-        """
-        x, y, z, m = cls._unpack(wkb)
-        return cls(x=x, y=y, z=z, m=m)
-    # End from_wkb method
+    # End _to_wkb method
 
     @classmethod
     def from_gpkg(cls, value: bytes) -> 'PointZM':
@@ -433,22 +397,13 @@ class MultiPoint(AbstractGeopackageGeometryExtent):
         return [Point(x=x, y=y) for x, y in self.coordinates]
     # End points property
 
-    def to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
         """
         return WKB_MULTI_POINT_PRE + pack_coordinates(
             self.coordinates, use_prefix=True)
-    # End to_wkb method
-
-    @classmethod
-    def from_wkb(cls, wkb: bytes) -> 'MultiPoint':
-        """
-        From WKB
-        """
-        # noinspection PyTypeChecker
-        return cls(unpack_points(wkb, dimension=TWO_D))
-    # End from_wkb method
+    # End _to_wkb method
 
     @classmethod
     def from_gpkg(cls, value: bytes) -> 'MultiPoint':
@@ -506,22 +461,13 @@ class MultiPointZ(AbstractGeopackageGeometryExtent):
         return [PointZ(x=x, y=y, z=z) for x, y, z in self.coordinates]
     # End points property
 
-    def to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
         """
         return WKB_MULTI_POINT_Z_PRE + pack_coordinates(
             self.coordinates, has_z=True, use_prefix=True)
-    # End to_wkb method
-
-    @classmethod
-    def from_wkb(cls, wkb: bytes) -> 'MultiPointZ':
-        """
-        From WKB
-        """
-        # noinspection PyTypeChecker
-        return cls(unpack_points(wkb, dimension=3))
-    # End from_wkb method
+    # End _to_wkb method
 
     @classmethod
     def from_gpkg(cls, value: bytes) -> 'MultiPointZ':
@@ -578,22 +524,13 @@ class MultiPointM(AbstractGeopackageGeometryExtent):
         return [PointM(x=x, y=y, m=m) for x, y, m in self.coordinates]
     # End points property
 
-    def to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
         """
         return WKB_MULTI_POINT_M_PRE + pack_coordinates(
             self.coordinates, has_m=True, use_prefix=True)
-    # End to_wkb method
-
-    @classmethod
-    def from_wkb(cls, wkb: bytes) -> 'MultiPointM':
-        """
-        From WKB
-        """
-        # noinspection PyTypeChecker
-        return cls(unpack_points(wkb, dimension=3))
-    # End from_wkb method
+    # End _to_wkb method
 
     @classmethod
     def from_gpkg(cls, value: bytes) -> 'MultiPointM':
@@ -651,22 +588,13 @@ class MultiPointZM(AbstractGeopackageGeometryExtent):
         return [PointZM(x=x, y=y, z=z, m=m) for x, y, z, m in self.coordinates]
     # End points property
 
-    def to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
         """
         return WKB_MULTI_POINT_ZM_PRE + pack_coordinates(
             self.coordinates, has_z=True, has_m=True, use_prefix=True)
-    # End to_wkb method
-
-    @classmethod
-    def from_wkb(cls, wkb: bytes) -> 'MultiPointZM':
-        """
-        From WKB
-        """
-        # noinspection PyTypeChecker
-        return cls(unpack_points(wkb, dimension=FOUR_D))
-    # End from_wkb method
+    # End _to_wkb method
 
     @classmethod
     def from_gpkg(cls, value: bytes) -> 'MultiPointZM':

@@ -61,21 +61,12 @@ class LinearRing(AbstractSpatialGeometryExtent):
         return [Point(x=x, y=y) for x, y in self.coordinates]
     # End points property
 
-    def to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
         """
         return pack_coordinates(self.coordinates)
-    # End to_wkb method
-
-    @classmethod
-    def from_wkb(cls, wkb: bytes) -> 'LinearRing':
-        """
-        From WKB
-        """
-        # noinspection PyTypeChecker
-        return cls(unpack_line(wkb, dimension=TWO_D, is_ring=True))
-    # End from_wkb method
+    # End _to_wkb method
 # End LinearRing class
 
 
@@ -120,21 +111,12 @@ class LinearRingZ(AbstractSpatialGeometryExtent):
         return [PointZ(x=x, y=y, z=z) for x, y, z in self.coordinates]
     # End points property
 
-    def to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
         """
         return pack_coordinates(self.coordinates, has_z=True)
-    # End to_wkb method
-
-    @classmethod
-    def from_wkb(cls, wkb: bytes) -> 'LinearRingZ':
-        """
-        From WKB
-        """
-        # noinspection PyTypeChecker
-        return cls(unpack_line(wkb, dimension=THREE_D, is_ring=True))
-    # End from_wkb method
+    # End _to_wkb method
 # End LinearRingZ class
 
 
@@ -179,21 +161,12 @@ class LinearRingM(AbstractSpatialGeometryExtent):
         return [PointM(x=x, y=y, m=m) for x, y, m in self.coordinates]
     # End points property
 
-    def to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
         """
         return pack_coordinates(self.coordinates, has_m=True)
-    # End to_wkb method
-
-    @classmethod
-    def from_wkb(cls, wkb: bytes) -> 'LinearRingM':
-        """
-        From WKB
-        """
-        # noinspection PyTypeChecker
-        return cls(unpack_line(wkb, dimension=THREE_D, is_ring=True))
-    # End from_wkb method
+    # End _to_wkb method
 # End LinearRingM class
 
 
@@ -237,21 +210,12 @@ class LinearRingZM(AbstractSpatialGeometryExtent):
         return [PointZM(x=x, y=y, z=z, m=m) for x, y, z, m in self.coordinates]
     # End points property
 
-    def to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
         """
         return pack_coordinates(self.coordinates, has_z=True, has_m=True)
-    # End to_wkb method
-
-    @classmethod
-    def from_wkb(cls, wkb: bytes) -> 'LinearRingZM':
-        """
-        From WKB
-        """
-        # noinspection PyTypeChecker
-        return cls(unpack_line(wkb, dimension=FOUR_D, is_ring=True))
-    # End from_wkb method
+    # End _to_wkb method
 # End LinearRingZM class
 
 
@@ -290,23 +254,14 @@ class Polygon(AbstractGeopackageGeometryExtent):
         return not len(self.rings)
     # End is_empty property
 
-    def to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
         """
         geoms = self.rings
         return (WKB_POLYGON_PRE + pack(COUNT_CODE, len(geoms)) +
                 self._join_geometries(geoms))
-    # End to_wkb method
-
-    @classmethod
-    def from_wkb(cls, wkb: bytes) -> 'Polygon':
-        """
-        From WKB
-        """
-        # noinspection PyTypeChecker
-        return cls(unpack_lines(wkb, dimension=TWO_D, is_ring=True))
-    # End from_wkb method
+    # End _to_wkb method
 
     @classmethod
     def from_gpkg(cls, value: bytes) -> 'Polygon':
@@ -358,23 +313,14 @@ class PolygonZ(AbstractGeopackageGeometryExtent):
         return not len(self.rings)
     # End is_empty property
 
-    def to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
         """
         geoms = self.rings
         return (WKB_POLYGON_Z_PRE + pack(COUNT_CODE, len(geoms)) +
                 self._join_geometries(geoms))
-    # End to_wkb method
-
-    @classmethod
-    def from_wkb(cls, wkb: bytes) -> 'PolygonZ':
-        """
-        From WKB
-        """
-        # noinspection PyTypeChecker
-        return cls(unpack_lines(wkb, dimension=THREE_D, is_ring=True))
-    # End from_wkb method
+    # End _to_wkb method
 
     @classmethod
     def from_gpkg(cls, value: bytes) -> 'PolygonZ':
@@ -426,23 +372,14 @@ class PolygonM(AbstractGeopackageGeometryExtent):
         return not len(self.rings)
     # End is_empty property
 
-    def to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
         """
         geoms = self.rings
         return (WKB_POLYGON_M_PRE + pack(COUNT_CODE, len(geoms)) +
                 self._join_geometries(geoms))
-    # End to_wkb method
-
-    @classmethod
-    def from_wkb(cls, wkb: bytes) -> 'PolygonM':
-        """
-        From WKB
-        """
-        # noinspection PyTypeChecker
-        return cls(unpack_lines(wkb, dimension=THREE_D, is_ring=True))
-    # End from_wkb method
+    # End _to_wkb method
 
     @classmethod
     def from_gpkg(cls, value: bytes) -> 'PolygonM':
@@ -494,23 +431,14 @@ class PolygonZM(AbstractGeopackageGeometryExtent):
         return not len(self.rings)
     # End is_empty property
 
-    def to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
         """
         geoms = self.rings
         return (WKB_POLYGON_ZM_PRE + pack(COUNT_CODE, len(geoms)) +
                 self._join_geometries(geoms))
-    # End to_wkb method
-
-    @classmethod
-    def from_wkb(cls, wkb: bytes) -> 'PolygonZM':
-        """
-        From WKB
-        """
-        # noinspection PyTypeChecker
-        return cls(unpack_lines(wkb, dimension=FOUR_D, is_ring=True))
-    # End from_wkb method
+    # End _to_wkb method
 
     @classmethod
     def from_gpkg(cls, value: bytes) -> 'PolygonZM':
@@ -562,23 +490,14 @@ class MultiPolygon(AbstractGeopackageGeometryExtent):
         return not len(self.polygons)
     # End is_empty property
 
-    def to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
         """
         geoms = self.polygons
         return (WKB_MULTI_POLYGON_PRE + pack(COUNT_CODE, len(geoms)) +
                 self._join_geometries(geoms))
-    # End to_wkb method
-
-    @classmethod
-    def from_wkb(cls, wkb: bytes) -> 'MultiPolygon':
-        """
-        From WKB
-        """
-        # noinspection PyTypeChecker
-        return cls(unpack_polygons(wkb, dimension=TWO_D))
-    # End from_wkb method
+    # End _to_wkb method
 
     @classmethod
     def from_gpkg(cls, value: bytes) -> 'MultiPolygon':
@@ -630,23 +549,14 @@ class MultiPolygonZ(AbstractGeopackageGeometryExtent):
         return not len(self.polygons)
     # End is_empty property
 
-    def to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
         """
         geoms = self.polygons
         return (WKB_MULTI_POLYGON_Z_PRE + pack(COUNT_CODE, len(geoms)) +
                 self._join_geometries(geoms))
-    # End to_wkb method
-
-    @classmethod
-    def from_wkb(cls, wkb: bytes) -> 'MultiPolygonZ':
-        """
-        From WKB
-        """
-        # noinspection PyTypeChecker
-        return cls(unpack_polygons(wkb, dimension=THREE_D))
-    # End from_wkb method
+    # End _to_wkb method
 
     @classmethod
     def from_gpkg(cls, value: bytes) -> 'MultiPolygonZ':
@@ -698,23 +608,14 @@ class MultiPolygonM(AbstractGeopackageGeometryExtent):
         return not len(self.polygons)
     # End is_empty property
 
-    def to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
         """
         geoms = self.polygons
         return (WKB_MULTI_POLYGON_M_PRE + pack(COUNT_CODE, len(geoms)) +
                 self._join_geometries(geoms))
-    # End to_wkb method
-
-    @classmethod
-    def from_wkb(cls, wkb: bytes) -> 'MultiPolygonM':
-        """
-        From WKB
-        """
-        # noinspection PyTypeChecker
-        return cls(unpack_polygons(wkb, dimension=THREE_D))
-    # End from_wkb method
+    # End _to_wkb method
 
     @classmethod
     def from_gpkg(cls, value: bytes) -> 'MultiPolygonM':
@@ -766,23 +667,14 @@ class MultiPolygonZM(AbstractGeopackageGeometryExtent):
         return not len(self.polygons)
     # End is_empty property
 
-    def to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
         """
         geoms = self.polygons
         return (WKB_MULTI_POLYGON_ZM_PRE + pack(COUNT_CODE, len(geoms)) +
                 self._join_geometries(geoms))
-    # End to_wkb method
-
-    @classmethod
-    def from_wkb(cls, wkb: bytes) -> 'MultiPolygonZM':
-        """
-        From WKB
-        """
-        # noinspection PyTypeChecker
-        return cls(unpack_polygons(wkb, dimension=FOUR_D))
-    # End from_wkb method
+    # End _to_wkb method
 
     @classmethod
     def from_gpkg(cls, value: bytes) -> 'MultiPolygonZM':

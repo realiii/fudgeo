@@ -24,7 +24,7 @@ class AbstractGeometry:
         """
         Join Geometries
         """
-        return reduce(add, [geom.to_wkb() for geom in geoms], EMPTY)
+        return reduce(add, [geom._to_wkb() for geom in geoms], EMPTY)
     # End _join_geometries method
 
     @property
@@ -37,21 +37,12 @@ class AbstractGeometry:
     # End is_empty property
 
     @abstractmethod
-    def to_wkb(self, use_prefix: bool = True) -> bytes:  # pragma: nocover
+    def _to_wkb(self, use_prefix: bool = True) -> bytes:  # pragma: nocover
         """
         To WKB
         """
         pass
-    # End to_wkb method
-
-    @classmethod
-    @abstractmethod
-    def from_wkb(cls, wkb: bytes) -> 'AbstractGeometry':  # pragma: nocover
-        """
-        From WKB
-        """
-        pass
-    # End from_wkb method
+    # End _to_wkb method
 # End AbstractGeometry class
 
 
@@ -100,7 +91,7 @@ class AbstractGeopackageGeometry(AbstractSpatialGeometry):
         To Geopackage
         """
         return (make_header(srs_id=self.srs_id, is_empty=self.is_empty) +
-                self.to_wkb())
+                self._to_wkb())
     # End to_gpkg method
 
     @classmethod

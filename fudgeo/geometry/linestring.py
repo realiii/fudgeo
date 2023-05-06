@@ -60,21 +60,12 @@ class LineString(AbstractGeopackageGeometryExtent):
         return [Point(x=x, y=y) for x, y in self.coordinates]
     # End points property
 
-    def to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
         """
         return WKB_LINESTRING_PRE + pack_coordinates(self.coordinates)
-    # End to_wkb method
-
-    @classmethod
-    def from_wkb(cls, wkb: bytes) -> 'LineString':
-        """
-        From WKB
-        """
-        # noinspection PyTypeChecker
-        return cls(unpack_line(wkb, dimension=TWO_D))
-    # End from_wkb method
+    # End _to_wkb method
 
     @classmethod
     def from_gpkg(cls, value: bytes) -> 'LineString':
@@ -131,21 +122,13 @@ class LineStringZ(AbstractGeopackageGeometryExtent):
         return [PointZ(x=x, y=y, z=z) for x, y, z in self.coordinates]
     # End points property
 
-    def to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
         """
-        return WKB_LINESTRING_Z_PRE + pack_coordinates(self.coordinates, has_z=True)
-    # End to_wkb method
-
-    @classmethod
-    def from_wkb(cls, wkb: bytes) -> 'LineStringZ':
-        """
-        From WKB
-        """
-        # noinspection PyTypeChecker
-        return cls(unpack_line(wkb, dimension=THREE_D))
-    # End from_wkb method
+        return WKB_LINESTRING_Z_PRE + pack_coordinates(
+            self.coordinates, has_z=True)
+    # End _to_wkb method
 
     @classmethod
     def from_gpkg(cls, value: bytes) -> 'LineStringZ':
@@ -202,21 +185,13 @@ class LineStringM(AbstractGeopackageGeometryExtent):
         return [PointM(x=x, y=y, m=m) for x, y, m in self.coordinates]
     # End points property
 
-    def to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
         """
-        return WKB_LINESTRING_M_PRE + pack_coordinates(self.coordinates, has_m=True)
-    # End to_wkb method
-
-    @classmethod
-    def from_wkb(cls, wkb: bytes) -> 'LineStringM':
-        """
-        From WKB
-        """
-        # noinspection PyTypeChecker
-        return cls(unpack_line(wkb, dimension=THREE_D))
-    # End from_wkb method
+        return WKB_LINESTRING_M_PRE + pack_coordinates(
+            self.coordinates, has_m=True)
+    # End _to_wkb method
 
     @classmethod
     def from_gpkg(cls, value: bytes) -> 'LineStringM':
@@ -275,22 +250,13 @@ class LineStringZM(AbstractGeopackageGeometryExtent):
         return [PointZM(x=x, y=y, z=z, m=m) for x, y, z, m in self.coordinates]
     # End points property
 
-    def to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
         """
         return WKB_LINESTRING_ZM_PRE + pack_coordinates(
             self.coordinates, has_z=True, has_m=True)
-    # End to_wkb method
-
-    @classmethod
-    def from_wkb(cls, wkb: bytes) -> 'LineStringZM':
-        """
-        From WKB
-        """
-        # noinspection PyTypeChecker
-        return cls(unpack_line(wkb, dimension=FOUR_D))
-    # End from_wkb method
+    # End _to_wkb method
 
     @classmethod
     def from_gpkg(cls, value: bytes) -> 'LineStringZM':
@@ -342,23 +308,14 @@ class MultiLineString(AbstractGeopackageGeometryExtent):
         return not len(self.lines)
     # End is_empty property
 
-    def to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
         """
         geoms = self.lines
         return (WKB_MULTI_LINESTRING_PRE + pack(COUNT_CODE, len(geoms)) +
                 self._join_geometries(geoms))
-    # End to_wkb method
-
-    @classmethod
-    def from_wkb(cls, wkb: bytes) -> 'MultiLineString':
-        """
-        From WKB
-        """
-        # noinspection PyTypeChecker
-        return cls(unpack_lines(wkb, dimension=TWO_D))
-    # End from_wkb method
+    # End _to_wkb method
 
     @classmethod
     def from_gpkg(cls, value: bytes) -> 'MultiLineString':
@@ -410,23 +367,14 @@ class MultiLineStringZ(AbstractGeopackageGeometryExtent):
         return not len(self.lines)
     # End is_empty property
 
-    def to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
         """
         geoms = self.lines
         return (WKB_MULTI_LINESTRING_Z_PRE + pack(COUNT_CODE, len(geoms)) +
                 self._join_geometries(geoms))
-    # End to_wkb method
-
-    @classmethod
-    def from_wkb(cls, wkb: bytes) -> 'MultiLineStringZ':
-        """
-        From WKB
-        """
-        # noinspection PyTypeChecker
-        return cls(unpack_lines(wkb, dimension=THREE_D))
-    # End from_wkb method
+    # End _to_wkb method
 
     @classmethod
     def from_gpkg(cls, value: bytes) -> 'MultiLineStringZ':
@@ -478,23 +426,14 @@ class MultiLineStringM(AbstractGeopackageGeometryExtent):
         return not len(self.lines)
     # End is_empty property
 
-    def to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
         """
         geoms = self.lines
         return (WKB_MULTI_LINESTRING_M_PRE + pack(COUNT_CODE, len(geoms)) +
                 self._join_geometries(geoms))
-    # End to_wkb method
-
-    @classmethod
-    def from_wkb(cls, wkb: bytes) -> 'MultiLineStringM':
-        """
-        From WKB
-        """
-        # noinspection PyTypeChecker
-        return cls(unpack_lines(wkb, dimension=THREE_D))
-    # End from_wkb method
+    # End _to_wkb method
 
     @classmethod
     def from_gpkg(cls, value: bytes) -> 'MultiLineStringM':
@@ -546,23 +485,14 @@ class MultiLineStringZM(AbstractGeopackageGeometryExtent):
         return not len(self.lines)
     # End is_empty property
 
-    def to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
         """
         geoms = self.lines
         return (WKB_MULTI_LINESTRING_ZM_PRE + pack(COUNT_CODE, len(geoms)) +
                 self._join_geometries(geoms))
-    # End to_wkb method
-
-    @classmethod
-    def from_wkb(cls, wkb: bytes) -> 'MultiLineStringZM':
-        """
-        From WKB
-        """
-        # noinspection PyTypeChecker
-        return cls(unpack_lines(wkb, dimension=FOUR_D))
-    # End from_wkb method
+    # End _to_wkb method
 
     @classmethod
     def from_gpkg(cls, value: bytes) -> 'MultiLineStringZM':
