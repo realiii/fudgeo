@@ -4,12 +4,13 @@ Test GeoPackage
 """
 
 
+import sys
 from datetime import datetime, timedelta, timezone
 from math import isnan
 from random import randint, choice
 from string import ascii_uppercase, digits
 
-from pytest import fixture, mark, raises
+from pytest import mark, raises
 
 from fudgeo.enumeration import GeometryType, SQLFieldType
 from fudgeo.geometry import (
@@ -17,68 +18,21 @@ from fudgeo.geometry import (
     MultiPoint, MultiPolygon, Point, Polygon, PolygonM)
 from fudgeo.geopkg import (
     FeatureClass, Field, GeoPackage, SHAPE, SpatialReferenceSystem, Table,
-    _convert_datetime)
+    _convert_datetime, _has_ogr_contents)
 from fudgeo.sql import SELECT_SRS
+from tests.crs import WGS_1984_UTM_Zone_23N
 
-
-WGS_1984_UTM_Zone_23N = (
-    """PROJCS["WGS_1984_UTM_Zone_23N",
-       GEOGCS["GCS_WGS_1984",
-       DATUM["D_WGS_1984",
-       SPHEROID["WGS_1984",6378137.0,298.257223563]],
-       PRIMEM["Greenwich",0.0],
-       UNIT["Degree",0.0174532925199433]],
-       PROJECTION["Transverse_Mercator"],
-       PARAMETER["False_Easting",500000.0],
-       PARAMETER["False_Northing",0.0],
-       PARAMETER["Central_Meridian",-45.0],
-       PARAMETER["Scale_Factor",0.9996],
-       PARAMETER["Latitude_Of_Origin",0.0],
-       UNIT["Meter",1.0]];IsHighPrecision""")
-
-
+# noinspection SqlNoDataSourceInspection
 INSERT_ROWS = """
     INSERT INTO {} (SHAPE, "int.fld", text_fld, test_fld_size, test_bool) 
     VALUES (?, ?, ?, ?, ?)
 """
 
+
+# noinspection SqlNoDataSourceInspection
 INSERT_SHAPE = """INSERT INTO {} (SHAPE) VALUES (?)"""
+# noinspection SqlNoDataSourceInspection
 SELECT_FID_SHAPE = """SELECT fid, SHAPE "[{}]" FROM {}"""
-
-
-@fixture
-def setup_geopackage(tmp_path):
-    """
-    Setup Basics
-    """
-    path = tmp_path.joinpath('test.gpkg')
-    gpkg = GeoPackage.create(path)
-    srs = SpatialReferenceSystem(
-        'WGS_1984_UTM_Zone_23N', 'EPSG', 32623, WGS_1984_UTM_Zone_23N)
-    fields = (
-        Field('int.fld', SQLFieldType.integer),
-        Field('text_fld', SQLFieldType.text),
-        Field('test_fld_size', SQLFieldType.text, 100),
-        Field('test_bool', SQLFieldType.boolean),
-        Field('test_timestamp', SQLFieldType.timestamp))
-    yield path, gpkg, srs, fields
-    if path.exists():
-        path.unlink()
-# End setup_geopackage function
-
-
-@fixture
-def fields():
-    """
-    Fields
-    """
-    return [Field('AAA', SQLFieldType.integer),
-            Field('BBB', SQLFieldType.text, size=10),
-            Field('CCC', SQLFieldType.text),
-            Field('DDD', SQLFieldType.double),
-            Field('EEE', SQLFieldType.datetime),
-            Field('SELECT', SQLFieldType.timestamp)]
-# End fields function
 
 
 def random_points_and_attrs(count, srs_id):
@@ -139,7 +93,8 @@ def test_create_table(tmp_path, fields):
     with raises(ValueError):
         geo.create_table(name, fields)
     conn = geo.connection
-    cursor = conn.execute(f"""SELECT count(fid) FROM {table.escaped_name}""")
+    # noinspection SqlNoDataSourceInspection
+    cursor = conn.execute(f"""SELECT count(fid) AS C FROM {table.escaped_name}""")
     count, = cursor.fetchone()
     assert count == 0
     now = datetime.now()
@@ -148,25 +103,31 @@ def test_create_table(tmp_path, fields):
     records = [
         (1, 'asdf', 'longer than 10 characters', 123.456, eee_datetime, fff_datetime),
         (2, 'qwerty', 'not much longer than 10', 987.654, now + timedelta(days=100), now + timedelta(days=200))]
-    sql = f"""INSERT INTO {table.escaped_name} ({field_names}) VALUES (?, ?, ?, ?, ?, ?)"""
+    # noinspection SqlNoDataSourceInspection,SqlInsertValues
+    sql = f"""INSERT INTO {table.escaped_name} ({field_names}) 
+              VALUES (?, ?, ?, ?, ?, ?)"""
     conn.executemany(sql, records)
     conn.commit()
-    cursor = conn.execute(f"""SELECT count(fid) FROM {table.escaped_name}""")
+    # noinspection SqlNoDataSourceInspection
+    cursor = conn.execute(f"""SELECT count(fid) AS C FROM {table.escaped_name}""")
     count, = cursor.fetchone()
     assert count == 2
     *_, eee, select = fields
+    # noinspection SqlNoDataSourceInspection
     cursor = conn.execute(f"""SELECT {eee.name} FROM {table.escaped_name}""")
     value, = cursor.fetchone()
     assert isinstance(value, datetime)
     assert value == eee_datetime
+    # noinspection SqlNoDataSourceInspection
     cursor = conn.execute(f"""SELECT {select.escaped_name} FROM {table.escaped_name}""")
     value, = cursor.fetchone()
     assert isinstance(value, datetime)
     assert value == fff_datetime
     table = geo.create_table('ANOTHER')
     assert isinstance(table, Table)
+    # noinspection SqlNoDataSourceInspection
     cursor = conn.execute(
-        """SELECT count(type) FROM sqlite_master WHERE type = 'trigger'""")
+        """SELECT count(type) AS C FROM sqlite_master WHERE type = 'trigger'""")
     count, = cursor.fetchone()
     assert count == 4
     conn.close()
@@ -175,24 +136,30 @@ def test_create_table(tmp_path, fields):
 # End test_create_table function
 
 
-def test_create_table_drop_table(tmp_path, fields):
+@mark.parametrize('ogr_contents, has_table, trigger_count', [
+    (True, True, 2), (False, False, 0)
+])
+def test_create_table_drop_table(tmp_path, fields, ogr_contents, has_table, trigger_count):
     """
     Create Table, overwrite Table, and Drop Table
     """
     path = tmp_path / 'tbl_drop'
-    geo = GeoPackage.create(path)
+    geo = GeoPackage.create(path, ogr_contents=ogr_contents)
+    conn = geo.connection
+    assert _has_ogr_contents(conn) is has_table
     name = 'SELECT'
     table = geo.create_table(name, fields)
     assert isinstance(table, Table)
     tbl = geo.create_table(name, fields, overwrite=True)
-    conn = geo.connection
-    cursor = conn.execute(f"""SELECT count(fid) FROM {table.escaped_name}""")
+    # noinspection SqlNoDataSourceInspection
+    cursor = conn.execute(f"""SELECT count(fid) AS C FROM {table.escaped_name}""")
     count, = cursor.fetchone()
     assert count == 0
-    sql = """SELECT count(type) FROM sqlite_master WHERE type = 'trigger'"""
+    # noinspection SqlNoDataSourceInspection
+    sql = """SELECT count(type) AS C FROM sqlite_master WHERE type = 'trigger'"""
     cursor = conn.execute(sql)
     count, = cursor.fetchone()
-    assert count == 2
+    assert count == trigger_count
     tbl.drop()
     assert not geo._check_table_exists(name)
     cursor = conn.execute(sql)
@@ -217,13 +184,15 @@ def test_create_feature_class(tmp_path, fields):
     assert isinstance(fc, FeatureClass)
     with raises(ValueError):
         geo.create_feature_class(name, srs=srs, fields=fields)
-    cursor = geo.connection.execute(f"""SELECT count(fid) FROM {fc.escaped_name}""")
+    # noinspection SqlNoDataSourceInspection
+    cursor = geo.connection.execute(f"""SELECT count(fid) AS C FROM {fc.escaped_name}""")
     count, = cursor.fetchone()
     assert count == 0
     fc = geo.create_feature_class('ANOTHER', srs=srs)
     assert isinstance(fc, FeatureClass)
+    # noinspection SqlNoDataSourceInspection
     cursor = geo.connection.execute(
-        """SELECT count(type) FROM sqlite_master WHERE type = 'trigger'""")
+        """SELECT count(type) AS C FROM sqlite_master WHERE type = 'trigger'""")
     count, = cursor.fetchone()
     assert count == 4
     geo.connection.close()
@@ -232,31 +201,38 @@ def test_create_feature_class(tmp_path, fields):
 # End test_create_feature_class function
 
 
-def test_create_feature_drop_feature(tmp_path, fields):
+@mark.parametrize('ogr_contents, has_table, trigger_count', [
+    (True, True, 2), (False, False, 0)
+])
+def test_create_feature_drop_feature(tmp_path, fields, ogr_contents, has_table, trigger_count):
     """
     Create Feature Class, Overwrite it, and then Drop it
     """
     path = tmp_path / 'fc_drop'
-    geo = GeoPackage.create(path)
+    geo = GeoPackage.create(path, ogr_contents=ogr_contents)
+    conn = geo.connection
+    assert _has_ogr_contents(conn) is has_table
     name = 'SELECT'
     srs = SpatialReferenceSystem(
         'WGS_1984_UTM_Zone_23N', 'EPSG', 32623, WGS_1984_UTM_Zone_23N)
     fc = geo.create_feature_class(name, srs=srs, fields=fields)
     assert isinstance(fc, FeatureClass)
     fc = geo.create_feature_class(name, srs=srs, fields=fields, overwrite=True)
-    cursor = geo.connection.execute(f"""SELECT count(fid) FROM {fc.escaped_name}""")
+    # noinspection SqlNoDataSourceInspection
+    cursor = conn.execute(f"""SELECT count(fid) AS C FROM {fc.escaped_name}""")
     count, = cursor.fetchone()
     assert count == 0
-    sql = """SELECT count(type) FROM sqlite_master WHERE type = 'trigger'"""
-    cursor = geo.connection.execute(sql)
+    # noinspection SqlNoDataSourceInspection
+    sql = """SELECT count(type) AS C FROM sqlite_master WHERE type = 'trigger'"""
+    cursor = conn.execute(sql)
     count, = cursor.fetchone()
-    assert count == 2
+    assert count == trigger_count
     fc.drop()
     assert not geo._check_table_exists(name)
-    cursor = geo.connection.execute(sql)
+    cursor = conn.execute(sql)
     count, = cursor.fetchone()
     assert count == 0
-    geo.connection.close()
+    conn.close()
     if path.exists():
         path.unlink()
 # End test_create_feature_drop_feature function
@@ -308,7 +284,8 @@ def test_create_feature_class_options(setup_geopackage, name, geom, has_z, has_m
         m_enabled=has_m, z_enabled=has_z)
     assert isinstance(fc, FeatureClass)
     conn = gpkg.connection
-    cursor = conn.execute(f"""SELECT count(fid) FROM {name}""")
+    # noinspection SqlNoDataSourceInspection
+    cursor = conn.execute(f"""SELECT count(fid) AS C FROM {name}""")
     count, = cursor.fetchone()
     assert count == 0
     assert fc.spatial_reference_system.srs_id == 32623
@@ -353,10 +330,12 @@ def test_insert_point_rows(setup_geopackage):
     rows = random_points_and_attrs(count, srs.srs_id)
     with gpkg.connection as conn:
         conn.executemany(INSERT_ROWS.format(fc.escaped_name), rows)
-        cursor = conn.execute(f"""SELECT count(fid) from {fc.escaped_name}""")
+        # noinspection SqlNoDataSourceInspection
+        cursor = conn.execute(f"""SELECT count(fid) AS C from {fc.escaped_name}""")
         row_count, = cursor.fetchone()
     assert row_count == count
     with gpkg.connection as conn:
+        # noinspection SqlNoDataSourceInspection
         cursor = conn.execute(f"""SELECT SHAPE FROM {fc.escaped_name} LIMIT 10""")
         points = [rec[0] for rec in cursor.fetchall()]
     assert all([isinstance(pt, Point) for pt in points])
@@ -606,14 +585,16 @@ def test_escaped_columns(setup_geopackage):
     expected_names = ['fid', SHAPE, select.name, union.name, all_.name,
                       example_dot.name, regular.name]
     assert fc.field_names == expected_names
-    rows = [(Point(x=1, y=2), 1, 'asdf', 'lmnop', ';;::;;;'),
-            (Point(x=3, y=4), 2, 'qwerty', 'xyz', '!!!!!')]
+    rows = [(Point(x=1, y=2, srs_id=srs.srs_id), 1, 'asdf', 'lmnop', ';;::;;;'),
+            (Point(x=3, y=4, srs_id=srs.srs_id), 2, 'qwerty', 'xyz', '!!!!!')]
     with fc.geopackage.connection as conn:
+        # noinspection SqlNoDataSourceInspection
         conn.executemany(
             f"""INSERT INTO {fc.name} (SHAPE, {select.escaped_name}, 
                             {union.escaped_name}, {all_.escaped_name}, 
                             {example_dot.escaped_name})
                 VALUES (?, ?, ?, ?, ?)""", rows)
+    # noinspection SqlNoDataSourceInspection
     cursor = conn.execute(
         f"""SELECT {select.escaped_name}, {union.escaped_name}, 
                     {all_.escaped_name}, {example_dot.escaped_name}
@@ -638,13 +619,15 @@ def test_escaped_table(setup_geopackage):
     fc = gpkg.create_feature_class(name=name, srs=srs, fields=fields)
     expected_names = ['fid', SHAPE, select.name, union.name, all_.name]
     assert fc.field_names == expected_names
-    rows = [(Point(x=1, y=2), 1, 'asdf', 'lmnop'),
-            (Point(x=3, y=4), 2, 'qwerty', 'xyz')]
+    rows = [(Point(x=1, y=2, srs_id=srs.srs_id), 1, 'asdf', 'lmnop'),
+            (Point(x=3, y=4, srs_id=srs.srs_id), 2, 'qwerty', 'xyz')]
     with fc.geopackage.connection as conn:
+        # noinspection SqlNoDataSourceInspection
         conn.executemany(
             f"""INSERT INTO {fc.escaped_name} (SHAPE, {select.escaped_name}, 
                             {union.escaped_name}, {all_.escaped_name})
                 VALUES (?, ?, ?, ?)""", rows)
+    # noinspection SqlNoDataSourceInspection
     cursor = conn.execute(
         f"""SELECT {select.escaped_name}, {union.escaped_name}, 
                     {all_.escaped_name}
@@ -654,6 +637,20 @@ def test_escaped_table(setup_geopackage):
     assert records[0] == (1, 'asdf', 'lmnop')
     assert records[1] == (2, 'qwerty', 'xyz')
 # End test_escaped_table function
+
+
+@mark.skipif(sys.platform != 'darwin', reason='will be different on windows')
+def test_representation():
+    """
+    Test string representation
+    """
+    gpkg = GeoPackage('/some/path/to/geopackage.gpkg')
+    assert repr(gpkg) == "GeoPackage(path=PosixPath('/some/path/to/geopackage.gpkg'))"
+    fc = FeatureClass(gpkg, '/some/path/to/geopackage.gpkg')
+    assert repr(fc) == "FeatureClass(geopackage=GeoPackage(path=PosixPath('/some/path/to/geopackage.gpkg')), name='/some/path/to/geopackage.gpkg')"
+    tbl = Table(gpkg, '/some/path/to/geopackage.gpkg')
+    assert repr(tbl) == "Table(geopackage=GeoPackage(path=PosixPath('/some/path/to/geopackage.gpkg')), name='/some/path/to/geopackage.gpkg')"
+# End test_representation function
 
 
 if __name__ == '__main__':

@@ -78,9 +78,3 @@ CREATE TABLE gpkg_extensions (
     scope          TEXT NOT NULL,
     CONSTRAINT ge_tce UNIQUE (table_name, column_name, extension_name)
 );
-
-
-CREATE TABLE gpkg_ogr_contents (
-    table_name    TEXT NOT NULL PRIMARY KEY,
-    feature_count INTEGER DEFAULT NULL
-);

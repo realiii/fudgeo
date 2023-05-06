@@ -73,8 +73,9 @@ POINT_PREFIX: Dict[Tuple[bool, bool], bytes] = {
 
 
 HEADER_OFFSET: int = 8
-ENVELOPE_OFFSET: Dict[int, int] = {0: 0, 1: 32, 2: 48, 3: 48, 4: 64}
-ENVELOPE_OFFSET = {k: v + HEADER_OFFSET for k, v in ENVELOPE_OFFSET.items()}
+ENVELOPE_LENGTH: Dict[int, int] = {0: 0, 1: 32, 2: 48, 3: 48, 4: 64}
+ENVELOPE_COUNT: Dict[int, int] = {k: v // 8 for k, v in ENVELOPE_LENGTH.items()}
+ENVELOPE_OFFSET = {k: v + HEADER_OFFSET for k, v in ENVELOPE_LENGTH.items()}
 
 
 if __name__ == '__main__':
