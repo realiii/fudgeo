@@ -23,13 +23,14 @@ from fudgeo.geometry import (
     Polygon, PolygonZ, PolygonM, PolygonZM, MultiPolygon, MultiPolygonZ,
     MultiPolygonM, MultiPolygonZM)
 from fudgeo.sql import (
-    CHECK_SRS_EXISTS, CREATE_FEATURE_TABLE, CREATE_TABLE, DEFAULT_EPSG_RECS,
-    DEFAULT_ESRI_RECS, GPKG_OGR_CONTENTS_DELETE_TRIGGER,
-    GPKG_OGR_CONTENTS_INSERT_TRIGGER, INSERT_GPKG_CONTENTS_SHORT,
-    INSERT_GPKG_GEOM_COL, INSERT_GPKG_OGR_CONTENTS, INSERT_GPKG_SRS, KEYWORDS,
-    REMOVE_FEATURE_CLASS, REMOVE_TABLE, SELECT_EXTENT, SELECT_GEOMETRY_COLUMN,
-    SELECT_GEOMETRY_TYPE, SELECT_HAS_ZM, SELECT_SRS, SELECT_TABLES_BY_TYPE,
-    TABLE_EXISTS, UPDATE_EXTENT)
+    CHECK_SRS_EXISTS, CREATE_FEATURE_TABLE, CREATE_OGR_CONTENTS, CREATE_TABLE,
+    DEFAULT_EPSG_RECS, DEFAULT_ESRI_RECS, DELETE_OGR_CONTENTS,
+    GPKG_OGR_CONTENTS_DELETE_TRIGGER, GPKG_OGR_CONTENTS_INSERT_TRIGGER,
+    HAS_OGR_CONTENTS, INSERT_GPKG_CONTENTS_SHORT, INSERT_GPKG_GEOM_COL,
+    INSERT_GPKG_OGR_CONTENTS, INSERT_GPKG_SRS, KEYWORDS, REMOVE_FEATURE_CLASS,
+    REMOVE_TABLE, SELECT_EXTENT, SELECT_GEOMETRY_COLUMN, SELECT_GEOMETRY_TYPE,
+    SELECT_HAS_ZM, SELECT_SRS, SELECT_TABLES_BY_TYPE, TABLE_EXISTS,
+    UPDATE_EXTENT)
 
 
 FIELDS = Union[Tuple['Field', ...], List['Field']]
@@ -171,7 +172,8 @@ class GeoPackage:
 
     @classmethod
     def create(cls, path: Union[PathLike, str],
-               flavor: str = GPKGFlavors.esri) -> 'GeoPackage':
+               flavor: str = GPKGFlavors.esri,
+               ogr_contents: bool = True) -> 'GeoPackage':
         """
         Create a new GeoPackage
         """
@@ -188,6 +190,8 @@ class GeoPackage:
             with Path(__file__).parent.joinpath('geopkg.sql').open() as fin:
                 conn.executescript(fin.read())
             conn.executemany(INSERT_GPKG_SRS, defaults)
+            if ogr_contents:
+                conn.execute(CREATE_OGR_CONTENTS)
         return cls(path)
     # End create method
 
