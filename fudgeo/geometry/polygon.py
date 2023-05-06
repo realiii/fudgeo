@@ -18,6 +18,9 @@ from fudgeo.geometry.util import (
     pack_points, unpack_header, unpack_line, unpack_lines, unpack_polygons)
 
 
+MSG_LINEAR_RINGS: str = 'Linear Rings not supported for Geopackage'
+
+
 class LinearRing(AbstractGeometryExtent):
     """
     Linear Ring
@@ -80,7 +83,7 @@ class LinearRing(AbstractGeometryExtent):
         """
         To Geopackage
         """
-        raise NotImplementedError('Linear Rings not supported for Geopackage')
+        raise NotImplementedError(MSG_LINEAR_RINGS)
     # End to_gpkg method
 
     @classmethod
@@ -88,7 +91,7 @@ class LinearRing(AbstractGeometryExtent):
         """
         From Geopackage
         """
-        raise NotImplementedError('Linear Rings not supported for Geopackage')
+        raise NotImplementedError(MSG_LINEAR_RINGS)
     # End from_gpkg method
 # End LinearRing class
 
@@ -154,7 +157,7 @@ class LinearRingZ(AbstractGeometryExtent):
         """
         To Geopackage
         """
-        raise NotImplementedError('Linear Rings not supported for Geopackage')
+        raise NotImplementedError(MSG_LINEAR_RINGS)
     # End to_gpkg method
 
     @classmethod
@@ -162,7 +165,7 @@ class LinearRingZ(AbstractGeometryExtent):
         """
         From Geopackage
         """
-        raise NotImplementedError('Linear Rings not supported for Geopackage')
+        raise NotImplementedError(MSG_LINEAR_RINGS)
     # End from_gpkg method
 # End LinearRingZ class
 
@@ -228,7 +231,7 @@ class LinearRingM(AbstractGeometryExtent):
         """
         To Geopackage
         """
-        raise NotImplementedError('Linear Rings not supported for Geopackage')
+        raise NotImplementedError(MSG_LINEAR_RINGS)
     # End to_gpkg method
 
     @classmethod
@@ -236,7 +239,7 @@ class LinearRingM(AbstractGeometryExtent):
         """
         From Geopackage
         """
-        raise NotImplementedError('Linear Rings not supported for Geopackage')
+        raise NotImplementedError(MSG_LINEAR_RINGS)
     # End from_gpkg method
 # End LinearRingM class
 
@@ -303,7 +306,7 @@ class LinearRingZM(AbstractGeometryExtent):
         """
         To Geopackage
         """
-        raise NotImplementedError('Linear Rings not supported for Geopackage')
+        raise NotImplementedError(MSG_LINEAR_RINGS)
     # End to_gpkg method
 
     @classmethod
@@ -311,7 +314,7 @@ class LinearRingZM(AbstractGeometryExtent):
         """
         From Geopackage
         """
-        raise NotImplementedError('Linear Rings not supported for Geopackage')
+        raise NotImplementedError(MSG_LINEAR_RINGS)
     # End from_gpkg method
 # End LinearRingZM class
 
