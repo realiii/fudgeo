@@ -7,7 +7,7 @@ Base Classes
 from abc import abstractmethod
 from functools import reduce
 from operator import add
-from typing import List, Tuple
+from typing import List
 
 from fudgeo.constant import EMPTY
 from fudgeo.geometry.util import EMPTY_ENVELOPE, Envelope, make_header
@@ -77,6 +77,14 @@ class AbstractSpatialGeometryEnvelope(AbstractSpatialGeometry):
         super().__init__(srs_id=srs_id)
         self._envelope: Envelope = EMPTY_ENVELOPE
     # End init built-in
+
+    @property
+    def envelope(self) -> Envelope:
+        """
+        Envelope
+        """
+        return self._envelope
+    # End envelope property
 # End AbstractSpatialGeometryEnvelope class
 
 
@@ -119,6 +127,14 @@ class AbstractGeopackageGeometryEnvelope(AbstractGeopackageGeometry):
         super().__init__(srs_id=srs_id)
         self._envelope: Envelope = EMPTY_ENVELOPE
     # End init built-in
+
+    @property
+    def envelope(self) -> Envelope:
+        """
+        Envelope
+        """
+        return self._envelope
+    # End envelope property
 # End AbstractGeopackageGeometryEnvelope class
 
 
