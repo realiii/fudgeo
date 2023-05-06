@@ -342,17 +342,17 @@ class Table(BaseTable):
         cols = f', {", ".join(repr(f) for f in fields)}' if fields else ''
         with geopackage.connection as conn:
             escaped_name = _escape_name(name)
+            has_ogr_contents = _has_ogr_contents(conn)
             if overwrite:
                 conn.executescript(REMOVE_TABLE.format(name, escaped_name))
+                if has_ogr_contents:
+                    conn.execute(DELETE_OGR_CONTENTS.format(name))
             conn.execute(CREATE_TABLE.format(
                 name=escaped_name, other_fields=cols))
             conn.execute(INSERT_GPKG_CONTENTS_SHORT, (
                 name, DataType.attributes, name, description, _now(), None))
-            conn.execute(INSERT_GPKG_OGR_CONTENTS, (name, 0))
-            conn.execute(
-                GPKG_OGR_CONTENTS_INSERT_TRIGGER.format(name, escaped_name))
-            conn.execute(
-                GPKG_OGR_CONTENTS_DELETE_TRIGGER.format(name, escaped_name))
+            if has_ogr_contents:
+                _add_ogr_contents(conn, name=name, escaped_name=escaped_name)
         return cls(geopackage=geopackage, name=name)
     # End create_table method
 
@@ -363,6 +363,8 @@ class Table(BaseTable):
         with self.geopackage.connection as conn:
             conn.executescript(
                 REMOVE_TABLE.format(self.name, self.escaped_name))
+            if _has_ogr_contents(conn):
+                conn.execute(DELETE_OGR_CONTENTS.format(self.name))
     # End drop method
 # End Table class
 
@@ -391,9 +393,12 @@ class FeatureClass(BaseTable):
         cols = f', {", ".join(repr(f) for f in fields)}' if fields else ''
         with geopackage.connection as conn:
             escaped_name = _escape_name(name)
+            has_ogr_contents = _has_ogr_contents(conn)
             if overwrite:
                 conn.executescript(
                     REMOVE_FEATURE_CLASS.format(name, escaped_name))
+                if has_ogr_contents:
+                    conn.execute(DELETE_OGR_CONTENTS.format(name))
             conn.execute(CREATE_FEATURE_TABLE.format(
                 name=escaped_name, feature_type=shape_type, other_fields=cols))
             if not geopackage.check_srs_exists(srs.srs_id):
@@ -403,11 +408,8 @@ class FeatureClass(BaseTable):
                           int(z_enabled), int(m_enabled)))
             conn.execute(INSERT_GPKG_CONTENTS_SHORT, (
                 name, DataType.features, name, description, _now(), srs.srs_id))
-            conn.execute(INSERT_GPKG_OGR_CONTENTS, (name, 0))
-            conn.execute(
-                GPKG_OGR_CONTENTS_INSERT_TRIGGER.format(name, escaped_name))
-            conn.execute(
-                GPKG_OGR_CONTENTS_DELETE_TRIGGER.format(name, escaped_name))
+            if has_ogr_contents:
+                _add_ogr_contents(conn, name=name, escaped_name=escaped_name)
         return cls(geopackage=geopackage, name=name)
     # End create method
 
@@ -418,6 +420,8 @@ class FeatureClass(BaseTable):
         with self.geopackage.connection as conn:
             conn.executescript(
                 REMOVE_FEATURE_CLASS.format(self.name, self.escaped_name))
+            if _has_ogr_contents(conn):
+                conn.execute(DELETE_OGR_CONTENTS.format(self.name))
     # End drop method
 
     @staticmethod
