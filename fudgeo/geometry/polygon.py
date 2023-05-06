@@ -9,14 +9,14 @@ from typing import List
 
 from fudgeo.constant import (
     COUNT_CODE, DOUBLE, FOUR_D, HEADER_OFFSET, QUADRUPLE, THREE_D, TRIPLE,
-    TWO_D, WGS84, WKB_MULTI_POLYGON_M_PRE, WKB_MULTI_POLYGON_PRE,
+    TWO_D, WKB_MULTI_POLYGON_M_PRE, WKB_MULTI_POLYGON_PRE,
     WKB_MULTI_POLYGON_ZM_PRE, WKB_MULTI_POLYGON_Z_PRE, WKB_POLYGON_M_PRE,
     WKB_POLYGON_PRE, WKB_POLYGON_ZM_PRE, WKB_POLYGON_Z_PRE)
 from fudgeo.geometry.base import (
     AbstractGeopackageGeometryExtent, AbstractSpatialGeometryExtent)
 from fudgeo.geometry.point import Point, PointM, PointZ, PointZM
 from fudgeo.geometry.util import (
-    pack_coordinates, unpack_header, unpack_line, unpack_lines, unpack_polygons)
+    pack_coordinates, unpack_header, unpack_lines, unpack_polygons)
 
 
 class LinearRing(AbstractSpatialGeometryExtent):
