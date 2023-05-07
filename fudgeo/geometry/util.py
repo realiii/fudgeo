@@ -47,7 +47,7 @@ EMPTY_ENVELOPE = Envelope(min_x=nan, max_x=nan, min_y=nan, max_y=nan)
 
 
 def unpack_line(value: bytes, dimension: int,
-                 is_ring: bool = False) -> List[Tuple[float, ...]]:
+                is_ring: bool = False) -> List[Tuple[float, ...]]:
     """
     Unpack Values for LineString
     """
