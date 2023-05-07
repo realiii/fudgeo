@@ -7,7 +7,8 @@ Utility Functions
 from functools import lru_cache, reduce
 from math import nan
 from operator import add
-from struct import pack, unpack
+# noinspection PyPep8Naming
+from struct import error as StructError, pack, unpack
 from typing import List, Tuple
 
 from fudgeo.constant import (
@@ -183,7 +184,10 @@ def unpack_envelope(code: int, value: bytes) -> Envelope:
         return EMPTY_ENVELOPE
     if code not in ENVELOPE_COUNT:
         return EMPTY_ENVELOPE
-    values = unpack(f'<{ENVELOPE_COUNT[code]}d', value[HEADER_OFFSET:])
+    try:
+        values = unpack(f'<{ENVELOPE_COUNT[code]}d', value[HEADER_OFFSET:])
+    except StructError:
+        return EMPTY_ENVELOPE
     min_x = max_x = min_y = max_y = min_z = max_z = min_m = max_m = nan
     if code == 1:
         min_x, max_x, min_y, max_y = values
