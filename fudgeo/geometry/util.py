@@ -21,29 +21,139 @@ class Envelope:
     """
     Envelope
     """
-    __slots__ = ['min_x', 'max_x', 'min_y', 'max_y',
-                 'min_z', 'max_z', 'min_m', 'max_m']
+    __slots__ = ['_code', '_min_x', '_max_x', '_min_y', '_max_y',
+                 '_min_z', '_max_z', '_min_m', '_max_m']
 
-    def __init__(self, min_x: float, max_x: float, min_y: float, max_y: float,
+    def __init__(self, code: int, min_x: float, max_x: float,
+                 min_y: float, max_y: float,
                  min_z: float = nan, max_z: float = nan,
                  min_m: float = nan, max_m: float = nan) -> None:
         """
         Initialize the Envelope class
         """
         super().__init__()
-        self.min_x: float = min_x
-        self.max_x: float = max_x
-        self.min_y: float = min_y
-        self.max_y: float = max_y
-        self.min_z: float = min_z
-        self.max_z: float = max_z
-        self.min_m: float = min_m
-        self.max_m: float = max_m
+        self._code: int = code
+        self._min_x: float = min_x
+        self._max_x: float = max_x
+        self._min_y: float = min_y
+        self._max_y: float = max_y
+        self._min_z: float = min_z
+        self._max_z: float = max_z
+        self._min_m: float = min_m
+        self._max_m: float = max_m
     # End init built-in
+
+    def __repr__(self) -> str:
+        """
+        String Representation
+        """
+        x = f'min_x={self.min_x}, max_x={self.max_x}'
+        y = f'min_y={self.min_y}, max_y={self.max_y}'
+        z = f'min_z={self.min_z}, max_z={self.max_z}'
+        m = f'min_m={self.min_m}, max_m={self.max_m}'
+        return f'Envelope(code={self.code}, {x}, {y}, {z}, {m})'
+    # End repr built-in
+
+    def __eq__(self, other: 'Envelope') -> bool:
+        """
+        Equality
+        """
+        if not isinstance(other, Envelope):
+            return NotImplemented
+        code = self.code
+        if code != other.code:
+            return False
+        if not code:
+            return True
+        same_x = self.min_x == other.min_x and self.max_x == other.max_x
+        same_y = self.min_y == other.min_y and self.max_y == other.max_y
+        same_xy = same_x and same_y
+        if not same_xy or code == 1:
+            return same_xy
+        same_z = self.min_z == other.min_z and self.max_z == other.max_z
+        if code == 2:
+            return same_z
+        same_m = self.min_m == other.min_m and self.max_m == other.max_m
+        if code == 3:
+            return same_m
+        return same_m and same_z
+    # End eq built-in
+
+    @property
+    def code(self) -> int:
+        """
+        Envelope Code
+        """
+        return self._code
+    # End code property
+
+    @property
+    def min_x(self) -> float:
+        """
+        Min X
+        """
+        return self._min_x
+    # End min_x property
+
+    @property
+    def max_x(self) -> float:
+        """
+        Max X
+        """
+        return self._max_x
+    # End max_x property
+
+    @property
+    def min_y(self) -> float:
+        """
+        Min Y
+        """
+        return self._min_y
+    # End min_y property
+
+    @property
+    def max_y(self) -> float:
+        """
+        Max Y
+        """
+        return self._max_y
+    # End max_y property
+
+    @property
+    def min_z(self) -> float:
+        """
+        Min Z
+        """
+        return self._min_z
+    # End min_z property
+
+    @property
+    def max_z(self) -> float:
+        """
+        Max Z
+        """
+        return self._max_z
+    # End max_z property
+
+    @property
+    def min_m(self) -> float:
+        """
+        Min M
+        """
+        return self._min_m
+    # End min_m property
+
+    @property
+    def max_m(self) -> float:
+        """
+        Max M
+        """
+        return self._max_m
+    # End max_m property
 # End Envelope class
 
 
-EMPTY_ENVELOPE = Envelope(min_x=nan, max_x=nan, min_y=nan, max_y=nan)
+EMPTY_ENVELOPE = Envelope(code=0, min_x=nan, max_x=nan, min_y=nan, max_y=nan)
 
 
 def unpack_line(value: bytes, dimension: int,
@@ -197,8 +307,9 @@ def unpack_envelope(code: int, value: bytes) -> Envelope:
         min_x, max_x, min_y, max_y, min_m, max_m = values
     elif code == 4:
         min_x, max_x, min_y, max_y, min_z, max_z, min_m, max_m = values
-    return Envelope(min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y,
-                    min_z=min_z, max_z=max_z, min_m=min_m, max_m=max_m)
+    return Envelope(
+        code=code, min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y,
+        min_z=min_z, max_z=max_z, min_m=min_m, max_m=max_m)
 # End unpack_envelope function
 
 
