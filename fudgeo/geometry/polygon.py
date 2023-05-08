@@ -16,8 +16,12 @@ from fudgeo.geometry.base import (
     AbstractGeopackageGeometryEnvelope, AbstractSpatialGeometryEnvelope)
 from fudgeo.geometry.point import Point, PointM, PointZ, PointZM
 from fudgeo.geometry.util import (
-    pack_coordinates, unpack_envelope, unpack_header, unpack_lines,
-    unpack_polygons)
+    EMPTY_ENVELOPE, Envelope, envelope_from_coordinates,
+    envelope_from_coordinates_m, envelope_from_coordinates_z,
+    envelope_from_coordinates_zm, envelope_from_geometries,
+    envelope_from_geometries_m, envelope_from_geometries_z,
+    envelope_from_geometries_zm, pack_coordinates, unpack_envelope,
+    unpack_header, unpack_lines, unpack_polygons)
 
 
 POLYGON_TYPES = Union[Type['Polygon'], Type['PolygonZ'],
@@ -99,6 +103,18 @@ class LinearRing(AbstractSpatialGeometryEnvelope):
         return [Point(x=x, y=y, srs_id=srs_id) for x, y in self.coordinates]
     # End points property
 
+    @property
+    def envelope(self) -> Envelope:
+        """
+        Envelope
+        """
+        if self._envelope is not EMPTY_ENVELOPE:
+            return self._envelope
+        env = envelope_from_coordinates(self.coordinates)
+        self._envelope = env
+        return env
+    # End envelope property
+
     def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
@@ -157,6 +173,18 @@ class LinearRingZ(AbstractSpatialGeometryEnvelope):
         """
         return pack_coordinates(self.coordinates, has_z=True)
     # End _to_wkb method
+
+    @property
+    def envelope(self) -> Envelope:
+        """
+        Envelope
+        """
+        if self._envelope is not EMPTY_ENVELOPE:
+            return self._envelope
+        env = envelope_from_coordinates_z(self.coordinates)
+        self._envelope = env
+        return env
+    # End envelope property
 # End LinearRingZ class
 
 
@@ -202,6 +230,18 @@ class LinearRingM(AbstractSpatialGeometryEnvelope):
         return [PointM(x=x, y=y, m=m, srs_id=srs_id)
                 for x, y, m in self.coordinates]
     # End points property
+
+    @property
+    def envelope(self) -> Envelope:
+        """
+        Envelope
+        """
+        if self._envelope is not EMPTY_ENVELOPE:
+            return self._envelope
+        env = envelope_from_coordinates_m(self.coordinates)
+        self._envelope = env
+        return env
+    # End envelope property
 
     def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
@@ -253,6 +293,18 @@ class LinearRingZM(AbstractSpatialGeometryEnvelope):
                 for x, y, z, m in self.coordinates]
     # End points property
 
+    @property
+    def envelope(self) -> Envelope:
+        """
+        Envelope
+        """
+        if self._envelope is not EMPTY_ENVELOPE:
+            return self._envelope
+        env = envelope_from_coordinates_zm(self.coordinates)
+        self._envelope = env
+        return env
+    # End envelope property
+
     def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
@@ -295,6 +347,18 @@ class Polygon(AbstractGeopackageGeometryEnvelope):
         """
         return not len(self.rings)
     # End is_empty property
+
+    @property
+    def envelope(self) -> Envelope:
+        """
+        Envelope
+        """
+        if self._envelope is not EMPTY_ENVELOPE:
+            return self._envelope
+        env = envelope_from_geometries(self.rings)
+        self._envelope = env
+        return env
+    # End envelope property
 
     def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
@@ -349,6 +413,18 @@ class PolygonZ(AbstractGeopackageGeometryEnvelope):
         return not len(self.rings)
     # End is_empty property
 
+    @property
+    def envelope(self) -> Envelope:
+        """
+        Envelope
+        """
+        if self._envelope is not EMPTY_ENVELOPE:
+            return self._envelope
+        env = envelope_from_geometries_z(self.rings)
+        self._envelope = env
+        return env
+    # End envelope property
+
     def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
@@ -402,6 +478,18 @@ class PolygonM(AbstractGeopackageGeometryEnvelope):
         return not len(self.rings)
     # End is_empty property
 
+    @property
+    def envelope(self) -> Envelope:
+        """
+        Envelope
+        """
+        if self._envelope is not EMPTY_ENVELOPE:
+            return self._envelope
+        env = envelope_from_geometries_m(self.rings)
+        self._envelope = env
+        return env
+    # End envelope property
+
     def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
@@ -454,6 +542,18 @@ class PolygonZM(AbstractGeopackageGeometryEnvelope):
         """
         return not len(self.rings)
     # End is_empty property
+
+    @property
+    def envelope(self) -> Envelope:
+        """
+        Envelope
+        """
+        if self._envelope is not EMPTY_ENVELOPE:
+            return self._envelope
+        env = envelope_from_geometries_zm(self.rings)
+        self._envelope = env
+        return env
+    # End envelope property
 
     def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
@@ -509,6 +609,18 @@ class MultiPolygon(AbstractGeopackageGeometryEnvelope):
         return not len(self.polygons)
     # End is_empty property
 
+    @property
+    def envelope(self) -> Envelope:
+        """
+        Envelope
+        """
+        if self._envelope is not EMPTY_ENVELOPE:
+            return self._envelope
+        env = envelope_from_geometries(self.polygons)
+        self._envelope = env
+        return env
+    # End envelope property
+
     def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
@@ -562,6 +674,18 @@ class MultiPolygonZ(AbstractGeopackageGeometryEnvelope):
         """
         return not len(self.polygons)
     # End is_empty property
+
+    @property
+    def envelope(self) -> Envelope:
+        """
+        Envelope
+        """
+        if self._envelope is not EMPTY_ENVELOPE:
+            return self._envelope
+        env = envelope_from_geometries_z(self.polygons)
+        self._envelope = env
+        return env
+    # End envelope property
 
     def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
@@ -617,6 +741,18 @@ class MultiPolygonM(AbstractGeopackageGeometryEnvelope):
         return not len(self.polygons)
     # End is_empty property
 
+    @property
+    def envelope(self) -> Envelope:
+        """
+        Envelope
+        """
+        if self._envelope is not EMPTY_ENVELOPE:
+            return self._envelope
+        env = envelope_from_geometries_m(self.polygons)
+        self._envelope = env
+        return env
+    # End envelope property
+
     def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
@@ -670,6 +806,18 @@ class MultiPolygonZM(AbstractGeopackageGeometryEnvelope):
         """
         return not len(self.polygons)
     # End is_empty property
+
+    @property
+    def envelope(self) -> Envelope:
+        """
+        Envelope
+        """
+        if self._envelope is not EMPTY_ENVELOPE:
+            return self._envelope
+        env = envelope_from_geometries_zm(self.polygons)
+        self._envelope = env
+        return env
+    # End envelope property
 
     def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """

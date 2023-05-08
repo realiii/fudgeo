@@ -12,7 +12,7 @@ from fudgeo.constant import WGS84
 from fudgeo.geometry import (
     MultiPoint, MultiPointM, MultiPointZ, MultiPointZM, Point, PointM, PointZ,
     PointZM)
-from fudgeo.geometry.util import make_header, unpack_header
+from fudgeo.geometry.util import Envelope, make_header, unpack_header
 from tests.conversion.geo import (
     point_m_to_gpkg_point_m, point_to_gpkg_point, point_z_to_gpkg_point_z,
     point_zm_to_gpkg_point_zm, points_to_gpkg_multipoint)
@@ -154,7 +154,7 @@ def test_multi_point(header):
     """
     Test multi point
     """
-    values = [(0, 0), (1, 1)]
+    values = [(0, 1), (10, 11)]
     pts = MultiPoint(values, srs_id=WGS84)
     with raises(AttributeError):
         # noinspection PyDunderSlots,PyUnresolvedReferences
@@ -165,6 +165,8 @@ def test_multi_point(header):
     gpkg = pts.to_gpkg()
     assert gpkg == points_to_gpkg_multipoint(header, values)
     assert MultiPoint.from_gpkg(gpkg) == pts
+    assert pts.envelope == Envelope(
+        code=1, min_x=0, max_x=10, min_y=1, max_y=11)
 # End test_multi_point function
 
 
@@ -172,7 +174,7 @@ def test_multi_point_z(header):
     """
     Test multi point Z
     """
-    values = [(0, 0, 0), (1, 1, 1)]
+    values = [(0, 1, 2), (10, 11, 12)]
     pts = MultiPointZ(values, srs_id=WGS84)
     with raises(AttributeError):
         # noinspection PyDunderSlots,PyUnresolvedReferences
@@ -181,6 +183,8 @@ def test_multi_point_z(header):
     wkb = pts._to_wkb()
     assert wkb == multipoint_z_to_wkb_multipoint_z(values)
     assert MultiPointZ.from_gpkg(pts.to_gpkg()) == pts
+    assert pts.envelope == Envelope(
+        code=2, min_x=0, max_x=10, min_y=1, max_y=11, min_z=2, max_z=12)
 # End test_multi_point_z function
 
 
@@ -188,7 +192,7 @@ def test_multi_point_m(header):
     """
     Test multi point M
     """
-    values = [(0, 0, 0), (1, 1, 1)]
+    values = [(0, 1, 2), (10, 11, 12)]
     pts = MultiPointM(values, srs_id=WGS84)
     with raises(AttributeError):
         # noinspection PyDunderSlots,PyUnresolvedReferences
@@ -197,6 +201,8 @@ def test_multi_point_m(header):
     wkb = pts._to_wkb()
     assert wkb == multipoint_m_to_wkb_multipoint_m(values)
     assert MultiPointM.from_gpkg(pts.to_gpkg()) == pts
+    assert pts.envelope == Envelope(
+        code=3, min_x=0, max_x=10, min_y=1, max_y=11, min_m=2, max_m=12)
 # End test_multi_point_m function
 
 
@@ -204,7 +210,7 @@ def test_multi_point_zm(header):
     """
     Test multi point ZM
     """
-    values = [(0, 0, 0, 0), (1, 1, 1, 1)]
+    values = [(0, 1, 2, 3), (10, 11, 12, 13)]
     pts = MultiPointZM(values, srs_id=WGS84)
     with raises(AttributeError):
         # noinspection PyDunderSlots,PyUnresolvedReferences
@@ -213,6 +219,9 @@ def test_multi_point_zm(header):
     wkb = pts._to_wkb()
     assert wkb == multipoint_zm_to_wkb_multipoint_zm(values)
     assert MultiPointZM.from_gpkg(pts.to_gpkg()) == pts
+    assert pts.envelope == Envelope(
+        code=4, min_x=0, max_x=10, min_y=1, max_y=11,
+        min_z=2, max_z=12, min_m=3, max_m=13)
 # End test_multi_point_zm function
 
 
