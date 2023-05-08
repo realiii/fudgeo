@@ -15,7 +15,12 @@ from fudgeo.constant import (
 from fudgeo.geometry.base import AbstractGeopackageGeometryEnvelope
 from fudgeo.geometry.point import Point, PointM, PointZ, PointZM
 from fudgeo.geometry.util import (
-    pack_coordinates, unpack_envelope, unpack_header, unpack_line, unpack_lines)
+    EMPTY_ENVELOPE, Envelope, envelope_from_coordinates,
+    envelope_from_coordinates_m, envelope_from_coordinates_z,
+    envelope_from_coordinates_zm, envelope_from_geometries,
+    envelope_from_geometries_m, envelope_from_geometries_z,
+    envelope_from_geometries_zm, pack_coordinates, unpack_envelope,
+    unpack_header, unpack_line, unpack_lines)
 
 
 LINE_STRING_TYPES = Union[Type['LineString'], Type['LineStringZ'],
@@ -97,6 +102,18 @@ class LineString(AbstractGeopackageGeometryEnvelope):
         return [Point(x=x, y=y, srs_id=srs_id) for x, y in self.coordinates]
     # End points property
 
+    @property
+    def envelope(self) -> Envelope:
+        """
+        Envelope
+        """
+        if self._envelope is not EMPTY_ENVELOPE:
+            return self._envelope
+        env = envelope_from_coordinates(self.coordinates)
+        self._envelope = env
+        return env
+    # End envelope property
+
     def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
@@ -156,6 +173,18 @@ class LineStringZ(AbstractGeopackageGeometryEnvelope):
         return [PointZ(x=x, y=y, z=z, srs_id=srs_id)
                 for x, y, z in self.coordinates]
     # End points property
+
+    @property
+    def envelope(self) -> Envelope:
+        """
+        Envelope
+        """
+        if self._envelope is not EMPTY_ENVELOPE:
+            return self._envelope
+        env = envelope_from_coordinates_z(self.coordinates)
+        self._envelope = env
+        return env
+    # End envelope property
 
     def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
@@ -218,6 +247,18 @@ class LineStringM(AbstractGeopackageGeometryEnvelope):
                 for x, y, m in self.coordinates]
     # End points property
 
+    @property
+    def envelope(self) -> Envelope:
+        """
+        Envelope
+        """
+        if self._envelope is not EMPTY_ENVELOPE:
+            return self._envelope
+        env = envelope_from_coordinates_m(self.coordinates)
+        self._envelope = env
+        return env
+    # End envelope property
+
     def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
@@ -278,6 +319,18 @@ class LineStringZM(AbstractGeopackageGeometryEnvelope):
         return [PointZM(x=x, y=y, z=z, m=m, srs_id=srs_id)
                 for x, y, z, m in self.coordinates]
     # End points property
+
+    @property
+    def envelope(self) -> Envelope:
+        """
+        Envelope
+        """
+        if self._envelope is not EMPTY_ENVELOPE:
+            return self._envelope
+        env = envelope_from_coordinates_zm(self.coordinates)
+        self._envelope = env
+        return env
+    # End envelope property
 
     def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
@@ -340,6 +393,18 @@ class MultiLineString(AbstractGeopackageGeometryEnvelope):
                 self._join_geometries(geoms))
     # End _to_wkb method
 
+    @property
+    def envelope(self) -> Envelope:
+        """
+        Envelope
+        """
+        if self._envelope is not EMPTY_ENVELOPE:
+            return self._envelope
+        env = envelope_from_geometries(self.lines)
+        self._envelope = env
+        return env
+    # End envelope property
+
     @classmethod
     def from_gpkg(cls, value: bytes) -> 'MultiLineString':
         """
@@ -383,6 +448,18 @@ class MultiLineStringZ(AbstractGeopackageGeometryEnvelope):
         """
         return not len(self.lines)
     # End is_empty property
+
+    @property
+    def envelope(self) -> Envelope:
+        """
+        Envelope
+        """
+        if self._envelope is not EMPTY_ENVELOPE:
+            return self._envelope
+        env = envelope_from_geometries_z(self.lines)
+        self._envelope = env
+        return env
+    # End envelope property
 
     def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
@@ -437,6 +514,18 @@ class MultiLineStringM(AbstractGeopackageGeometryEnvelope):
         return not len(self.lines)
     # End is_empty property
 
+    @property
+    def envelope(self) -> Envelope:
+        """
+        Envelope
+        """
+        if self._envelope is not EMPTY_ENVELOPE:
+            return self._envelope
+        env = envelope_from_geometries_m(self.lines)
+        self._envelope = env
+        return env
+    # End envelope property
+
     def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
@@ -489,6 +578,18 @@ class MultiLineStringZM(AbstractGeopackageGeometryEnvelope):
         """
         return not len(self.lines)
     # End is_empty property
+
+    @property
+    def envelope(self) -> Envelope:
+        """
+        Envelope
+        """
+        if self._envelope is not EMPTY_ENVELOPE:
+            return self._envelope
+        env = envelope_from_geometries_zm(self.lines)
+        self._envelope = env
+        return env
+    # End envelope property
 
     def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
