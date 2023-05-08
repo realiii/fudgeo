@@ -79,11 +79,12 @@ class AbstractSpatialGeometryEnvelope(AbstractSpatialGeometry):
     # End init built-in
 
     @property
+    @abstractmethod
     def envelope(self) -> Envelope:
         """
         Envelope
         """
-        return self._envelope
+        pass
     # End envelope property
 # End AbstractSpatialGeometryEnvelope class
 
@@ -129,11 +130,12 @@ class AbstractGeopackageGeometryEnvelope(AbstractGeopackageGeometry):
     # End init built-in
 
     @property
+    @abstractmethod
     def envelope(self) -> Envelope:
         """
         Envelope
         """
-        return self._envelope
+        pass
     # End envelope property
 # End AbstractGeopackageGeometryEnvelope class
 

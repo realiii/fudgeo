@@ -11,7 +11,7 @@ from fudgeo.geometry import (
     PolygonM, PolygonZ, PolygonZM)
 from fudgeo.geometry.polygon import (
     LinearRing, LinearRingM, LinearRingZ, LinearRingZM)
-from fudgeo.geometry.util import make_header, unpack_header
+from fudgeo.geometry.util import Envelope, make_header, unpack_header
 from tests.conversion.geo import (
     point_lists_to_gpkg_multi_polygon, point_lists_to_gpkg_polygon)
 from tests.conversion.wkb import (
@@ -88,6 +88,9 @@ def test_linear_ring(header):
     assert ring.coordinates == values
     wkb = ring._to_wkb()
     assert wkb == _linear_ring_to_wkb(values)
+    assert not ring.is_empty
+    assert ring.envelope == Envelope(
+        code=1, min_x=0, max_x=2, min_y=0, max_y=1)
 # End test_linear_ring function
 
 
@@ -103,6 +106,9 @@ def test_linear_ring_z(header):
     assert ring.coordinates == values
     wkb = ring._to_wkb()
     assert wkb == _linear_ring_z_to_wkb(values)
+    assert not ring.is_empty
+    assert ring.envelope == Envelope(
+        code=2, min_x=0, max_x=2, min_y=0, max_y=1, min_z=0, max_z=2)
 # End test_linear_ring_z function
 
 
@@ -118,6 +124,9 @@ def test_linear_ring_m(header):
     assert ring.coordinates == values
     wkb = ring._to_wkb()
     assert wkb == _linear_ring_m_to_wkb(values)
+    assert not ring.is_empty
+    assert ring.envelope == Envelope(
+        code=3, min_x=0, max_x=2, min_y=0, max_y=1, min_m=0, max_m=2)
 # End test_linear_ring_m function
 
 
@@ -133,6 +142,10 @@ def test_linear_ring_zm(header):
     assert ring.coordinates == values
     wkb = ring._to_wkb()
     assert wkb == _linear_ring_zm_to_wkb(values)
+    assert not ring.is_empty
+    assert ring.envelope == Envelope(
+        code=4, min_x=0, max_x=2, min_y=0, max_y=1,
+        min_z=0, max_z=2, min_m=0, max_m=1)
 # End test_linear_ring_zm function
 
 
@@ -149,6 +162,9 @@ def test_polygon(header):
     assert poly._to_wkb() == point_lists_to_wkb_polygon(values)
     assert poly.to_gpkg() == point_lists_to_gpkg_polygon(header, values)
     assert Polygon.from_gpkg(poly.to_gpkg()) == poly
+    assert not poly.is_empty
+    assert poly.envelope == Envelope(
+        code=1, min_x=0, max_x=15, min_y=0, max_y=15)
 # End test_polygon function
 
 
@@ -164,6 +180,9 @@ def test_polygon_z(header):
         poly.attribute = 10
     assert poly._to_wkb() == point_lists_z_to_wkb_polygon_z(values)
     assert PolygonZ.from_gpkg(poly.to_gpkg()) == poly
+    assert not poly.is_empty
+    assert poly.envelope == Envelope(
+        code=2, min_x=0, max_x=15, min_y=0, max_y=15, min_z=0, max_z=20)
 # End test_polygon_z function
 
 
@@ -179,6 +198,9 @@ def test_polygon_m(header):
         poly.attribute = 10
     assert poly._to_wkb() == point_lists_m_to_wkb_polygon_m(values)
     assert PolygonM.from_gpkg(poly.to_gpkg()) == poly
+    assert not poly.is_empty
+    assert poly.envelope == Envelope(
+        code=3, min_x=0, max_x=15, min_y=0, max_y=15, min_m=0, max_m=20)
 # End test_polygon_m function
 
 
@@ -196,6 +218,10 @@ def test_polygon_zm(header):
         poly.attribute = 10
     assert poly._to_wkb() == point_lists_zm_to_wkb_polygon_zm(values)
     assert PolygonZM.from_gpkg(poly.to_gpkg()) == poly
+    assert not poly.is_empty
+    assert poly.envelope == Envelope(
+        code=4, min_x=0, max_x=15, min_y=0, max_y=15,
+        min_z=0, max_z=20, min_m=0, max_m=90)
 # End test_polygon_zm function
 
 
@@ -213,6 +239,9 @@ def test_multi_polygon(header):
     assert poly._to_wkb() == point_lists_to_wkb_multipolygon(values)
     assert poly.to_gpkg() == point_lists_to_gpkg_multi_polygon(header, values)
     assert MultiPolygon.from_gpkg(poly.to_gpkg()) == poly
+    assert not poly.is_empty
+    assert poly.envelope == Envelope(
+        code=1, min_x=0, max_x=17, min_y=0, max_y=17)
 # End test_polygon function
 
 
@@ -228,6 +257,9 @@ def test_multi_polygon_z(header):
         poly.attribute = 10
     assert poly._to_wkb() == point_lists_z_to_wkb_multipolygon_z(values)
     assert MultiPolygonZ.from_gpkg(poly.to_gpkg()) == poly
+    assert not poly.is_empty
+    assert poly.envelope == Envelope(
+        code=2, min_x=0, max_x=15, min_y=0, max_y=15, min_z=0, max_z=20)
 # End test_multi_polygon_z function
 
 
@@ -243,6 +275,9 @@ def test_multi_polygon_m(header):
         poly.attribute = 10
     assert poly._to_wkb() == point_lists_m_to_wkb_multipolygon_m(values)
     assert MultiPolygonM.from_gpkg(poly.to_gpkg()) == poly
+    assert not poly.is_empty
+    assert poly.envelope == Envelope(
+        code=3, min_x=0, max_x=15, min_y=0, max_y=15, min_m=0, max_m=20)
 # End test_multi_polygon_m function
 
 
@@ -260,6 +295,10 @@ def test_multi_polygon_zm(header):
         poly.attribute = 10
     assert poly._to_wkb() == point_lists_zm_to_wkb_multipolygon_zm(values)
     assert MultiPolygonZM.from_gpkg(poly.to_gpkg()) == poly
+    assert not poly.is_empty
+    assert poly.envelope == Envelope(
+        code=4, min_x=0, max_x=15, min_y=0, max_y=15,
+        min_z=0, max_z=20, min_m=10, max_m=100)
 # End test_multi_polygon_zm function
 
 

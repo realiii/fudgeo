@@ -9,7 +9,7 @@ from fudgeo.constant import WGS84
 from fudgeo.geometry import (
     LineString, LineStringM, LineStringZ, LineStringZM, MultiLineString,
     MultiLineStringM, MultiLineStringZ, MultiLineStringZM)
-from fudgeo.geometry.util import make_header, unpack_header
+from fudgeo.geometry.util import Envelope, make_header, unpack_header
 from tests.conversion.geo import (
     point_lists_to_gpkg_multi_line_string, points_m_to_gpkg_line_string_m,
     points_to_gpkg_line_string, points_z_to_gpkg_line_string_z,
@@ -79,7 +79,7 @@ def test_line_string(header):
     """
     Test line string wkb
     """
-    values = [(0, 0), (1, 1)]
+    values = [(0, 1), (10, 11)]
     line = LineString(values, srs_id=WGS84)
     with raises(AttributeError):
         # noinspection PyDunderSlots,PyUnresolvedReferences
@@ -89,6 +89,9 @@ def test_line_string(header):
     assert wkb == points_to_wkb_line_string(values)
     assert line.to_gpkg() == points_to_gpkg_line_string(header, values)
     assert LineString.from_gpkg(line.to_gpkg()) == line
+    assert not line.is_empty
+    assert line.envelope == Envelope(
+        code=1, min_x=0, max_x=10, min_y=1, max_y=11)
 # End test_line_string function
 
 
@@ -96,7 +99,7 @@ def test_line_string_z(header):
     """
     Test line string Z wkb
     """
-    values = [(0, 0, 0), (1, 1, 1)]
+    values = [(0, 1, 2), (10, 11, 12)]
     line = LineStringZ(values, srs_id=WGS84)
     with raises(AttributeError):
         # noinspection PyDunderSlots,PyUnresolvedReferences
@@ -106,6 +109,9 @@ def test_line_string_z(header):
     assert wkb == points_z_to_wkb_line_string_z(values)
     assert line.to_gpkg() == points_z_to_gpkg_line_string_z(header, values)
     assert LineStringZ.from_gpkg(line.to_gpkg()) == line
+    assert not line.is_empty
+    assert line.envelope == Envelope(
+        code=2, min_x=0, max_x=10, min_y=1, max_y=11, min_z=2, max_z=12)
 # End test_line_string_z function
 
 
@@ -113,7 +119,7 @@ def test_line_string_m(header):
     """
     Test line string M wkb
     """
-    values = [(0, 0, 0), (1, 1, 1)]
+    values = [(0, 1, 2), (10, 11, 12)]
     line = LineStringM(values, srs_id=WGS84)
     with raises(AttributeError):
         # noinspection PyDunderSlots,PyUnresolvedReferences
@@ -123,6 +129,9 @@ def test_line_string_m(header):
     assert wkb == points_m_to_wkb_line_string_m(values)
     assert line.to_gpkg() == points_m_to_gpkg_line_string_m(header, values)
     assert LineStringM.from_gpkg(line.to_gpkg()) == line
+    assert not line.is_empty
+    assert line.envelope == Envelope(
+        code=3, min_x=0, max_x=10, min_y=1, max_y=11, min_m=2, max_m=12)
 # End test_line_string_m function
 
 
@@ -130,7 +139,7 @@ def test_line_string_zm(header):
     """
     Test line string ZM wkb
     """
-    values = [(0, 0, 0, 0), (1, 1, 1, 1)]
+    values = [(0, 1, 2, 3), (10, 11, 12, 13)]
     line = LineStringZM(values, srs_id=WGS84)
     with raises(AttributeError):
         # noinspection PyDunderSlots,PyUnresolvedReferences
@@ -140,6 +149,10 @@ def test_line_string_zm(header):
     assert wkb == points_zm_to_wkb_line_string_zm(values)
     assert line.to_gpkg() == points_zm_to_gpkg_line_string_zm(header, values)
     assert LineStringZM.from_gpkg(line.to_gpkg()) == line
+    assert not line.is_empty
+    assert line.envelope == Envelope(
+        code=4, min_x=0, max_x=10, min_y=1, max_y=11,
+        min_z=2, max_z=12, min_m=3, max_m=13)
 # End test_line_string_zm function
 
 
@@ -159,6 +172,9 @@ def test_multi_line_string(header):
     assert multi.to_gpkg() == (
         point_lists_to_gpkg_multi_line_string(header, values))
     assert MultiLineString.from_gpkg(multi.to_gpkg()) == multi
+    assert not multi.is_empty
+    assert multi.envelope == Envelope(
+        code=1, min_x=0, max_x=75, min_y=0, max_y=85)
 # End test_multi_line_string function
 
 
@@ -176,6 +192,9 @@ def test_multi_line_string_z(header):
         multi.attribute = 10
     assert multi._to_wkb() == point_lists_z_to_multi_line_string_z(values)
     assert MultiLineStringZ.from_gpkg(multi.to_gpkg()) == multi
+    assert not multi.is_empty
+    assert multi.envelope == Envelope(
+        code=2, min_x=0, max_x=75, min_y=0, max_y=85, min_z=0, max_z=95)
 # End test_multi_line_string_z function
 
 
@@ -193,6 +212,9 @@ def test_multi_line_string_m(header):
         multi.attribute = 10
     assert multi._to_wkb() == point_lists_m_to_multi_line_string_m(values)
     assert MultiLineStringM.from_gpkg(multi.to_gpkg()) == multi
+    assert not multi.is_empty
+    assert multi.envelope == Envelope(
+        code=3, min_x=0, max_x=75, min_y=0, max_y=85, min_m=0, max_m=95)
 # End test_multi_line_string_m function
 
 
@@ -210,6 +232,10 @@ def test_multi_line_string_zm(header):
         multi.attribute = 10
     assert multi._to_wkb() == point_lists_zm_to_multi_line_string_zm(values)
     assert MultiLineStringZM.from_gpkg(multi.to_gpkg()) == multi
+    assert not multi.is_empty
+    assert multi.envelope == Envelope(
+        code=4, min_x=0, max_x=75, min_y=0, max_y=85,
+        min_z=0, max_z=95, min_m=0, max_m=105)
 # End test_multi_line_string_zm function
 
 

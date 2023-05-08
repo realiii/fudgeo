@@ -17,7 +17,9 @@ from fudgeo.constant import (
 from fudgeo.geometry.base import (
     AbstractGeopackageGeometry, AbstractGeopackageGeometryEnvelope)
 from fudgeo.geometry.util import (
-    pack_coordinates, unpack_envelope,
+    EMPTY_ENVELOPE, Envelope, envelope_from_coordinates,
+    envelope_from_coordinates_m, envelope_from_coordinates_z,
+    envelope_from_coordinates_zm, pack_coordinates, unpack_envelope,
     unpack_header, unpack_points)
 
 
@@ -417,6 +419,18 @@ class MultiPoint(AbstractGeopackageGeometryEnvelope):
         return [Point(x=x, y=y, srs_id=srs_id) for x, y in self.coordinates]
     # End points property
 
+    @property
+    def envelope(self) -> Envelope:
+        """
+        Envelope
+        """
+        if self._envelope is not EMPTY_ENVELOPE:
+            return self._envelope
+        env = envelope_from_coordinates(self.coordinates)
+        self._envelope = env
+        return env
+    # End envelope property
+
     def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
@@ -477,6 +491,18 @@ class MultiPointZ(AbstractGeopackageGeometryEnvelope):
         return [PointZ(x=x, y=y, z=z, srs_id=srs_id)
                 for x, y, z in self.coordinates]
     # End points property
+
+    @property
+    def envelope(self) -> Envelope:
+        """
+        Envelope
+        """
+        if self._envelope is not EMPTY_ENVELOPE:
+            return self._envelope
+        env = envelope_from_coordinates_z(self.coordinates)
+        self._envelope = env
+        return env
+    # End envelope property
 
     def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
@@ -539,6 +565,18 @@ class MultiPointM(AbstractGeopackageGeometryEnvelope):
                 for x, y, m in self.coordinates]
     # End points property
 
+    @property
+    def envelope(self) -> Envelope:
+        """
+        Envelope
+        """
+        if self._envelope is not EMPTY_ENVELOPE:
+            return self._envelope
+        env = envelope_from_coordinates_m(self.coordinates)
+        self._envelope = env
+        return env
+    # End envelope property
+
     def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
         To WKB
@@ -599,6 +637,18 @@ class MultiPointZM(AbstractGeopackageGeometryEnvelope):
         return [PointZM(x=x, y=y, z=z, m=m, srs_id=srs_id)
                 for x, y, z, m in self.coordinates]
     # End points property
+
+    @property
+    def envelope(self) -> Envelope:
+        """
+        Envelope
+        """
+        if self._envelope is not EMPTY_ENVELOPE:
+            return self._envelope
+        env = envelope_from_coordinates_zm(self.coordinates)
+        self._envelope = env
+        return env
+    # End envelope property
 
     def _to_wkb(self, use_prefix: bool = True) -> bytes:
         """
