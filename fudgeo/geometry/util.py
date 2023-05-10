@@ -96,6 +96,25 @@ class Envelope:
         return same_m and same_z
     # End eq built-in
 
+    def to_wkb(self) -> Tuple[int, bytes]:
+        """
+        To WKB
+        """
+        code = self.code
+        if code not in {1, 2, 3, 4}:
+            return 0, EMPTY
+        values = self.min_x, self.max_x, self.min_y, self.max_y
+        if code == 1:
+            pass
+        if code == 2:
+            values = *values, self.min_z, self.max_z
+        elif code == 3:
+            values = *values, self.min_m, self.max_m
+        elif code == 4:
+            values = *values, self.min_z, self.max_z, self.min_m, self.max_m
+        return code, pack(f'<{ENVELOPE_COUNT[code]}d', *values)
+    # End to_wkb method
+
     @property
     def code(self) -> int:
         """
@@ -273,13 +292,15 @@ def get_count_and_data(value: bytes, is_ring: bool = False) \
 
 
 @lru_cache(maxsize=None)
-def make_header(srs_id: int, is_empty: bool) -> bytes:
+def make_header(srs_id: int, is_empty: bool, envelope_code: int) -> bytes:
     """
     Cached Creation of a GeoPackage Geometry Header
     """
     flags = 1
     if is_empty:
         flags |= (1 << 4)
+        envelope_code = 0
+    flags |= (envelope_code << 1)
     return pack(HEADER_CODE, GP_MAGIC, 0, flags, srs_id)
 # End make_header function
 

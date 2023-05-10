@@ -99,8 +99,8 @@ class AbstractGeopackageGeometry(AbstractSpatialGeometry):
         """
         To Geopackage
         """
-        return (make_header(srs_id=self.srs_id, is_empty=self.is_empty) +
-                self._to_wkb())
+        return (make_header(srs_id=self.srs_id, is_empty=self.is_empty,
+                            envelope_code=0) + self._to_wkb())
     # End to_gpkg method
 
     @classmethod
@@ -128,6 +128,15 @@ class AbstractGeopackageGeometryEnvelope(AbstractGeopackageGeometry):
         super().__init__(srs_id=srs_id)
         self._envelope: Envelope = EMPTY_ENVELOPE
     # End init built-in
+
+    def to_gpkg(self) -> bytes:
+        """
+        To Geopackage
+        """
+        env_code, env_wkb = self.envelope.to_wkb()
+        return (make_header(srs_id=self.srs_id, is_empty=self.is_empty,
+                            envelope_code=env_code) + env_wkb + self._to_wkb())
+    # End to_gpkg method
 
     @property
     @abstractmethod
