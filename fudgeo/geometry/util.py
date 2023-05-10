@@ -106,7 +106,7 @@ class Envelope:
         values = self.min_x, self.max_x, self.min_y, self.max_y
         if code == 1:
             pass
-        if code == 2:
+        elif code == 2:
             values = *values, self.min_z, self.max_z
         elif code == 3:
             values = *values, self.min_m, self.max_m
@@ -330,11 +330,11 @@ def unpack_envelope(code: int, value: bytes) -> Envelope:
     """
     if not code:
         return EMPTY_ENVELOPE
-    if code not in ENVELOPE_COUNT:
+    if code not in ENVELOPE_COUNT:  # pragma: no cover
         return EMPTY_ENVELOPE
     try:
         values = unpack(f'<{ENVELOPE_COUNT[code]}d', value[HEADER_OFFSET:])
-    except StructError:
+    except StructError:  # pragma: no cover
         return EMPTY_ENVELOPE
     min_x = max_x = min_y = max_y = min_z = max_z = min_m = max_m = nan
     if code == 1:
@@ -384,7 +384,7 @@ def envelope_from_geometries_z(geoms: GEOMS_Z) -> Envelope:
     """
     Envelope from Geometries with Z
     """
-    if not geoms:
+    if not geoms:  # pragma: no cover
         return EMPTY_ENVELOPE
     xs, ys, zs = [], [], []
     for geom in geoms:
@@ -400,7 +400,7 @@ def envelope_from_geometries_m(geoms: GEOMS_M) -> Envelope:
     """
     Envelope from Geometries with M
     """
-    if not geoms:
+    if not geoms:  # pragma: no cover
         return EMPTY_ENVELOPE
     xs, ys, ms = [], [], []
     for geom in geoms:

@@ -109,5 +109,16 @@ def test_envelope_internal_and_coordinates():
 # End test_envelope_internal_and_coordinates function
 
 
+def test_envelope():
+    """
+    Test Envelope
+    """
+    env1 = Envelope(code=1, min_x=0, min_y=0, max_x=1, max_y=1)
+    assert not (env1 == EMPTY_ENVELOPE)
+    assert EMPTY_ENVELOPE == EMPTY_ENVELOPE
+    assert str(env1) == 'Envelope(code=1, min_x=0, max_x=1, min_y=0, max_y=1, min_z=nan, max_z=nan, min_m=nan, max_m=nan)'
+# End test_envelope function
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass
