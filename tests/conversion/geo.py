@@ -15,15 +15,12 @@ from tests.conversion.wkb import (
     point_lists_to_multi_line_string)
 
 
-def make_gpkg_geom_header(srs_id):
+def make_gpkg_geom_header(srs_id, env_code):
     """
     Make a Geopackage geometry binary header
-
-    :param srs_id: The spatial reference id
-    :type srs_id: int
-    :return: the packed srs id
     """
     magic, version, flags = GP_MAGIC, 0, 1
+    flags |= (env_code << 1)
     return pack('<2s2bi', magic, version, flags, srs_id)
 # End make_gpkg_geom_header function
 
