@@ -356,7 +356,7 @@ def _min_max(values: Union[VALUES, Tuple[float, ...]]) \
     """
     Min and Max values, returns nan's if empty list or no finite values.
     """
-    if not values:
+    if not len(values):
         return nan, nan
     values = [v for v in values if isfinite(v)]
     if not values:
@@ -433,7 +433,7 @@ def envelope_from_coordinates(coordinates: List[DOUBLE]) -> Envelope:
     """
     Envelope from Coordinates
     """
-    if not coordinates:
+    if not len(coordinates):
         return EMPTY_ENVELOPE
     return _envelope_xy(*zip(*coordinates))
 # End envelope_from_coordinates function
@@ -443,7 +443,7 @@ def envelope_from_coordinates_z(coordinates: List[TRIPLE]) -> Envelope:
     """
     Envelope from Coordinates with Z
     """
-    if not coordinates:
+    if not len(coordinates):
         return EMPTY_ENVELOPE
     return _envelope_xyz(*zip(*coordinates))
 # End envelope_from_coordinates_z function
@@ -453,7 +453,7 @@ def envelope_from_coordinates_m(coordinates: List[TRIPLE]) -> Envelope:
     """
     Envelope from Coordinates with M
     """
-    if not coordinates:
+    if not len(coordinates):
         return EMPTY_ENVELOPE
     return _envelope_xym(*zip(*coordinates))
 # End envelope_from_coordinates_m function
@@ -463,7 +463,7 @@ def envelope_from_coordinates_zm(coordinates: List[QUADRUPLE]) -> Envelope:
     """
     Envelope from Coordinates with ZM
     """
-    if not coordinates:
+    if not len(coordinates):
         return EMPTY_ENVELOPE
     return _envelope_xyzm(*zip(*coordinates))
 # End envelope_from_coordinates_zm function
