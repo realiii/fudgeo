@@ -96,6 +96,25 @@ class Envelope:
         return same_m and same_z
     # End eq built-in
 
+    def to_wkb(self) -> Tuple[int, bytes]:
+        """
+        To WKB
+        """
+        code = self.code
+        if code not in {1, 2, 3, 4}:
+            return 0, EMPTY
+        values = self.min_x, self.max_x, self.min_y, self.max_y
+        if code == 1:
+            pass
+        elif code == 2:
+            values = *values, self.min_z, self.max_z
+        elif code == 3:
+            values = *values, self.min_m, self.max_m
+        elif code == 4:
+            values = *values, self.min_z, self.max_z, self.min_m, self.max_m
+        return code, pack(f'<{ENVELOPE_COUNT[code]}d', *values)
+    # End to_wkb method
+
     @property
     def code(self) -> int:
         """
@@ -273,13 +292,15 @@ def get_count_and_data(value: bytes, is_ring: bool = False) \
 
 
 @lru_cache(maxsize=None)
-def make_header(srs_id: int, is_empty: bool) -> bytes:
+def make_header(srs_id: int, is_empty: bool, envelope_code: int) -> bytes:
     """
     Cached Creation of a GeoPackage Geometry Header
     """
     flags = 1
     if is_empty:
         flags |= (1 << 4)
+        envelope_code = 0
+    flags |= (envelope_code << 1)
     return pack(HEADER_CODE, GP_MAGIC, 0, flags, srs_id)
 # End make_header function
 
@@ -309,11 +330,11 @@ def unpack_envelope(code: int, value: bytes) -> Envelope:
     """
     if not code:
         return EMPTY_ENVELOPE
-    if code not in ENVELOPE_COUNT:
+    if code not in ENVELOPE_COUNT:  # pragma: no cover
         return EMPTY_ENVELOPE
     try:
         values = unpack(f'<{ENVELOPE_COUNT[code]}d', value[HEADER_OFFSET:])
-    except StructError:
+    except StructError:  # pragma: no cover
         return EMPTY_ENVELOPE
     min_x = max_x = min_y = max_y = min_z = max_z = min_m = max_m = nan
     if code == 1:
@@ -335,7 +356,7 @@ def _min_max(values: Union[VALUES, Tuple[float, ...]]) \
     """
     Min and Max values, returns nan's if empty list or no finite values.
     """
-    if not values:
+    if not len(values):
         return nan, nan
     values = [v for v in values if isfinite(v)]
     if not values:
@@ -363,7 +384,7 @@ def envelope_from_geometries_z(geoms: GEOMS_Z) -> Envelope:
     """
     Envelope from Geometries with Z
     """
-    if not geoms:
+    if not geoms:  # pragma: no cover
         return EMPTY_ENVELOPE
     xs, ys, zs = [], [], []
     for geom in geoms:
@@ -379,7 +400,7 @@ def envelope_from_geometries_m(geoms: GEOMS_M) -> Envelope:
     """
     Envelope from Geometries with M
     """
-    if not geoms:
+    if not geoms:  # pragma: no cover
         return EMPTY_ENVELOPE
     xs, ys, ms = [], [], []
     for geom in geoms:
@@ -412,7 +433,7 @@ def envelope_from_coordinates(coordinates: List[DOUBLE]) -> Envelope:
     """
     Envelope from Coordinates
     """
-    if not coordinates:
+    if not len(coordinates):
         return EMPTY_ENVELOPE
     return _envelope_xy(*zip(*coordinates))
 # End envelope_from_coordinates function
@@ -422,7 +443,7 @@ def envelope_from_coordinates_z(coordinates: List[TRIPLE]) -> Envelope:
     """
     Envelope from Coordinates with Z
     """
-    if not coordinates:
+    if not len(coordinates):
         return EMPTY_ENVELOPE
     return _envelope_xyz(*zip(*coordinates))
 # End envelope_from_coordinates_z function
@@ -432,7 +453,7 @@ def envelope_from_coordinates_m(coordinates: List[TRIPLE]) -> Envelope:
     """
     Envelope from Coordinates with M
     """
-    if not coordinates:
+    if not len(coordinates):
         return EMPTY_ENVELOPE
     return _envelope_xym(*zip(*coordinates))
 # End envelope_from_coordinates_m function
@@ -442,7 +463,7 @@ def envelope_from_coordinates_zm(coordinates: List[QUADRUPLE]) -> Envelope:
     """
     Envelope from Coordinates with ZM
     """
-    if not coordinates:
+    if not len(coordinates):
         return EMPTY_ENVELOPE
     return _envelope_xyzm(*zip(*coordinates))
 # End envelope_from_coordinates_zm function

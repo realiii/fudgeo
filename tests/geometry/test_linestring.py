@@ -5,15 +5,16 @@ Test LineString
 
 from pytest import mark, raises
 
-from fudgeo.constant import WGS84
+from fudgeo.constant import HEADER_OFFSET, WGS84
 from fudgeo.geometry import (
     LineString, LineStringM, LineStringZ, LineStringZM, MultiLineString,
     MultiLineStringM, MultiLineStringZ, MultiLineStringZM)
-from fudgeo.geometry.util import Envelope, make_header, unpack_header
+from fudgeo.geometry.util import (
+    EMPTY_ENVELOPE, Envelope, make_header,
+    unpack_header)
 from tests.conversion.geo import (
-    point_lists_to_gpkg_multi_line_string, points_m_to_gpkg_line_string_m,
-    points_to_gpkg_line_string, points_z_to_gpkg_line_string_z,
-    points_zm_to_gpkg_line_string_zm)
+    points_m_to_gpkg_line_string_m, points_to_gpkg_line_string,
+    points_z_to_gpkg_line_string_z, points_zm_to_gpkg_line_string_zm)
 from tests.conversion.wkb import (
     point_lists_m_to_multi_line_string_m, point_lists_to_multi_line_string,
     point_lists_z_to_multi_line_string_z,
@@ -29,9 +30,10 @@ def test_empty_linestring_gpkg():
     data = b'GP\x00\x11\xe6\x10\x00\x00\x01\x02\x00\x00\x00\x00\x00\x00\x00'
     srs_id, env_code, offset, is_empty = unpack_header(data[:8])
     assert srs_id == 4326
+    assert env_code == 0
     assert offset == 8
     assert is_empty
-    header = make_header(srs_id, is_empty)
+    header = make_header(srs_id, is_empty, envelope_code=0)
     assert header
     assert data[:len(header)] == header
     line = LineString.from_gpkg(data)
@@ -75,168 +77,102 @@ def test_empty_multi_line_string(cls, wkb):
 # End test_empty_multi_line_string function
 
 
-def test_line_string(header):
+@mark.parametrize('cls, values, env_code, wkb_func, gpkg_func, env', [
+    (LineString, [(0, 1), (10, 11)], 1, points_to_wkb_line_string, points_to_gpkg_line_string, Envelope(code=1, min_x=0, max_x=10, min_y=1, max_y=11)),
+    (LineStringZ, [(0, 1, 2), (10, 11, 12)], 2, points_z_to_wkb_line_string_z, points_z_to_gpkg_line_string_z, Envelope(code=2, min_x=0, max_x=10, min_y=1, max_y=11, min_z=2, max_z=12)),
+    (LineStringM, [(0, 1, 2), (10, 11, 12)], 3, points_m_to_wkb_line_string_m, points_m_to_gpkg_line_string_m, Envelope(code=3, min_x=0, max_x=10, min_y=1, max_y=11, min_m=2, max_m=12)),
+    (LineStringZM, [(0, 1, 2, 3), (10, 11, 12, 13)], 4, points_zm_to_wkb_line_string_zm, points_zm_to_gpkg_line_string_zm, Envelope(code=4, min_x=0, max_x=10, min_y=1, max_y=11, min_z=2, max_z=12, min_m=3, max_m=13)),
+])
+def test_line_string(header, cls, values, env_code, wkb_func, gpkg_func, env):
     """
     Test line string wkb
     """
-    values = [(0, 1), (10, 11)]
-    line = LineString(values, srs_id=WGS84)
+    line = cls(values, srs_id=WGS84)
     with raises(AttributeError):
         # noinspection PyDunderSlots,PyUnresolvedReferences
         line.attribute = 10
     assert line.coordinates == values
-    wkb = line._to_wkb()
-    assert wkb == points_to_wkb_line_string(values)
-    assert line.to_gpkg() == points_to_gpkg_line_string(header, values)
-    assert LineString.from_gpkg(line.to_gpkg()) == line
+    assert line._to_wkb() == wkb_func(values)
+    legacy = gpkg_func(header(env_code), values)
+    gpkg = line.to_gpkg()
+    assert len(gpkg) > len(legacy)
+    assert gpkg.startswith(legacy[:HEADER_OFFSET])
+    assert gpkg.endswith(legacy[HEADER_OFFSET:])
+    assert cls.from_gpkg(gpkg) == line
     assert not line.is_empty
-    assert line.envelope == Envelope(
-        code=1, min_x=0, max_x=10, min_y=1, max_y=11)
+    assert line.envelope == env
 # End test_line_string function
 
 
-def test_line_string_z(header):
+@mark.parametrize('data', [
+    b'GP\x00\x03\xe6\x10\x00\x00t\xc8\t\x1dX\x87]\xc0\xc0\x7f\x1a\xf4N\x87]\xc0P\xea\x17\xcep\xdf@@0F\x87\xa1\x84\xdf@@\x01\x02\x00\x00\x00\x02\x00\x00\x00\xc0\x7f\x1a\xf4N\x87]\xc00F\x87\xa1\x84\xdf@@t\xc8\t\x1dX\x87]\xc0P\xea\x17\xcep\xdf@@',
+    b'GP\x00\x03\xe6\x10\x00\x00\xc0\x7f\x1a\xf4N\x87]\xc0\x9c82\xefN\x87]\xc00F\x87\xa1\x84\xdf@@@3\xf1\xa9\x84\xdf@@\x01\x02\x00\x00\x00\x02\x00\x00\x00\x9c82\xefN\x87]\xc0@3\xf1\xa9\x84\xdf@@\xc0\x7f\x1a\xf4N\x87]\xc00F\x87\xa1\x84\xdf@@',
+    b"GP\x00\x03\xe6\x10\x00\x00\x9c82\xefN\x87]\xc0\xc42]\x85=\x87]\xc0@3\xf1\xa9\x84\xdf@@\xf8T'j\xa0\xdf@@\x01\x02\x00\x00\x00\x02\x00\x00\x00\xc42]\x85=\x87]\xc0\xf8T'j\xa0\xdf@@\x9c82\xefN\x87]\xc0@3\xf1\xa9\x84\xdf@@",
+    b'GP\x00\x03\xe6\x10\x00\x00\xeco\x91\xfayC[\xc0\x00\xa8V\x1d\x01C[\xc0\xc0u&#\x9d\xe3@@\xa0\xf4\x88\xb5\x9e\xe3@@\x01\x02\x00\x00\x00\x02\x00\x00\x00\x00\xa8V\x1d\x01C[\xc0\xc0u&#\x9d\xe3@@\xeco\x91\xfayC[\xc0\xa0\xf4\x88\xb5\x9e\xe3@@',
+    b'GP\x00\x03\xe6\x10\x00\x00\x00\xd5L\xb2F\x86]\xc0\xa4`\x92lC\x86]\xc0\x80\xf8\xf4\xa3\xa4\xe3@@h\xa4\xc3\xb5\xad\xe3@@\x01\x02\x00\x00\x00\x02\x00\x00\x00\xa4`\x92lC\x86]\xc0h\xa4\xc3\xb5\xad\xe3@@\x00\xd5L\xb2F\x86]\xc0\x80\xf8\xf4\xa3\xa4\xe3@@',
+])
+def test_line_string_envelope(data):
     """
-    Test line string Z wkb
+    Test Line String Envelope
     """
-    values = [(0, 1, 2), (10, 11, 12)]
-    line = LineStringZ(values, srs_id=WGS84)
-    with raises(AttributeError):
-        # noinspection PyDunderSlots,PyUnresolvedReferences
-        line.attribute = 10
-    assert line.coordinates == values
-    wkb = line._to_wkb()
-    assert wkb == points_z_to_wkb_line_string_z(values)
-    assert line.to_gpkg() == points_z_to_gpkg_line_string_z(header, values)
-    assert LineStringZ.from_gpkg(line.to_gpkg()) == line
-    assert not line.is_empty
-    assert line.envelope == Envelope(
-        code=2, min_x=0, max_x=10, min_y=1, max_y=11, min_z=2, max_z=12)
-# End test_line_string_z function
+    line = LineString.from_gpkg(data)
+    assert line._envelope is not EMPTY_ENVELOPE
+    assert line.envelope.code == 1
+    line._envelope = EMPTY_ENVELOPE
+    assert line._envelope is EMPTY_ENVELOPE
+    assert line.envelope is not EMPTY_ENVELOPE
+    assert line.envelope.code == 1
+    assert line.to_gpkg() == data
+# End test_line_string_envelope function
 
 
-def test_line_string_m(header):
-    """
-    Test line string M wkb
-    """
-    values = [(0, 1, 2), (10, 11, 12)]
-    line = LineStringM(values, srs_id=WGS84)
-    with raises(AttributeError):
-        # noinspection PyDunderSlots,PyUnresolvedReferences
-        line.attribute = 10
-    assert line.coordinates == values
-    wkb = line._to_wkb()
-    assert wkb == points_m_to_wkb_line_string_m(values)
-    assert line.to_gpkg() == points_m_to_gpkg_line_string_m(header, values)
-    assert LineStringM.from_gpkg(line.to_gpkg()) == line
-    assert not line.is_empty
-    assert line.envelope == Envelope(
-        code=3, min_x=0, max_x=10, min_y=1, max_y=11, min_m=2, max_m=12)
-# End test_line_string_m function
-
-
-def test_line_string_zm(header):
-    """
-    Test line string ZM wkb
-    """
-    values = [(0, 1, 2, 3), (10, 11, 12, 13)]
-    line = LineStringZM(values, srs_id=WGS84)
-    with raises(AttributeError):
-        # noinspection PyDunderSlots,PyUnresolvedReferences
-        line.attribute = 10
-    assert line.coordinates == values
-    wkb = line._to_wkb()
-    assert wkb == points_zm_to_wkb_line_string_zm(values)
-    assert line.to_gpkg() == points_zm_to_gpkg_line_string_zm(header, values)
-    assert LineStringZM.from_gpkg(line.to_gpkg()) == line
-    assert not line.is_empty
-    assert line.envelope == Envelope(
-        code=4, min_x=0, max_x=10, min_y=1, max_y=11,
-        min_z=2, max_z=12, min_m=3, max_m=13)
-# End test_line_string_zm function
-
-
-def test_multi_line_string(header):
+@mark.parametrize('cls, values, env_code, wkb_func, env', [
+    (MultiLineString, [[(0, 0), (1, 1)], [(10, 12), (15, 16)], [(45, 55), (75, 85)], [(4.4, 5.5), (7.7, 8.8)]],
+     1, point_lists_to_multi_line_string, Envelope(code=1, min_x=0, max_x=75, min_y=0, max_y=85)),
+    (MultiLineStringZ, [[(0, 0, 0), (1, 1, 1)], [(10, 12, 13), (15, 16, 17)], [(45, 55, 65), (75, 85, 95)], [(4.4, 5.5, 6.6), (7.7, 8.8, 9.9)]],
+     2, point_lists_z_to_multi_line_string_z, Envelope(code=2, min_x=0, max_x=75, min_y=0, max_y=85, min_z=0, max_z=95)),
+    (MultiLineStringM, [[(0, 0, 0), (1, 1, 1)], [(10, 12, 13), (15, 16, 17)], [(45, 55, 65), (75, 85, 95)], [(4.4, 5.5, 6.6), (7.7, 8.8, 9.9)]],
+     3, point_lists_m_to_multi_line_string_m, Envelope(code=3, min_x=0, max_x=75, min_y=0, max_y=85, min_m=0, max_m=95)),
+    (MultiLineStringZM, [[(0, 0, 0, 0), (1, 1, 1, 1)], [(10, 12, 13, 14), (15, 16, 17, 18)], [(45, 55, 65, 75), (75, 85, 95, 105)], [(4.4, 5.5, 6.6, 7.7), (7.7, 8.8, 9.9, 10.1)]],
+     4, point_lists_zm_to_multi_line_string_zm, Envelope(code=4, min_x=0, max_x=75, min_y=0, max_y=85, min_z=0, max_z=95, min_m=0, max_m=105)),
+])
+def test_multi_line_string(header, cls, values, env_code, wkb_func, env):
     """
     Test multi line string wkb
     """
-    values = [[(0, 0), (1, 1)],
-              [(10, 12), (15, 16)],
-              [(45, 55), (75, 85)],
-              [(4.4, 5.5), (7.7, 8.8)]]
-    multi = MultiLineString(values, srs_id=WGS84)
+    multi = cls(values, srs_id=WGS84)
     with raises(AttributeError):
         # noinspection PyDunderSlots,PyUnresolvedReferences
         multi.attribute = 10
-    assert multi._to_wkb() == point_lists_to_multi_line_string(values)
-    assert multi.to_gpkg() == (
-        point_lists_to_gpkg_multi_line_string(header, values))
-    assert MultiLineString.from_gpkg(multi.to_gpkg()) == multi
+    assert multi._to_wkb() == wkb_func(values)
+    gpkg = multi.to_gpkg()
+    assert cls.from_gpkg(gpkg) == multi
+    assert gpkg.startswith(header(env_code))
     assert not multi.is_empty
-    assert multi.envelope == Envelope(
-        code=1, min_x=0, max_x=75, min_y=0, max_y=85)
+    assert multi.envelope == env
 # End test_multi_line_string function
 
 
-def test_multi_line_string_z(header):
+@mark.parametrize('data', [
+    b'GP\x00\x03\xe6\x10\x00\x00t\xc8\t\x1dX\x87]\xc0\xc0\x7f\x1a\xf4N\x87]\xc0P\xea\x17\xcep\xdf@@0F\x87\xa1\x84\xdf@@\x01\x05\x00\x00\x00\x01\x00\x00\x00\x01\x02\x00\x00\x00\x02\x00\x00\x00\xc0\x7f\x1a\xf4N\x87]\xc00F\x87\xa1\x84\xdf@@t\xc8\t\x1dX\x87]\xc0P\xea\x17\xcep\xdf@@',
+    b'GP\x00\x03\xe6\x10\x00\x00\xc0\x7f\x1a\xf4N\x87]\xc0\x9c82\xefN\x87]\xc00F\x87\xa1\x84\xdf@@@3\xf1\xa9\x84\xdf@@\x01\x05\x00\x00\x00\x01\x00\x00\x00\x01\x02\x00\x00\x00\x02\x00\x00\x00\x9c82\xefN\x87]\xc0@3\xf1\xa9\x84\xdf@@\xc0\x7f\x1a\xf4N\x87]\xc00F\x87\xa1\x84\xdf@@',
+    b"GP\x00\x03\xe6\x10\x00\x00\x9c82\xefN\x87]\xc0\xc42]\x85=\x87]\xc0@3\xf1\xa9\x84\xdf@@\xf8T'j\xa0\xdf@@\x01\x05\x00\x00\x00\x01\x00\x00\x00\x01\x02\x00\x00\x00\x02\x00\x00\x00\xc42]\x85=\x87]\xc0\xf8T'j\xa0\xdf@@\x9c82\xefN\x87]\xc0@3\xf1\xa9\x84\xdf@@",
+    b'GP\x00\x03\xe6\x10\x00\x00\xeco\x91\xfayC[\xc0\x00\xa8V\x1d\x01C[\xc0\xc0u&#\x9d\xe3@@\xa0\xf4\x88\xb5\x9e\xe3@@\x01\x05\x00\x00\x00\x01\x00\x00\x00\x01\x02\x00\x00\x00\x02\x00\x00\x00\x00\xa8V\x1d\x01C[\xc0\xc0u&#\x9d\xe3@@\xeco\x91\xfayC[\xc0\xa0\xf4\x88\xb5\x9e\xe3@@',
+    b'GP\x00\x03\xe6\x10\x00\x00\x00\xd5L\xb2F\x86]\xc0\xa4`\x92lC\x86]\xc0\x80\xf8\xf4\xa3\xa4\xe3@@h\xa4\xc3\xb5\xad\xe3@@\x01\x05\x00\x00\x00\x01\x00\x00\x00\x01\x02\x00\x00\x00\x02\x00\x00\x00\xa4`\x92lC\x86]\xc0h\xa4\xc3\xb5\xad\xe3@@\x00\xd5L\xb2F\x86]\xc0\x80\xf8\xf4\xa3\xa4\xe3@@',
+])
+def test_multi_line_string_envelope(data):
     """
-    Test multi line string Z wkb
+    Test multi line string envelope
     """
-    values = [[(0, 0, 0), (1, 1, 1)],
-              [(10, 12, 13), (15, 16, 17)],
-              [(45, 55, 65), (75, 85, 95)],
-              [(4.4, 5.5, 6.6), (7.7, 8.8, 9.9)]]
-    multi = MultiLineStringZ(values, srs_id=WGS84)
-    with raises(AttributeError):
-        # noinspection PyDunderSlots,PyUnresolvedReferences
-        multi.attribute = 10
-    assert multi._to_wkb() == point_lists_z_to_multi_line_string_z(values)
-    assert MultiLineStringZ.from_gpkg(multi.to_gpkg()) == multi
-    assert not multi.is_empty
-    assert multi.envelope == Envelope(
-        code=2, min_x=0, max_x=75, min_y=0, max_y=85, min_z=0, max_z=95)
-# End test_multi_line_string_z function
-
-
-def test_multi_line_string_m(header):
-    """
-    Test multi line string M wkb
-    """
-    values = [[(0, 0, 0), (1, 1, 1)],
-              [(10, 12, 13), (15, 16, 17)],
-              [(45, 55, 65), (75, 85, 95)],
-              [(4.4, 5.5, 6.6), (7.7, 8.8, 9.9)]]
-    multi = MultiLineStringM(values, srs_id=WGS84)
-    with raises(AttributeError):
-        # noinspection PyDunderSlots,PyUnresolvedReferences
-        multi.attribute = 10
-    assert multi._to_wkb() == point_lists_m_to_multi_line_string_m(values)
-    assert MultiLineStringM.from_gpkg(multi.to_gpkg()) == multi
-    assert not multi.is_empty
-    assert multi.envelope == Envelope(
-        code=3, min_x=0, max_x=75, min_y=0, max_y=85, min_m=0, max_m=95)
-# End test_multi_line_string_m function
-
-
-def test_multi_line_string_zm(header):
-    """
-    Test multi line string ZM wkb
-    """
-    values = [[(0, 0, 0, 0), (1, 1, 1, 1)],
-              [(10, 12, 13, 14), (15, 16, 17, 18)],
-              [(45, 55, 65, 75), (75, 85, 95, 105)],
-              [(4.4, 5.5, 6.6, 7.7), (7.7, 8.8, 9.9, 10.1)]]
-    multi = MultiLineStringZM(values, srs_id=WGS84)
-    with raises(AttributeError):
-        # noinspection PyDunderSlots,PyUnresolvedReferences
-        multi.attribute = 10
-    assert multi._to_wkb() == point_lists_zm_to_multi_line_string_zm(values)
-    assert MultiLineStringZM.from_gpkg(multi.to_gpkg()) == multi
-    assert not multi.is_empty
-    assert multi.envelope == Envelope(
-        code=4, min_x=0, max_x=75, min_y=0, max_y=85,
-        min_z=0, max_z=95, min_m=0, max_m=105)
-# End test_multi_line_string_zm function
+    multi = MultiLineString.from_gpkg(data)
+    assert multi._envelope is not EMPTY_ENVELOPE
+    assert multi.envelope.code == 1
+    multi._envelope = EMPTY_ENVELOPE
+    assert multi._envelope is EMPTY_ENVELOPE
+    assert multi.envelope is not EMPTY_ENVELOPE
+    assert multi.envelope.code == 1
+    assert multi.to_gpkg() == data
+# End test_multi_line_string_envelope function
 
 
 if __name__ == '__main__':  # pragma: no cover
