@@ -162,10 +162,10 @@ def test_multi_point_envelope(cls, env_code, data):
     Test Multi Point Envelope
     """
     multi = cls.from_gpkg(data)
-    assert multi._envelope is not EMPTY_ENVELOPE
+    assert multi._env is not EMPTY_ENVELOPE
     assert multi.envelope.code == env_code
-    multi._envelope = EMPTY_ENVELOPE
-    assert multi._envelope is EMPTY_ENVELOPE
+    multi._env = EMPTY_ENVELOPE
+    assert multi._env is EMPTY_ENVELOPE
     assert multi.envelope is not EMPTY_ENVELOPE
     assert multi.envelope.code == env_code
     assert multi.to_gpkg() == data

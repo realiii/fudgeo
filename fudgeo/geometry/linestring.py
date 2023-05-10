@@ -12,7 +12,7 @@ from fudgeo.constant import (
     TWO_D, WKB_LINESTRING_M_PRE, WKB_LINESTRING_PRE, WKB_LINESTRING_ZM_PRE,
     WKB_LINESTRING_Z_PRE, WKB_MULTI_LINESTRING_M_PRE, WKB_MULTI_LINESTRING_PRE,
     WKB_MULTI_LINESTRING_ZM_PRE, WKB_MULTI_LINESTRING_Z_PRE)
-from fudgeo.geometry.base import AbstractGeopackageGeometryEnvelope
+from fudgeo.geometry.base import AbstractGeometry
 from fudgeo.geometry.point import Point, PointM, PointZ, PointZM
 from fudgeo.geometry.util import (
     EMPTY_ENVELOPE, Envelope, envelope_from_coordinates,
@@ -40,7 +40,7 @@ def _unpack_linestring(cls: LINE_STRING_TYPES, value: bytes,
         return cls([], srs_id=srs_id)
     # noinspection PyTypeChecker
     obj = cls(unpack_line(value[offset:], dimension=dimension), srs_id=srs_id)
-    obj._envelope = unpack_envelope(code=env_code, value=value[:offset])
+    obj._env = unpack_envelope(code=env_code, value=value[:offset])
     return obj
 # End _unpack_linestring function
 
@@ -55,12 +55,12 @@ def _unpack_multi_linestring(cls: MULTI_LINE_STRING_TYPES, value: bytes,
         return cls([], srs_id=srs_id)
     # noinspection PyTypeChecker
     obj = cls(unpack_lines(value[offset:], dimension=dimension), srs_id=srs_id)
-    obj._envelope = unpack_envelope(code=env_code, value=value[:offset])
+    obj._env = unpack_envelope(code=env_code, value=value[:offset])
     return obj
 # End _unpack_multi_linestring function
 
 
-class LineString(AbstractGeopackageGeometryEnvelope):
+class LineString(AbstractGeometry):
     """
     LineString
     """
@@ -107,10 +107,10 @@ class LineString(AbstractGeopackageGeometryEnvelope):
         """
         Envelope
         """
-        if self._envelope is not EMPTY_ENVELOPE:
-            return self._envelope
+        if self._env is not EMPTY_ENVELOPE:
+            return self._env
         env = envelope_from_coordinates(self.coordinates)
-        self._envelope = env
+        self._env = env
         return env
     # End envelope property
 
@@ -131,7 +131,7 @@ class LineString(AbstractGeopackageGeometryEnvelope):
 # End LineString class
 
 
-class LineStringZ(AbstractGeopackageGeometryEnvelope):
+class LineStringZ(AbstractGeometry):
     """
     LineStringZ
     """
@@ -179,10 +179,10 @@ class LineStringZ(AbstractGeopackageGeometryEnvelope):
         """
         Envelope
         """
-        if self._envelope is not EMPTY_ENVELOPE:
-            return self._envelope
+        if self._env is not EMPTY_ENVELOPE:
+            return self._env
         env = envelope_from_coordinates_z(self.coordinates)
-        self._envelope = env
+        self._env = env
         return env
     # End envelope property
 
@@ -204,7 +204,7 @@ class LineStringZ(AbstractGeopackageGeometryEnvelope):
 # End LineStringZ class
 
 
-class LineStringM(AbstractGeopackageGeometryEnvelope):
+class LineStringM(AbstractGeometry):
     """
     LineStringM
     """
@@ -252,10 +252,10 @@ class LineStringM(AbstractGeopackageGeometryEnvelope):
         """
         Envelope
         """
-        if self._envelope is not EMPTY_ENVELOPE:
-            return self._envelope
+        if self._env is not EMPTY_ENVELOPE:
+            return self._env
         env = envelope_from_coordinates_m(self.coordinates)
-        self._envelope = env
+        self._env = env
         return env
     # End envelope property
 
@@ -277,7 +277,7 @@ class LineStringM(AbstractGeopackageGeometryEnvelope):
 # End LineStringM class
 
 
-class LineStringZM(AbstractGeopackageGeometryEnvelope):
+class LineStringZM(AbstractGeometry):
     """
     LineStringZM
     """
@@ -325,10 +325,10 @@ class LineStringZM(AbstractGeopackageGeometryEnvelope):
         """
         Envelope
         """
-        if self._envelope is not EMPTY_ENVELOPE:
-            return self._envelope
+        if self._env is not EMPTY_ENVELOPE:
+            return self._env
         env = envelope_from_coordinates_zm(self.coordinates)
-        self._envelope = env
+        self._env = env
         return env
     # End envelope property
 
@@ -350,7 +350,7 @@ class LineStringZM(AbstractGeopackageGeometryEnvelope):
 # End LineStringZM class
 
 
-class MultiLineString(AbstractGeopackageGeometryEnvelope):
+class MultiLineString(AbstractGeometry):
     """
     Multi LineString
     """
@@ -398,10 +398,10 @@ class MultiLineString(AbstractGeopackageGeometryEnvelope):
         """
         Envelope
         """
-        if self._envelope is not EMPTY_ENVELOPE:
-            return self._envelope
+        if self._env is not EMPTY_ENVELOPE:
+            return self._env
         env = envelope_from_geometries(self.lines)
-        self._envelope = env
+        self._env = env
         return env
     # End envelope property
 
@@ -415,7 +415,7 @@ class MultiLineString(AbstractGeopackageGeometryEnvelope):
 # End MultiLineString class
 
 
-class MultiLineStringZ(AbstractGeopackageGeometryEnvelope):
+class MultiLineStringZ(AbstractGeometry):
     """
     Multi LineString Z
     """
@@ -454,10 +454,10 @@ class MultiLineStringZ(AbstractGeopackageGeometryEnvelope):
         """
         Envelope
         """
-        if self._envelope is not EMPTY_ENVELOPE:
-            return self._envelope
+        if self._env is not EMPTY_ENVELOPE:
+            return self._env
         env = envelope_from_geometries_z(self.lines)
-        self._envelope = env
+        self._env = env
         return env
     # End envelope property
 
@@ -480,7 +480,7 @@ class MultiLineStringZ(AbstractGeopackageGeometryEnvelope):
 # End MultiLineStringZ class
 
 
-class MultiLineStringM(AbstractGeopackageGeometryEnvelope):
+class MultiLineStringM(AbstractGeometry):
     """
     Multi LineString M
     """
@@ -519,10 +519,10 @@ class MultiLineStringM(AbstractGeopackageGeometryEnvelope):
         """
         Envelope
         """
-        if self._envelope is not EMPTY_ENVELOPE:
-            return self._envelope
+        if self._env is not EMPTY_ENVELOPE:
+            return self._env
         env = envelope_from_geometries_m(self.lines)
-        self._envelope = env
+        self._env = env
         return env
     # End envelope property
 
@@ -545,7 +545,7 @@ class MultiLineStringM(AbstractGeopackageGeometryEnvelope):
 # End MultiLineStringM class
 
 
-class MultiLineStringZM(AbstractGeopackageGeometryEnvelope):
+class MultiLineStringZM(AbstractGeometry):
     """
     Multi LineString ZM
     """
@@ -584,10 +584,10 @@ class MultiLineStringZM(AbstractGeopackageGeometryEnvelope):
         """
         Envelope
         """
-        if self._envelope is not EMPTY_ENVELOPE:
-            return self._envelope
+        if self._env is not EMPTY_ENVELOPE:
+            return self._env
         env = envelope_from_geometries_zm(self.lines)
-        self._envelope = env
+        self._env = env
         return env
     # End envelope property
 

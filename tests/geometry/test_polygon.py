@@ -180,11 +180,11 @@ def test_multi_polygon_envelope(cls, env_code, data):
     Test Multi Polygon Envelope
     """
     multi = cls.from_gpkg(data)
-    assert multi._envelope is not EMPTY_ENVELOPE
+    assert multi._env is not EMPTY_ENVELOPE
     assert multi.envelope.code == env_code
     assert all(p.envelope.code == env_code for p in multi.polygons)
-    multi._envelope = EMPTY_ENVELOPE
-    assert multi._envelope is EMPTY_ENVELOPE
+    multi._env = EMPTY_ENVELOPE
+    assert multi._env is EMPTY_ENVELOPE
     assert multi.envelope is not EMPTY_ENVELOPE
     assert multi.envelope.code == env_code
     assert multi.to_gpkg() == data

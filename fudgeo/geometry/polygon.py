@@ -12,8 +12,7 @@ from fudgeo.constant import (
     TWO_D, WKB_MULTI_POLYGON_M_PRE, WKB_MULTI_POLYGON_PRE,
     WKB_MULTI_POLYGON_ZM_PRE, WKB_MULTI_POLYGON_Z_PRE, WKB_POLYGON_M_PRE,
     WKB_POLYGON_PRE, WKB_POLYGON_ZM_PRE, WKB_POLYGON_Z_PRE)
-from fudgeo.geometry.base import (
-    AbstractGeopackageGeometryEnvelope, AbstractSpatialGeometryEnvelope)
+from fudgeo.geometry.base import AbstractGeometry
 from fudgeo.geometry.point import Point, PointM, PointZ, PointZM
 from fudgeo.geometry.util import (
     EMPTY_ENVELOPE, Envelope, envelope_from_coordinates,
@@ -40,7 +39,7 @@ def _unpack_polygon(cls: POLYGON_TYPES, value: bytes, dimension: int) -> Any:
     # noinspection PyTypeChecker
     obj = cls(unpack_lines(value[offset:], dimension=dimension, is_ring=True),
               srs_id=srs_id)
-    obj._envelope = unpack_envelope(code=env_code, value=value[:offset])
+    obj._env = unpack_envelope(code=env_code, value=value[:offset])
     return obj
 # End _unpack_polygon function
 
@@ -56,12 +55,12 @@ def _unpack_multi_polygon(cls: MULTI_POLYGON_TYPES, value: bytes,
     # noinspection PyTypeChecker
     obj = cls(unpack_polygons(value[offset:], dimension=dimension),
               srs_id=srs_id)
-    obj._envelope = unpack_envelope(code=env_code, value=value[:offset])
+    obj._env = unpack_envelope(code=env_code, value=value[:offset])
     return obj
 # End _unpack_multi_polygon function
 
 
-class LinearRing(AbstractSpatialGeometryEnvelope):
+class LinearRing(AbstractGeometry):
     """
     Linear Ring
     """
@@ -108,10 +107,10 @@ class LinearRing(AbstractSpatialGeometryEnvelope):
         """
         Envelope
         """
-        if self._envelope is not EMPTY_ENVELOPE:
-            return self._envelope
+        if self._env is not EMPTY_ENVELOPE:
+            return self._env
         env = envelope_from_coordinates(self.coordinates)
-        self._envelope = env
+        self._env = env
         return env
     # End envelope property
 
@@ -124,7 +123,7 @@ class LinearRing(AbstractSpatialGeometryEnvelope):
 # End LinearRing class
 
 
-class LinearRingZ(AbstractSpatialGeometryEnvelope):
+class LinearRingZ(AbstractGeometry):
     """
     Linear Ring Z
     """
@@ -179,16 +178,16 @@ class LinearRingZ(AbstractSpatialGeometryEnvelope):
         """
         Envelope
         """
-        if self._envelope is not EMPTY_ENVELOPE:
-            return self._envelope
+        if self._env is not EMPTY_ENVELOPE:
+            return self._env
         env = envelope_from_coordinates_z(self.coordinates)
-        self._envelope = env
+        self._env = env
         return env
     # End envelope property
 # End LinearRingZ class
 
 
-class LinearRingM(AbstractSpatialGeometryEnvelope):
+class LinearRingM(AbstractGeometry):
     """
     Linear Ring M
     """
@@ -236,10 +235,10 @@ class LinearRingM(AbstractSpatialGeometryEnvelope):
         """
         Envelope
         """
-        if self._envelope is not EMPTY_ENVELOPE:
-            return self._envelope
+        if self._env is not EMPTY_ENVELOPE:
+            return self._env
         env = envelope_from_coordinates_m(self.coordinates)
-        self._envelope = env
+        self._env = env
         return env
     # End envelope property
 
@@ -252,7 +251,7 @@ class LinearRingM(AbstractSpatialGeometryEnvelope):
 # End LinearRingM class
 
 
-class LinearRingZM(AbstractSpatialGeometryEnvelope):
+class LinearRingZM(AbstractGeometry):
     """
     Linear Ring ZM
     """
@@ -298,10 +297,10 @@ class LinearRingZM(AbstractSpatialGeometryEnvelope):
         """
         Envelope
         """
-        if self._envelope is not EMPTY_ENVELOPE:
-            return self._envelope
+        if self._env is not EMPTY_ENVELOPE:
+            return self._env
         env = envelope_from_coordinates_zm(self.coordinates)
-        self._envelope = env
+        self._env = env
         return env
     # End envelope property
 
@@ -314,7 +313,7 @@ class LinearRingZM(AbstractSpatialGeometryEnvelope):
 # End LinearRingZM class
 
 
-class Polygon(AbstractGeopackageGeometryEnvelope):
+class Polygon(AbstractGeometry):
     """
     Polygon
     """
@@ -353,10 +352,10 @@ class Polygon(AbstractGeopackageGeometryEnvelope):
         """
         Envelope
         """
-        if self._envelope is not EMPTY_ENVELOPE:
-            return self._envelope
+        if self._env is not EMPTY_ENVELOPE:
+            return self._env
         env = envelope_from_geometries(self.rings)
-        self._envelope = env
+        self._env = env
         return env
     # End envelope property
 
@@ -379,7 +378,7 @@ class Polygon(AbstractGeopackageGeometryEnvelope):
 # End Polygon class
 
 
-class PolygonZ(AbstractGeopackageGeometryEnvelope):
+class PolygonZ(AbstractGeometry):
     """
     Polygon Z
     """
@@ -418,10 +417,10 @@ class PolygonZ(AbstractGeopackageGeometryEnvelope):
         """
         Envelope
         """
-        if self._envelope is not EMPTY_ENVELOPE:
-            return self._envelope
+        if self._env is not EMPTY_ENVELOPE:
+            return self._env
         env = envelope_from_geometries_z(self.rings)
-        self._envelope = env
+        self._env = env
         return env
     # End envelope property
 
@@ -444,7 +443,7 @@ class PolygonZ(AbstractGeopackageGeometryEnvelope):
 # End PolygonZ class
 
 
-class PolygonM(AbstractGeopackageGeometryEnvelope):
+class PolygonM(AbstractGeometry):
     """
     Polygon M
     """
@@ -483,10 +482,10 @@ class PolygonM(AbstractGeopackageGeometryEnvelope):
         """
         Envelope
         """
-        if self._envelope is not EMPTY_ENVELOPE:
-            return self._envelope
+        if self._env is not EMPTY_ENVELOPE:
+            return self._env
         env = envelope_from_geometries_m(self.rings)
-        self._envelope = env
+        self._env = env
         return env
     # End envelope property
 
@@ -509,7 +508,7 @@ class PolygonM(AbstractGeopackageGeometryEnvelope):
 # End PolygonM class
 
 
-class PolygonZM(AbstractGeopackageGeometryEnvelope):
+class PolygonZM(AbstractGeometry):
     """
     Polygon ZM
     """
@@ -548,10 +547,10 @@ class PolygonZM(AbstractGeopackageGeometryEnvelope):
         """
         Envelope
         """
-        if self._envelope is not EMPTY_ENVELOPE:
-            return self._envelope
+        if self._env is not EMPTY_ENVELOPE:
+            return self._env
         env = envelope_from_geometries_zm(self.rings)
-        self._envelope = env
+        self._env = env
         return env
     # End envelope property
 
@@ -574,7 +573,7 @@ class PolygonZM(AbstractGeopackageGeometryEnvelope):
 # End PolygonZM class
 
 
-class MultiPolygon(AbstractGeopackageGeometryEnvelope):
+class MultiPolygon(AbstractGeometry):
     """
     Multi Polygon
     """
@@ -614,10 +613,10 @@ class MultiPolygon(AbstractGeopackageGeometryEnvelope):
         """
         Envelope
         """
-        if self._envelope is not EMPTY_ENVELOPE:
-            return self._envelope
+        if self._env is not EMPTY_ENVELOPE:
+            return self._env
         env = envelope_from_geometries(self.polygons)
-        self._envelope = env
+        self._env = env
         return env
     # End envelope property
 
@@ -640,7 +639,7 @@ class MultiPolygon(AbstractGeopackageGeometryEnvelope):
 # End MultiPolygon class
 
 
-class MultiPolygonZ(AbstractGeopackageGeometryEnvelope):
+class MultiPolygonZ(AbstractGeometry):
     """
     Multi Polygon Z
     """
@@ -680,10 +679,10 @@ class MultiPolygonZ(AbstractGeopackageGeometryEnvelope):
         """
         Envelope
         """
-        if self._envelope is not EMPTY_ENVELOPE:
-            return self._envelope
+        if self._env is not EMPTY_ENVELOPE:
+            return self._env
         env = envelope_from_geometries_z(self.polygons)
-        self._envelope = env
+        self._env = env
         return env
     # End envelope property
 
@@ -706,7 +705,7 @@ class MultiPolygonZ(AbstractGeopackageGeometryEnvelope):
 # End MultiPolygonZ class
 
 
-class MultiPolygonM(AbstractGeopackageGeometryEnvelope):
+class MultiPolygonM(AbstractGeometry):
     """
     Multi Polygon M
     """
@@ -746,10 +745,10 @@ class MultiPolygonM(AbstractGeopackageGeometryEnvelope):
         """
         Envelope
         """
-        if self._envelope is not EMPTY_ENVELOPE:
-            return self._envelope
+        if self._env is not EMPTY_ENVELOPE:
+            return self._env
         env = envelope_from_geometries_m(self.polygons)
-        self._envelope = env
+        self._env = env
         return env
     # End envelope property
 
@@ -772,7 +771,7 @@ class MultiPolygonM(AbstractGeopackageGeometryEnvelope):
 # End MultiPolygonM class
 
 
-class MultiPolygonZM(AbstractGeopackageGeometryEnvelope):
+class MultiPolygonZM(AbstractGeometry):
     """
     Multi Polygon M
     """
@@ -812,10 +811,10 @@ class MultiPolygonZM(AbstractGeopackageGeometryEnvelope):
         """
         Envelope
         """
-        if self._envelope is not EMPTY_ENVELOPE:
-            return self._envelope
+        if self._env is not EMPTY_ENVELOPE:
+            return self._env
         env = envelope_from_geometries_zm(self.polygons)
-        self._envelope = env
+        self._env = env
         return env
     # End envelope property
 

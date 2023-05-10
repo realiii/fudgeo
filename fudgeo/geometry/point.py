@@ -14,12 +14,12 @@ from fudgeo.constant import (
     TWO_D_PACK_CODE, TWO_D_UNPACK_CODE, WKB_MULTI_POINT_M_PRE,
     WKB_MULTI_POINT_PRE, WKB_MULTI_POINT_ZM_PRE, WKB_MULTI_POINT_Z_PRE,
     WKB_POINT_M_PRE, WKB_POINT_PRE, WKB_POINT_ZM_PRE, WKB_POINT_Z_PRE)
-from fudgeo.geometry.base import (
-    AbstractGeopackageGeometry, AbstractGeopackageGeometryEnvelope)
+from fudgeo.geometry.base import AbstractGeometry
 from fudgeo.geometry.util import (
     EMPTY_ENVELOPE, Envelope, envelope_from_coordinates,
     envelope_from_coordinates_m, envelope_from_coordinates_z,
-    envelope_from_coordinates_zm, pack_coordinates, unpack_envelope,
+    envelope_from_coordinates_zm, make_header, pack_coordinates,
+    unpack_envelope,
     unpack_header, unpack_points)
 
 
@@ -37,12 +37,12 @@ def _unpack_multi_point(cls: MULTI_POINT_TYPES, value: bytes,
         return cls([], srs_id=srs_id)
     # noinspection PyTypeChecker
     obj = cls(unpack_points(value[offset:], dimension=dimension), srs_id=srs_id)
-    obj._envelope = unpack_envelope(code=env_code, value=value[:offset])
+    obj._env = unpack_envelope(code=env_code, value=value[:offset])
     return obj
 # End _unpack_multi_point function
 
 
-class Point(AbstractGeopackageGeometry):
+class Point(AbstractGeometry):
     """
     Point
     """
@@ -93,6 +93,14 @@ class Point(AbstractGeopackageGeometry):
         return pre + pack(TWO_D_PACK_CODE, self.x, self.y)
     # End _to_wkb method
 
+    def to_gpkg(self) -> bytes:
+        """
+        To Geopackage
+        """
+        return (make_header(srs_id=self.srs_id, is_empty=self.is_empty,
+                            envelope_code=0) + self._to_wkb())
+    # End to_gpkg method
+
     @classmethod
     def from_gpkg(cls, value: bytes) -> 'Point':
         """
@@ -124,7 +132,7 @@ class Point(AbstractGeopackageGeometry):
 # End Point class
 
 
-class PointZ(AbstractGeopackageGeometry):
+class PointZ(AbstractGeometry):
     """
     Point Z
     """
@@ -176,6 +184,14 @@ class PointZ(AbstractGeopackageGeometry):
         return pre + pack(THREE_D_PACK_CODE, self.x, self.y, self.z)
     # End _to_wkb method
 
+    def to_gpkg(self) -> bytes:
+        """
+        To Geopackage
+        """
+        return (make_header(srs_id=self.srs_id, is_empty=self.is_empty,
+                            envelope_code=0) + self._to_wkb())
+    # End to_gpkg method
+
     @classmethod
     def from_gpkg(cls, value: bytes) -> 'PointZ':
         """
@@ -207,7 +223,7 @@ class PointZ(AbstractGeopackageGeometry):
 # End PointZ class
 
 
-class PointM(AbstractGeopackageGeometry):
+class PointM(AbstractGeometry):
     """
     Point M
     """
@@ -259,6 +275,14 @@ class PointM(AbstractGeopackageGeometry):
         return pre + pack(THREE_D_PACK_CODE, self.x, self.y, self.m)
     # End _to_wkb method
 
+    def to_gpkg(self) -> bytes:
+        """
+        To Geopackage
+        """
+        return (make_header(srs_id=self.srs_id, is_empty=self.is_empty,
+                            envelope_code=0) + self._to_wkb())
+    # End to_gpkg method
+
     @classmethod
     def from_gpkg(cls, value: bytes) -> 'PointM':
         """
@@ -290,7 +314,7 @@ class PointM(AbstractGeopackageGeometry):
 # End PointM class
 
 
-class PointZM(AbstractGeopackageGeometry):
+class PointZM(AbstractGeometry):
     """
     Point ZM
     """
@@ -346,6 +370,14 @@ class PointZM(AbstractGeopackageGeometry):
         return pre + pack(FOUR_D_PACK_CODE, self.x, self.y, self.z, self.m)
     # End _to_wkb method
 
+    def to_gpkg(self) -> bytes:
+        """
+        To Geopackage
+        """
+        return (make_header(srs_id=self.srs_id, is_empty=self.is_empty,
+                            envelope_code=0) + self._to_wkb())
+    # End to_gpkg method
+
     @classmethod
     def from_gpkg(cls, value: bytes) -> 'PointZM':
         """
@@ -377,7 +409,7 @@ class PointZM(AbstractGeopackageGeometry):
 # End PointZM class
 
 
-class MultiPoint(AbstractGeopackageGeometryEnvelope):
+class MultiPoint(AbstractGeometry):
     """
     Multi Point
     """
@@ -424,10 +456,10 @@ class MultiPoint(AbstractGeopackageGeometryEnvelope):
         """
         Envelope
         """
-        if self._envelope is not EMPTY_ENVELOPE:
-            return self._envelope
+        if self._env is not EMPTY_ENVELOPE:
+            return self._env
         env = envelope_from_coordinates(self.coordinates)
-        self._envelope = env
+        self._env = env
         return env
     # End envelope property
 
@@ -449,7 +481,7 @@ class MultiPoint(AbstractGeopackageGeometryEnvelope):
 # End MultiPoint class
 
 
-class MultiPointZ(AbstractGeopackageGeometryEnvelope):
+class MultiPointZ(AbstractGeometry):
     """
     Multi Point Z
     """
@@ -497,10 +529,10 @@ class MultiPointZ(AbstractGeopackageGeometryEnvelope):
         """
         Envelope
         """
-        if self._envelope is not EMPTY_ENVELOPE:
-            return self._envelope
+        if self._env is not EMPTY_ENVELOPE:
+            return self._env
         env = envelope_from_coordinates_z(self.coordinates)
-        self._envelope = env
+        self._env = env
         return env
     # End envelope property
 
@@ -522,7 +554,7 @@ class MultiPointZ(AbstractGeopackageGeometryEnvelope):
 # End MultiPointZ class
 
 
-class MultiPointM(AbstractGeopackageGeometryEnvelope):
+class MultiPointM(AbstractGeometry):
     """
     Multi Point M
     """
@@ -570,10 +602,10 @@ class MultiPointM(AbstractGeopackageGeometryEnvelope):
         """
         Envelope
         """
-        if self._envelope is not EMPTY_ENVELOPE:
-            return self._envelope
+        if self._env is not EMPTY_ENVELOPE:
+            return self._env
         env = envelope_from_coordinates_m(self.coordinates)
-        self._envelope = env
+        self._env = env
         return env
     # End envelope property
 
@@ -595,7 +627,7 @@ class MultiPointM(AbstractGeopackageGeometryEnvelope):
 # End MultiPointM class
 
 
-class MultiPointZM(AbstractGeopackageGeometryEnvelope):
+class MultiPointZM(AbstractGeometry):
     """
     Multi Point ZM
     """
@@ -643,10 +675,10 @@ class MultiPointZM(AbstractGeopackageGeometryEnvelope):
         """
         Envelope
         """
-        if self._envelope is not EMPTY_ENVELOPE:
-            return self._envelope
+        if self._env is not EMPTY_ENVELOPE:
+            return self._env
         env = envelope_from_coordinates_zm(self.coordinates)
-        self._envelope = env
+        self._env = env
         return env
     # End envelope property
 
