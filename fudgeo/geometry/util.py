@@ -229,7 +229,8 @@ def unpack_points(view: memoryview, dimension: int) -> List[Tuple[float, ...]]:
     if not count:
         return []
     total = dimension * count
-    data = [data[i + offset:i + size] for i in range(0, len(data), size)]
+    data = [data[i + offset:i + size].tobytes()
+            for i in range(0, len(data), size)]
     values: Tuple[float, ...] = unpack(f'<{total}d', reduce(add, data))
     return [values[i:i + dimension] for i in range(0, total, dimension)]
 # End unpack_points function
