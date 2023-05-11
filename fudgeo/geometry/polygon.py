@@ -653,7 +653,7 @@ class MultiPolygon(AbstractGeometry):
     """
     Multi Polygon
     """
-    __slots__ = 'polygons',
+    __slots__ = '_polygons',
 
     def __init__(self, coordinates: List[List[List[DOUBLE]]],
                  srs_id: int) -> None:
@@ -661,8 +661,7 @@ class MultiPolygon(AbstractGeometry):
         Initialize the MultiPolygon class
         """
         super().__init__(srs_id=srs_id)
-        self.polygons: List[Polygon] = [
-            Polygon(coords, srs_id=srs_id) for coords in coordinates]
+        self._polygons: List[Polygon] = self._make_polygons(coordinates)
     # End init built-in
 
     def __eq__(self, other: 'MultiPolygon') -> bool:
@@ -675,6 +674,27 @@ class MultiPolygon(AbstractGeometry):
             return False
         return self.polygons == other.polygons
     # End eq built-in
+
+    def _make_polygons(self, coordinates: List[List[List[DOUBLE]]]) \
+            -> List[Polygon]:
+        """
+        Make Polygons
+        """
+        srs_id = self.srs_id
+        return [Polygon(coords, srs_id=srs_id) for coords in coordinates]
+    # End _make_polygons method
+
+    @property
+    def polygons(self) -> List[Polygon]:
+        """
+        Polygons
+        """
+        if self._args:
+            # noinspection PyTypeChecker
+            self._polygons = self._make_polygons(unpack_polygons(*self._args))
+            self._args = None
+        return self._polygons
+    # End polygons property
 
     @property
     def is_empty(self) -> bool:
@@ -710,7 +730,7 @@ class MultiPolygon(AbstractGeometry):
         """
         From Geopackage
         """
-        return _unpack_multi_polygon(cls=cls, value=value, dimension=TWO_D)
+        return lazy_unpack(cls=cls, value=value, dimension=TWO_D)
     # End from_gpkg method
 # End MultiPolygon class
 
@@ -719,7 +739,7 @@ class MultiPolygonZ(AbstractGeometry):
     """
     Multi Polygon Z
     """
-    __slots__ = 'polygons',
+    __slots__ = '_polygons',
 
     def __init__(self, coordinates: List[List[List[TRIPLE]]],
                  srs_id: int) -> None:
@@ -727,8 +747,7 @@ class MultiPolygonZ(AbstractGeometry):
         Initialize the MultiPolygonZ class
         """
         super().__init__(srs_id=srs_id)
-        self.polygons: List[PolygonZ] = [
-            PolygonZ(coords, srs_id=srs_id) for coords in coordinates]
+        self._polygons: List[PolygonZ] = self._make_polygons(coordinates)
     # End init built-in
 
     def __eq__(self, other: 'MultiPolygonZ') -> bool:
@@ -741,6 +760,27 @@ class MultiPolygonZ(AbstractGeometry):
             return False
         return self.polygons == other.polygons
     # End eq built-in
+
+    def _make_polygons(self, coordinates: List[List[List[TRIPLE]]]) \
+            -> List[PolygonZ]:
+        """
+        Make Polygons
+        """
+        srs_id = self.srs_id
+        return [PolygonZ(coords, srs_id=srs_id) for coords in coordinates]
+    # End _make_polygons method
+
+    @property
+    def polygons(self) -> List[PolygonZ]:
+        """
+        Polygons
+        """
+        if self._args:
+            # noinspection PyTypeChecker
+            self._polygons = self._make_polygons(unpack_polygons(*self._args))
+            self._args = None
+        return self._polygons
+    # End polygons property
 
     @property
     def is_empty(self) -> bool:
@@ -776,7 +816,7 @@ class MultiPolygonZ(AbstractGeometry):
         """
         From Geopackage
         """
-        return _unpack_multi_polygon(cls=cls, value=value, dimension=THREE_D)
+        return lazy_unpack(cls=cls, value=value, dimension=THREE_D)
     # End from_gpkg method
 # End MultiPolygonZ class
 
@@ -785,7 +825,7 @@ class MultiPolygonM(AbstractGeometry):
     """
     Multi Polygon M
     """
-    __slots__ = 'polygons',
+    __slots__ = '_polygons',
 
     def __init__(self, coordinates: List[List[List[TRIPLE]]],
                  srs_id: int) -> None:
@@ -793,8 +833,7 @@ class MultiPolygonM(AbstractGeometry):
         Initialize the MultiPolygonM class
         """
         super().__init__(srs_id=srs_id)
-        self.polygons: List[PolygonM] = [
-            PolygonM(coords, srs_id=srs_id) for coords in coordinates]
+        self._polygons: List[PolygonM] = self._make_polygons(coordinates)
     # End init built-in
 
     def __eq__(self, other: 'MultiPolygonM') -> bool:
@@ -807,6 +846,27 @@ class MultiPolygonM(AbstractGeometry):
             return False
         return self.polygons == other.polygons
     # End eq built-in
+
+    def _make_polygons(self, coordinates: List[List[List[TRIPLE]]]) \
+            -> List[PolygonM]:
+        """
+        Make Polygons
+        """
+        srs_id = self.srs_id
+        return [PolygonM(coords, srs_id=srs_id) for coords in coordinates]
+    # End _make_polygons method
+
+    @property
+    def polygons(self) -> List[PolygonM]:
+        """
+        Polygons
+        """
+        if self._args:
+            # noinspection PyTypeChecker
+            self._polygons = self._make_polygons(unpack_polygons(*self._args))
+            self._args = None
+        return self._polygons
+    # End polygons property
 
     @property
     def is_empty(self) -> bool:
@@ -842,7 +902,7 @@ class MultiPolygonM(AbstractGeometry):
         """
         From Geopackage
         """
-        return _unpack_multi_polygon(cls=cls, value=value, dimension=THREE_D)
+        return lazy_unpack(cls=cls, value=value, dimension=THREE_D)
     # End from_gpkg method
 # End MultiPolygonM class
 
@@ -851,7 +911,7 @@ class MultiPolygonZM(AbstractGeometry):
     """
     Multi Polygon M
     """
-    __slots__ = 'polygons',
+    __slots__ = '_polygons',
 
     def __init__(self, coordinates: List[List[List[QUADRUPLE]]],
                  srs_id: int) -> None:
@@ -859,8 +919,7 @@ class MultiPolygonZM(AbstractGeometry):
         Initialize the MultiPolygonZM class
         """
         super().__init__(srs_id=srs_id)
-        self.polygons: List[PolygonZM] = [
-            PolygonZM(coords, srs_id=srs_id) for coords in coordinates]
+        self._polygons: List[PolygonZM] = self._make_polygons(coordinates)
     # End init built-in
 
     def __eq__(self, other: 'MultiPolygonZM') -> bool:
@@ -873,6 +932,27 @@ class MultiPolygonZM(AbstractGeometry):
             return False
         return self.polygons == other.polygons
     # End eq built-in
+
+    def _make_polygons(self, coordinates: List[List[List[QUADRUPLE]]]) \
+            -> List[PolygonZM]:
+        """
+        Make Polygons
+        """
+        srs_id = self.srs_id
+        return [PolygonZM(coords, srs_id=srs_id) for coords in coordinates]
+    # End _make_rings method
+
+    @property
+    def polygons(self) -> List[PolygonZM]:
+        """
+        Polygons
+        """
+        if self._args:
+            # noinspection PyTypeChecker
+            self._polygons = self._make_polygons(unpack_polygons(*self._args))
+            self._args = None
+        return self._polygons
+    # End polygons property
 
     @property
     def is_empty(self) -> bool:
@@ -908,7 +988,7 @@ class MultiPolygonZM(AbstractGeometry):
         """
         From Geopackage
         """
-        return _unpack_multi_polygon(cls=cls, value=value, dimension=FOUR_D)
+        return lazy_unpack(cls=cls, value=value, dimension=FOUR_D)
     # End from_gpkg method
 # End MultiPolygonZM class
 
