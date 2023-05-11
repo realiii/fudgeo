@@ -365,15 +365,14 @@ class MultiLineString(AbstractGeometry):
     """
     Multi LineString
     """
-    __slots__ = 'lines',
+    __slots__ = '_lines',
 
     def __init__(self, coordinates: List[List[DOUBLE]], srs_id: int) -> None:
         """
         Initialize the MultiLineString class
         """
         super().__init__(srs_id=srs_id)
-        self.lines: List[LineString] = [
-            LineString(coords, srs_id=srs_id) for coords in coordinates]
+        self._lines: List[LineString] = self._make_lines(coordinates)
     # End init built-in
 
     def __eq__(self, other: 'MultiLineString') -> bool:
@@ -386,6 +385,26 @@ class MultiLineString(AbstractGeometry):
             return False
         return self.lines == other.lines
     # End eq built-in
+
+    def _make_lines(self, coordinates: List[List[DOUBLE]]) -> List[LineString]:
+        """
+        Make Lines
+        """
+        srs_id = self.srs_id
+        return [LineString(coords, srs_id=srs_id) for coords in coordinates]
+    # End init built-in
+
+    @property
+    def lines(self) -> List[LineString]:
+        """
+        Lines
+        """
+        if self._args:
+            # noinspection PyTypeChecker
+            self._lines = self._make_lines(unpack_lines(*self._args))
+            self._args = None
+        return self._lines
+    # End lines property
 
     @property
     def is_empty(self) -> bool:
@@ -421,7 +440,7 @@ class MultiLineString(AbstractGeometry):
         """
         From Geopackage
         """
-        return _unpack_multi_linestring(cls=cls, value=value, dimension=TWO_D)
+        return lazy_unpack(cls=cls, value=value, dimension=TWO_D)
     # End from_gpkg method
 # End MultiLineString class
 
@@ -430,15 +449,14 @@ class MultiLineStringZ(AbstractGeometry):
     """
     Multi LineString Z
     """
-    __slots__ = 'lines',
+    __slots__ = '_lines',
 
     def __init__(self, coordinates: List[List[TRIPLE]], srs_id: int) -> None:
         """
         Initialize the MultiLineStringZ class
         """
         super().__init__(srs_id=srs_id)
-        self.lines: List[LineStringZ] = [
-            LineStringZ(coords, srs_id=srs_id) for coords in coordinates]
+        self._lines: List[LineStringZ] = self._make_lines(coordinates)
     # End init built-in
 
     def __eq__(self, other: 'MultiLineStringZ') -> bool:
@@ -451,6 +469,26 @@ class MultiLineStringZ(AbstractGeometry):
             return False
         return self.lines == other.lines
     # End eq built-in
+
+    def _make_lines(self, coordinates: List[List[TRIPLE]]) -> List[LineStringZ]:
+        """
+        Make Lines
+        """
+        srs_id = self.srs_id
+        return [LineStringZ(coords, srs_id=srs_id) for coords in coordinates]
+    # End init built-in
+
+    @property
+    def lines(self) -> List[LineStringZ]:
+        """
+        Lines
+        """
+        if self._args:
+            # noinspection PyTypeChecker
+            self._lines = self._make_lines(unpack_lines(*self._args))
+            self._args = None
+        return self._lines
+    # End lines property
 
     @property
     def is_empty(self) -> bool:
@@ -486,7 +524,7 @@ class MultiLineStringZ(AbstractGeometry):
         """
         From Geopackage
         """
-        return _unpack_multi_linestring(cls=cls, value=value, dimension=THREE_D)
+        return lazy_unpack(cls=cls, value=value, dimension=THREE_D)
     # End from_gpkg method
 # End MultiLineStringZ class
 
@@ -495,15 +533,14 @@ class MultiLineStringM(AbstractGeometry):
     """
     Multi LineString M
     """
-    __slots__ = 'lines',
+    __slots__ = '_lines',
 
     def __init__(self, coordinates: List[List[TRIPLE]], srs_id: int) -> None:
         """
         Initialize the MultiLineStringM class
         """
         super().__init__(srs_id=srs_id)
-        self.lines: List[LineStringM] = [
-            LineStringM(coords, srs_id=srs_id) for coords in coordinates]
+        self._lines: List[LineStringM] = self._make_lines(coordinates)
     # End init built-in
 
     def __eq__(self, other: 'MultiLineStringM') -> bool:
@@ -516,6 +553,26 @@ class MultiLineStringM(AbstractGeometry):
             return False
         return self.lines == other.lines
     # End eq built-in
+
+    def _make_lines(self, coordinates: List[List[TRIPLE]]) -> List[LineStringM]:
+        """
+        Make Lines
+        """
+        srs_id = self.srs_id
+        return [LineStringM(coords, srs_id=srs_id) for coords in coordinates]
+    # End init built-in
+
+    @property
+    def lines(self) -> List[LineStringM]:
+        """
+        Lines
+        """
+        if self._args:
+            # noinspection PyTypeChecker
+            self._lines = self._make_lines(unpack_lines(*self._args))
+            self._args = None
+        return self._lines
+    # End lines property
 
     @property
     def is_empty(self) -> bool:
@@ -551,7 +608,7 @@ class MultiLineStringM(AbstractGeometry):
         """
         From Geopackage
         """
-        return _unpack_multi_linestring(cls=cls, value=value, dimension=THREE_D)
+        return lazy_unpack(cls=cls, value=value, dimension=THREE_D)
     # End from_gpkg method
 # End MultiLineStringM class
 
@@ -560,15 +617,14 @@ class MultiLineStringZM(AbstractGeometry):
     """
     Multi LineString ZM
     """
-    __slots__ = 'lines',
+    __slots__ = '_lines',
 
     def __init__(self, coordinates: List[List[QUADRUPLE]], srs_id: int) -> None:
         """
         Initialize the MultiLineStringZM class
         """
         super().__init__(srs_id=srs_id)
-        self.lines: List[LineStringZM] = [
-            LineStringZM(coords, srs_id=srs_id) for coords in coordinates]
+        self._lines: List[LineStringZM] = self._make_lines(coordinates)
     # End init built-in
 
     def __eq__(self, other: 'MultiLineStringZM') -> bool:
@@ -581,6 +637,27 @@ class MultiLineStringZM(AbstractGeometry):
             return False
         return self.lines == other.lines
     # End eq built-in
+
+    def _make_lines(self, coordinates: List[List[QUADRUPLE]]) \
+            -> List[LineStringZM]:
+        """
+        Make Lines
+        """
+        srs_id = self.srs_id
+        return [LineStringZM(coords, srs_id=srs_id) for coords in coordinates]
+    # End init built-in
+
+    @property
+    def lines(self) -> List[LineStringZM]:
+        """
+        Lines
+        """
+        if self._args:
+            # noinspection PyTypeChecker
+            self._lines = self._make_lines(unpack_lines(*self._args))
+            self._args = None
+        return self._lines
+    # End lines property
 
     @property
     def is_empty(self) -> bool:
@@ -616,7 +693,7 @@ class MultiLineStringZM(AbstractGeometry):
         """
         From Geopackage
         """
-        return _unpack_multi_linestring(cls=cls, value=value, dimension=FOUR_D)
+        return lazy_unpack(cls=cls, value=value, dimension=FOUR_D)
     # End from_gpkg method
 # End MultiLineStringZM class
 
