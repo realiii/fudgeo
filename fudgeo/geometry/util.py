@@ -306,7 +306,7 @@ def get_count_and_data(value: bytes, is_ring: bool = False) \
 
 
 @lru_cache(maxsize=None)
-def make_header(srs_id: int, is_empty: bool, envelope_code: int) -> bytes:
+def make_header(srs_id: int, is_empty: bool, envelope_code: int = 0) -> bytes:
     """
     Cached Creation of a GeoPackage Geometry Header
     """
