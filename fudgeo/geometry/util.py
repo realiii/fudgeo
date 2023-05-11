@@ -9,7 +9,7 @@ from math import isfinite, nan
 from operator import add
 # noinspection PyPep8Naming
 from struct import error as StructError, pack, unpack
-from typing import List, TYPE_CHECKING, Tuple, Union
+from typing import Any, List, TYPE_CHECKING, Tuple, Union
 
 from fudgeo.constant import (
     COORDINATES, COUNT_CODE, DOUBLE, EMPTY, ENVELOPE_COUNT, ENVELOPE_OFFSET,
@@ -190,6 +190,20 @@ class Envelope:
 
 
 EMPTY_ENVELOPE = Envelope(code=0, min_x=nan, max_x=nan, min_y=nan, max_y=nan)
+
+
+def lazy_unpack(cls: Any, value: bytes, dimension: int) -> Any:
+    """
+    Unpack just the header and envelope, adding data to class for later use.
+    """
+    srs_id, env_code, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
+    obj = cls([], srs_id=srs_id)
+    if is_empty:
+        return obj
+    obj._env = unpack_envelope(code=env_code, value=value[:offset])
+    obj._args = value[offset:], dimension
+    return obj
+# End lazy_unpack function
 
 
 def unpack_line(value: bytes, dimension: int,
