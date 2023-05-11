@@ -411,7 +411,7 @@ class MultiLineString(AbstractGeometry):
         """
         Is Empty
         """
-        return not len(self.lines)
+        return not (bool(self._args) or bool(self.lines))
     # End is_empty property
 
     def _to_wkb(self, use_prefix: bool = True) -> bytes:
@@ -495,7 +495,7 @@ class MultiLineStringZ(AbstractGeometry):
         """
         Is Empty
         """
-        return not len(self.lines)
+        return not (bool(self._args) or bool(self.lines))
     # End is_empty property
 
     @property
@@ -579,7 +579,7 @@ class MultiLineStringM(AbstractGeometry):
         """
         Is Empty
         """
-        return not len(self.lines)
+        return not (bool(self._args) or bool(self.lines))
     # End is_empty property
 
     @property
@@ -664,7 +664,7 @@ class MultiLineStringZM(AbstractGeometry):
         """
         Is Empty
         """
-        return not len(self.lines)
+        return not (bool(self._args) or bool(self.lines))
     # End is_empty property
 
     @property
