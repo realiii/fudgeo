@@ -19,8 +19,7 @@ from fudgeo.geometry.util import (
     EMPTY_ENVELOPE, Envelope, envelope_from_coordinates,
     envelope_from_coordinates_m, envelope_from_coordinates_z,
     envelope_from_coordinates_zm, make_header, pack_coordinates,
-    unpack_envelope,
-    unpack_header, unpack_points)
+    unpack_envelope, unpack_header, unpack_points)
 
 
 MULTI_POINT_TYPES = Union[Type['MultiPoint'], Type['MultiPointZ'],
@@ -92,6 +91,14 @@ class Point(AbstractGeometry):
         pre = WKB_POINT_PRE if use_prefix else EMPTY
         return pre + pack(TWO_D_PACK_CODE, self.x, self.y)
     # End _to_wkb method
+
+    @property
+    def envelope(self) -> Envelope:
+        """
+        Envelope
+        """
+        return EMPTY_ENVELOPE
+    # End envelope property
 
     def to_gpkg(self) -> bytes:
         """
@@ -184,6 +191,14 @@ class PointZ(AbstractGeometry):
         return pre + pack(THREE_D_PACK_CODE, self.x, self.y, self.z)
     # End _to_wkb method
 
+    @property
+    def envelope(self) -> Envelope:
+        """
+        Envelope
+        """
+        return EMPTY_ENVELOPE
+    # End envelope property
+
     def to_gpkg(self) -> bytes:
         """
         To Geopackage
@@ -274,6 +289,14 @@ class PointM(AbstractGeometry):
         pre = WKB_POINT_M_PRE if use_prefix else EMPTY
         return pre + pack(THREE_D_PACK_CODE, self.x, self.y, self.m)
     # End _to_wkb method
+
+    @property
+    def envelope(self) -> Envelope:
+        """
+        Envelope
+        """
+        return EMPTY_ENVELOPE
+    # End envelope property
 
     def to_gpkg(self) -> bytes:
         """
@@ -369,6 +392,14 @@ class PointZM(AbstractGeometry):
         pre = WKB_POINT_ZM_PRE if use_prefix else EMPTY
         return pre + pack(FOUR_D_PACK_CODE, self.x, self.y, self.z, self.m)
     # End _to_wkb method
+
+    @property
+    def envelope(self) -> Envelope:
+        """
+        Envelope
+        """
+        return EMPTY_ENVELOPE
+    # End envelope property
 
     def to_gpkg(self) -> bytes:
         """
