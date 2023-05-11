@@ -219,7 +219,7 @@ def unpack_line(view: memoryview, dimension: int,
 # End unpack_line function
 
 
-def unpack_points(view: memoryview, dimension: int) -> ndarray:
+def unpack_points(view: memoryview, dimension: int) -> List[Tuple[float, ...]]:
     """
     Unpack Values for Multi Point
     """
