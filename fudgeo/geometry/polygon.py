@@ -252,14 +252,6 @@ class LinearRingZM(AbstractGeometry):
         self.coordinates: List[QUADRUPLE] = coordinates
     # End init built-in
 
-    @property
-    def is_empty(self) -> bool:
-        """
-        Is Empty
-        """
-        return not len(self.coordinates)
-    # End is_empty property
-
     def __eq__(self, other: 'LinearRingZM') -> bool:
         """
         Equals
@@ -268,6 +260,14 @@ class LinearRingZM(AbstractGeometry):
             return NotImplemented
         return self.points == other.points
     # End eq built-in
+
+    @property
+    def is_empty(self) -> bool:
+        """
+        Is Empty
+        """
+        return not len(self.coordinates)
+    # End is_empty property
 
     @property
     def points(self) -> List[PointZM]:
