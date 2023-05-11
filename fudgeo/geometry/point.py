@@ -85,8 +85,8 @@ class Point(AbstractGeometry):
         """
         To Geopackage
         """
-        return (make_header(srs_id=self.srs_id, is_empty=self.is_empty,
-                            envelope_code=0) + self._to_wkb())
+        return (make_header(srs_id=self.srs_id,
+                            is_empty=self.is_empty) + self._to_wkb())
     # End to_gpkg method
 
     @classmethod
@@ -185,8 +185,8 @@ class PointZ(AbstractGeometry):
         """
         To Geopackage
         """
-        return (make_header(srs_id=self.srs_id, is_empty=self.is_empty,
-                            envelope_code=0) + self._to_wkb())
+        return (make_header(srs_id=self.srs_id,
+                            is_empty=self.is_empty) + self._to_wkb())
     # End to_gpkg method
 
     @classmethod
@@ -285,8 +285,8 @@ class PointM(AbstractGeometry):
         """
         To Geopackage
         """
-        return (make_header(srs_id=self.srs_id, is_empty=self.is_empty,
-                            envelope_code=0) + self._to_wkb())
+        return (make_header(srs_id=self.srs_id,
+                            is_empty=self.is_empty) + self._to_wkb())
     # End to_gpkg method
 
     @classmethod
@@ -389,8 +389,8 @@ class PointZM(AbstractGeometry):
         """
         To Geopackage
         """
-        return (make_header(srs_id=self.srs_id, is_empty=self.is_empty,
-                            envelope_code=0) + self._to_wkb())
+        return (make_header(srs_id=self.srs_id,
+                            is_empty=self.is_empty) + self._to_wkb())
     # End to_gpkg method
 
     @classmethod
