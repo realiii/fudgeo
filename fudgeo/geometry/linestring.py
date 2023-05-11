@@ -5,11 +5,11 @@ Line String
 
 
 from struct import pack
-from typing import Any, List, Type, Union
+from typing import List
 
 from fudgeo.constant import (
-    COUNT_CODE, DOUBLE, FOUR_D, HEADER_OFFSET, QUADRUPLE, THREE_D, TRIPLE,
-    TWO_D, WKB_LINESTRING_M_PRE, WKB_LINESTRING_PRE, WKB_LINESTRING_ZM_PRE,
+    COUNT_CODE, DOUBLE, FOUR_D, QUADRUPLE, THREE_D, TRIPLE, TWO_D,
+    WKB_LINESTRING_M_PRE, WKB_LINESTRING_PRE, WKB_LINESTRING_ZM_PRE,
     WKB_LINESTRING_Z_PRE, WKB_MULTI_LINESTRING_M_PRE, WKB_MULTI_LINESTRING_PRE,
     WKB_MULTI_LINESTRING_ZM_PRE, WKB_MULTI_LINESTRING_Z_PRE)
 from fudgeo.geometry.base import AbstractGeometry
@@ -19,59 +19,22 @@ from fudgeo.geometry.util import (
     envelope_from_coordinates_m, envelope_from_coordinates_z,
     envelope_from_coordinates_zm, envelope_from_geometries,
     envelope_from_geometries_m, envelope_from_geometries_z,
-    envelope_from_geometries_zm, pack_coordinates, unpack_envelope,
-    unpack_header, unpack_line, unpack_lines)
-
-
-LINE_STRING_TYPES = Union[Type['LineString'], Type['LineStringZ'],
-                          Type['LineStringM'], Type['LineStringZM']]
-MULTI_LINE_STRING_TYPES = Union[
-    Type['MultiLineString'], Type['MultiLineStringZ'],
-    Type['MultiLineStringM'], Type['MultiLineStringZM']]
-
-
-def _unpack_linestring(cls: LINE_STRING_TYPES, value: bytes,
-                       dimension: int) -> Any:
-    """
-    Unpack LineString
-    """
-    srs_id, env_code, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
-    if is_empty:
-        return cls([], srs_id=srs_id)
-    # noinspection PyTypeChecker
-    obj = cls(unpack_line(value[offset:], dimension=dimension), srs_id=srs_id)
-    obj._env = unpack_envelope(code=env_code, value=value[:offset])
-    return obj
-# End _unpack_linestring function
-
-
-def _unpack_multi_linestring(cls: MULTI_LINE_STRING_TYPES, value: bytes,
-                             dimension: int) -> Any:
-    """
-    Unpack LineStrings into MultiLineString
-    """
-    srs_id, env_code, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
-    if is_empty:
-        return cls([], srs_id=srs_id)
-    # noinspection PyTypeChecker
-    obj = cls(unpack_lines(value[offset:], dimension=dimension), srs_id=srs_id)
-    obj._env = unpack_envelope(code=env_code, value=value[:offset])
-    return obj
-# End _unpack_multi_linestring function
+    envelope_from_geometries_zm, lazy_unpack, pack_coordinates, unpack_line,
+    unpack_lines)
 
 
 class LineString(AbstractGeometry):
     """
     LineString
     """
-    __slots__ = 'coordinates',
+    __slots__ = '_coordinates',
 
     def __init__(self, coordinates: List[DOUBLE], srs_id: int) -> None:
         """
         Initialize the LineString class
         """
         super().__init__(srs_id=srs_id)
-        self.coordinates: List[DOUBLE] = coordinates
+        self._coordinates: List[DOUBLE] = coordinates
     # End init built-in
 
     def __eq__(self, other: 'LineString') -> bool:
@@ -84,6 +47,18 @@ class LineString(AbstractGeometry):
             return False
         return self.points == other.points
     # End eq built-in
+
+    @property
+    def coordinates(self) -> List[DOUBLE]:
+        """
+        Coordinates
+        """
+        if self._args:
+            self._coordinates = unpack_line(*self._args)
+            self._args = None
+        # noinspection PyTypeChecker
+        return self._coordinates
+    # End coordinates property
 
     @property
     def is_empty(self) -> bool:
@@ -126,7 +101,7 @@ class LineString(AbstractGeometry):
         """
         From Geopackage
         """
-        return _unpack_linestring(cls=cls, value=value, dimension=TWO_D)
+        return lazy_unpack(cls=cls, value=value, dimension=TWO_D)
     # End from_gpkg method
 # End LineString class
 
@@ -135,14 +110,14 @@ class LineStringZ(AbstractGeometry):
     """
     LineStringZ
     """
-    __slots__ = 'coordinates',
+    __slots__ = '_coordinates',
 
     def __init__(self, coordinates: List[TRIPLE], srs_id: int) -> None:
         """
         Initialize the LineStringZ class
         """
         super().__init__(srs_id=srs_id)
-        self.coordinates: List[TRIPLE] = coordinates
+        self._coordinates: List[TRIPLE] = coordinates
     # End init built-in
 
     def __eq__(self, other: 'LineStringZ') -> bool:
@@ -155,6 +130,18 @@ class LineStringZ(AbstractGeometry):
             return False
         return self.points == other.points
     # End eq built-in
+
+    @property
+    def coordinates(self) -> List[TRIPLE]:
+        """
+        Coordinates
+        """
+        if self._args:
+            self._coordinates = unpack_line(*self._args)
+            self._args = None
+        # noinspection PyTypeChecker
+        return self._coordinates
+    # End coordinates property
 
     @property
     def is_empty(self) -> bool:
@@ -199,7 +186,7 @@ class LineStringZ(AbstractGeometry):
         """
         From Geopackage
         """
-        return _unpack_linestring(cls=cls, value=value, dimension=THREE_D)
+        return lazy_unpack(cls=cls, value=value, dimension=THREE_D)
     # End from_gpkg method
 # End LineStringZ class
 
@@ -208,14 +195,14 @@ class LineStringM(AbstractGeometry):
     """
     LineStringM
     """
-    __slots__ = 'coordinates',
+    __slots__ = '_coordinates',
 
     def __init__(self, coordinates: List[TRIPLE], srs_id: int) -> None:
         """
         Initialize the LineStringM class
         """
         super().__init__(srs_id=srs_id)
-        self.coordinates: List[TRIPLE] = coordinates
+        self._coordinates: List[TRIPLE] = coordinates
     # End init built-in
 
     def __eq__(self, other: 'LineStringM') -> bool:
@@ -228,6 +215,18 @@ class LineStringM(AbstractGeometry):
             return False
         return self.points == other.points
     # End eq built-in
+
+    @property
+    def coordinates(self) -> List[TRIPLE]:
+        """
+        Coordinates
+        """
+        if self._args:
+            self._coordinates = unpack_line(*self._args)
+            self._args = None
+        # noinspection PyTypeChecker
+        return self._coordinates
+    # End coordinates property
 
     @property
     def is_empty(self) -> bool:
@@ -272,7 +271,7 @@ class LineStringM(AbstractGeometry):
         """
         From Geopackage
         """
-        return _unpack_linestring(cls=cls, value=value, dimension=THREE_D)
+        return lazy_unpack(cls=cls, value=value, dimension=THREE_D)
     # End from_gpkg method
 # End LineStringM class
 
@@ -281,14 +280,14 @@ class LineStringZM(AbstractGeometry):
     """
     LineStringZM
     """
-    __slots__ = 'coordinates',
+    __slots__ = '_coordinates',
 
     def __init__(self, coordinates: List[QUADRUPLE], srs_id: int) -> None:
         """
         Initialize the LineStringZM class
         """
         super().__init__(srs_id=srs_id)
-        self.coordinates: List[QUADRUPLE] = coordinates
+        self._coordinates: List[QUADRUPLE] = coordinates
     # End init built-in
 
     def __eq__(self, other: 'LineStringZM') -> bool:
@@ -301,6 +300,18 @@ class LineStringZM(AbstractGeometry):
             return False
         return self.points == other.points
     # End eq built-in
+
+    @property
+    def coordinates(self) -> List[QUADRUPLE]:
+        """
+        Coordinates
+        """
+        if self._args:
+            self._coordinates = unpack_line(*self._args)
+            self._args = None
+        # noinspection PyTypeChecker
+        return self._coordinates
+    # End coordinates property
 
     @property
     def is_empty(self) -> bool:
@@ -345,7 +356,7 @@ class LineStringZM(AbstractGeometry):
         """
         From Geopackage
         """
-        return _unpack_linestring(cls=cls, value=value, dimension=FOUR_D)
+        return lazy_unpack(cls=cls, value=value, dimension=FOUR_D)
     # End from_gpkg method
 # End LineStringZM class
 
