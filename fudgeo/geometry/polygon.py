@@ -701,7 +701,7 @@ class MultiPolygon(AbstractGeometry):
         """
         Is Empty
         """
-        return not len(self.polygons)
+        return not (bool(self._args) or bool(self.polygons))
     # End is_empty property
 
     @property
@@ -787,7 +787,7 @@ class MultiPolygonZ(AbstractGeometry):
         """
         Is Empty
         """
-        return not len(self.polygons)
+        return not (bool(self._args) or bool(self.polygons))
     # End is_empty property
 
     @property
@@ -873,7 +873,7 @@ class MultiPolygonM(AbstractGeometry):
         """
         Is Empty
         """
-        return not len(self.polygons)
+        return not (bool(self._args) or bool(self.polygons))
     # End is_empty property
 
     @property
@@ -959,7 +959,7 @@ class MultiPolygonZM(AbstractGeometry):
         """
         Is Empty
         """
-        return not len(self.polygons)
+        return not (bool(self._args) or bool(self.polygons))
     # End is_empty property
 
     @property
