@@ -31,7 +31,7 @@ def test_performance(random_utm_coordinates, scale, geom_type, expected):
         end = perf_counter()
         assert points1 == points2
         assert not hasattr(points1, 'envelope')
-        assert not hasattr(points1, '_envelope')
+        assert not hasattr(points1, '_env')
     elif geom_type is LineString:
         start = perf_counter()
         line1 = LineString(list(pairs), srs_id=srs_id)

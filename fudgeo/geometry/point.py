@@ -6,7 +6,7 @@ Points
 
 from math import isnan, nan
 from struct import pack, unpack
-from typing import Any, List, Type, Union
+from typing import List
 
 from fudgeo.constant import (
     DOUBLE, EMPTY, FOUR_D, FOUR_D_PACK_CODE, FOUR_D_UNPACK_CODE, HEADER_OFFSET,
@@ -14,35 +14,15 @@ from fudgeo.constant import (
     TWO_D_PACK_CODE, TWO_D_UNPACK_CODE, WKB_MULTI_POINT_M_PRE,
     WKB_MULTI_POINT_PRE, WKB_MULTI_POINT_ZM_PRE, WKB_MULTI_POINT_Z_PRE,
     WKB_POINT_M_PRE, WKB_POINT_PRE, WKB_POINT_ZM_PRE, WKB_POINT_Z_PRE)
-from fudgeo.geometry.base import (
-    AbstractGeopackageGeometry, AbstractGeopackageGeometryEnvelope)
+from fudgeo.geometry.base import AbstractGeometry
 from fudgeo.geometry.util import (
     EMPTY_ENVELOPE, Envelope, envelope_from_coordinates,
     envelope_from_coordinates_m, envelope_from_coordinates_z,
-    envelope_from_coordinates_zm, pack_coordinates, unpack_envelope,
+    envelope_from_coordinates_zm, lazy_unpack, make_header, pack_coordinates,
     unpack_header, unpack_points)
 
 
-MULTI_POINT_TYPES = Union[Type['MultiPoint'], Type['MultiPointZ'],
-                          Type['MultiPointM'], Type['MultiPointZM']]
-
-
-def _unpack_multi_point(cls: MULTI_POINT_TYPES, value: bytes,
-                        dimension: int) -> Any:
-    """
-    Unpack Points into MultiPoint
-    """
-    srs_id, env_code, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
-    if is_empty:
-        return cls([], srs_id=srs_id)
-    # noinspection PyTypeChecker
-    obj = cls(unpack_points(value[offset:], dimension=dimension), srs_id=srs_id)
-    obj._envelope = unpack_envelope(code=env_code, value=value[:offset])
-    return obj
-# End _unpack_multi_point function
-
-
-class Point(AbstractGeopackageGeometry):
+class Point(AbstractGeometry):
     """
     Point
     """
@@ -93,6 +73,22 @@ class Point(AbstractGeopackageGeometry):
         return pre + pack(TWO_D_PACK_CODE, self.x, self.y)
     # End _to_wkb method
 
+    @property
+    def envelope(self) -> Envelope:
+        """
+        Envelope
+        """
+        return EMPTY_ENVELOPE
+    # End envelope property
+
+    def to_gpkg(self) -> bytes:
+        """
+        To Geopackage
+        """
+        return (make_header(srs_id=self.srs_id, is_empty=self.is_empty,
+                            envelope_code=0) + self._to_wkb())
+    # End to_gpkg method
+
     @classmethod
     def from_gpkg(cls, value: bytes) -> 'Point':
         """
@@ -124,7 +120,7 @@ class Point(AbstractGeopackageGeometry):
 # End Point class
 
 
-class PointZ(AbstractGeopackageGeometry):
+class PointZ(AbstractGeometry):
     """
     Point Z
     """
@@ -176,6 +172,22 @@ class PointZ(AbstractGeopackageGeometry):
         return pre + pack(THREE_D_PACK_CODE, self.x, self.y, self.z)
     # End _to_wkb method
 
+    @property
+    def envelope(self) -> Envelope:
+        """
+        Envelope
+        """
+        return EMPTY_ENVELOPE
+    # End envelope property
+
+    def to_gpkg(self) -> bytes:
+        """
+        To Geopackage
+        """
+        return (make_header(srs_id=self.srs_id, is_empty=self.is_empty,
+                            envelope_code=0) + self._to_wkb())
+    # End to_gpkg method
+
     @classmethod
     def from_gpkg(cls, value: bytes) -> 'PointZ':
         """
@@ -207,7 +219,7 @@ class PointZ(AbstractGeopackageGeometry):
 # End PointZ class
 
 
-class PointM(AbstractGeopackageGeometry):
+class PointM(AbstractGeometry):
     """
     Point M
     """
@@ -259,6 +271,22 @@ class PointM(AbstractGeopackageGeometry):
         return pre + pack(THREE_D_PACK_CODE, self.x, self.y, self.m)
     # End _to_wkb method
 
+    @property
+    def envelope(self) -> Envelope:
+        """
+        Envelope
+        """
+        return EMPTY_ENVELOPE
+    # End envelope property
+
+    def to_gpkg(self) -> bytes:
+        """
+        To Geopackage
+        """
+        return (make_header(srs_id=self.srs_id, is_empty=self.is_empty,
+                            envelope_code=0) + self._to_wkb())
+    # End to_gpkg method
+
     @classmethod
     def from_gpkg(cls, value: bytes) -> 'PointM':
         """
@@ -290,7 +318,7 @@ class PointM(AbstractGeopackageGeometry):
 # End PointM class
 
 
-class PointZM(AbstractGeopackageGeometry):
+class PointZM(AbstractGeometry):
     """
     Point ZM
     """
@@ -346,6 +374,22 @@ class PointZM(AbstractGeopackageGeometry):
         return pre + pack(FOUR_D_PACK_CODE, self.x, self.y, self.z, self.m)
     # End _to_wkb method
 
+    @property
+    def envelope(self) -> Envelope:
+        """
+        Envelope
+        """
+        return EMPTY_ENVELOPE
+    # End envelope property
+
+    def to_gpkg(self) -> bytes:
+        """
+        To Geopackage
+        """
+        return (make_header(srs_id=self.srs_id, is_empty=self.is_empty,
+                            envelope_code=0) + self._to_wkb())
+    # End to_gpkg method
+
     @classmethod
     def from_gpkg(cls, value: bytes) -> 'PointZM':
         """
@@ -377,18 +421,18 @@ class PointZM(AbstractGeopackageGeometry):
 # End PointZM class
 
 
-class MultiPoint(AbstractGeopackageGeometryEnvelope):
+class MultiPoint(AbstractGeometry):
     """
     Multi Point
     """
-    __slots__ = 'coordinates',
+    __slots__ = '_coordinates',
 
     def __init__(self, coordinates: List[DOUBLE], srs_id: int) -> None:
         """
         Initialize the MultiPoint class
         """
         super().__init__(srs_id=srs_id)
-        self.coordinates: List[DOUBLE] = coordinates
+        self._coordinates: List[DOUBLE] = coordinates
     # End init built-in
 
     def __eq__(self, other: 'MultiPoint') -> bool:
@@ -401,6 +445,18 @@ class MultiPoint(AbstractGeopackageGeometryEnvelope):
             return False
         return self.points == other.points
     # End eq built-in
+
+    @property
+    def coordinates(self) -> List[DOUBLE]:
+        """
+        Coordinates
+        """
+        if self._args:
+            self._coordinates = unpack_points(*self._args)
+            self._args = None
+        # noinspection PyTypeChecker
+        return self._coordinates
+    # End coordinates property
 
     @property
     def is_empty(self) -> bool:
@@ -424,10 +480,10 @@ class MultiPoint(AbstractGeopackageGeometryEnvelope):
         """
         Envelope
         """
-        if self._envelope is not EMPTY_ENVELOPE:
-            return self._envelope
+        if self._env is not EMPTY_ENVELOPE:
+            return self._env
         env = envelope_from_coordinates(self.coordinates)
-        self._envelope = env
+        self._env = env
         return env
     # End envelope property
 
@@ -444,23 +500,23 @@ class MultiPoint(AbstractGeopackageGeometryEnvelope):
         """
         From Geopackage
         """
-        return _unpack_multi_point(cls=cls, value=value, dimension=TWO_D)
+        return lazy_unpack(cls=cls, value=value, dimension=TWO_D)
     # End from_gpkg method
 # End MultiPoint class
 
 
-class MultiPointZ(AbstractGeopackageGeometryEnvelope):
+class MultiPointZ(AbstractGeometry):
     """
     Multi Point Z
     """
-    __slots__ = 'coordinates',
+    __slots__ = '_coordinates',
 
     def __init__(self, coordinates: List[TRIPLE], srs_id: int) -> None:
         """
         Initialize the MultiPointZ class
         """
         super().__init__(srs_id=srs_id)
-        self.coordinates: List[TRIPLE] = coordinates
+        self._coordinates: List[TRIPLE] = coordinates
     # End init built-in
 
     def __eq__(self, other: 'MultiPointZ') -> bool:
@@ -473,6 +529,18 @@ class MultiPointZ(AbstractGeopackageGeometryEnvelope):
             return False
         return self.points == other.points
     # End eq built-in
+
+    @property
+    def coordinates(self) -> List[TRIPLE]:
+        """
+        Coordinates
+        """
+        if self._args:
+            self._coordinates = unpack_points(*self._args)
+            self._args = None
+        # noinspection PyTypeChecker
+        return self._coordinates
+    # End coordinates property
 
     @property
     def is_empty(self) -> bool:
@@ -497,10 +565,10 @@ class MultiPointZ(AbstractGeopackageGeometryEnvelope):
         """
         Envelope
         """
-        if self._envelope is not EMPTY_ENVELOPE:
-            return self._envelope
+        if self._env is not EMPTY_ENVELOPE:
+            return self._env
         env = envelope_from_coordinates_z(self.coordinates)
-        self._envelope = env
+        self._env = env
         return env
     # End envelope property
 
@@ -517,23 +585,23 @@ class MultiPointZ(AbstractGeopackageGeometryEnvelope):
         """
         From Geopackage
         """
-        return _unpack_multi_point(cls=cls, value=value, dimension=THREE_D)
+        return lazy_unpack(cls=cls, value=value, dimension=THREE_D)
     # End from_gpkg method
 # End MultiPointZ class
 
 
-class MultiPointM(AbstractGeopackageGeometryEnvelope):
+class MultiPointM(AbstractGeometry):
     """
     Multi Point M
     """
-    __slots__ = 'coordinates',
+    __slots__ = '_coordinates',
 
     def __init__(self, coordinates: List[TRIPLE], srs_id: int) -> None:
         """
         Initialize the MultiPointM class
         """
         super().__init__(srs_id=srs_id)
-        self.coordinates: List[TRIPLE] = coordinates
+        self._coordinates: List[TRIPLE] = coordinates
     # End init built-in
 
     def __eq__(self, other: 'MultiPointM') -> bool:
@@ -546,6 +614,18 @@ class MultiPointM(AbstractGeopackageGeometryEnvelope):
             return False
         return self.points == other.points
     # End eq built-in
+
+    @property
+    def coordinates(self) -> List[TRIPLE]:
+        """
+        Coordinates
+        """
+        if self._args:
+            self._coordinates = unpack_points(*self._args)
+            self._args = None
+        # noinspection PyTypeChecker
+        return self._coordinates
+    # End coordinates property
 
     @property
     def is_empty(self) -> bool:
@@ -570,10 +650,10 @@ class MultiPointM(AbstractGeopackageGeometryEnvelope):
         """
         Envelope
         """
-        if self._envelope is not EMPTY_ENVELOPE:
-            return self._envelope
+        if self._env is not EMPTY_ENVELOPE:
+            return self._env
         env = envelope_from_coordinates_m(self.coordinates)
-        self._envelope = env
+        self._env = env
         return env
     # End envelope property
 
@@ -590,23 +670,23 @@ class MultiPointM(AbstractGeopackageGeometryEnvelope):
         """
         From Geopackage
         """
-        return _unpack_multi_point(cls=cls, value=value, dimension=THREE_D)
+        return lazy_unpack(cls=cls, value=value, dimension=THREE_D)
     # End from_gpkg method
 # End MultiPointM class
 
 
-class MultiPointZM(AbstractGeopackageGeometryEnvelope):
+class MultiPointZM(AbstractGeometry):
     """
     Multi Point ZM
     """
-    __slots__ = 'coordinates',
+    __slots__ = '_coordinates',
 
     def __init__(self, coordinates: List[QUADRUPLE], srs_id: int) -> None:
         """
         Initialize the MultiPointZM class
         """
         super().__init__(srs_id=srs_id)
-        self.coordinates: List[QUADRUPLE] = coordinates
+        self._coordinates: List[QUADRUPLE] = coordinates
     # End init built-in
 
     def __eq__(self, other: 'MultiPointZM') -> bool:
@@ -619,6 +699,18 @@ class MultiPointZM(AbstractGeopackageGeometryEnvelope):
             return False
         return self.points == other.points
     # End eq built-in
+
+    @property
+    def coordinates(self) -> List[QUADRUPLE]:
+        """
+        Coordinates
+        """
+        if self._args:
+            self._coordinates = unpack_points(*self._args)
+            self._args = None
+        # noinspection PyTypeChecker
+        return self._coordinates
+    # End coordinates property
 
     @property
     def is_empty(self) -> bool:
@@ -643,10 +735,10 @@ class MultiPointZM(AbstractGeopackageGeometryEnvelope):
         """
         Envelope
         """
-        if self._envelope is not EMPTY_ENVELOPE:
-            return self._envelope
+        if self._env is not EMPTY_ENVELOPE:
+            return self._env
         env = envelope_from_coordinates_zm(self.coordinates)
-        self._envelope = env
+        self._env = env
         return env
     # End envelope property
 
@@ -663,7 +755,7 @@ class MultiPointZM(AbstractGeopackageGeometryEnvelope):
         """
         From Geopackage
         """
-        return _unpack_multi_point(cls=cls, value=value, dimension=FOUR_D)
+        return lazy_unpack(cls=cls, value=value, dimension=FOUR_D)
     # End from_gpkg method
 # End MultiPointZM class
 

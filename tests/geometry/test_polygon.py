@@ -120,7 +120,9 @@ def test_polygon(header, cls, values, env_code, wkb_func, env):
     assert poly._to_wkb() == wkb_func(values)
     gpkg = poly.to_gpkg()
     assert gpkg.startswith(header(env_code))
-    assert cls.from_gpkg(gpkg) == poly
+    from_gpkg = cls.from_gpkg(gpkg)
+    assert not from_gpkg.is_empty
+    assert from_gpkg == poly
     assert not poly.is_empty
     assert poly.envelope == env
 # End test_polygon function
@@ -147,7 +149,9 @@ def test_multi_polygon(header, cls, values, env_code, wkb_func, env):
     assert poly._to_wkb() == wkb_func(values)
     gpkg = poly.to_gpkg()
     assert gpkg.startswith(header(env_code))
-    assert cls.from_gpkg(gpkg) == poly
+    from_gpkg = cls.from_gpkg(gpkg)
+    assert not from_gpkg.is_empty
+    assert from_gpkg == poly
     assert not poly.is_empty
     assert poly.envelope == env
 # End test_multi_polygon function
@@ -180,11 +184,12 @@ def test_multi_polygon_envelope(cls, env_code, data):
     Test Multi Polygon Envelope
     """
     multi = cls.from_gpkg(data)
-    assert multi._envelope is not EMPTY_ENVELOPE
+    assert not multi.is_empty
+    assert multi._env is not EMPTY_ENVELOPE
     assert multi.envelope.code == env_code
     assert all(p.envelope.code == env_code for p in multi.polygons)
-    multi._envelope = EMPTY_ENVELOPE
-    assert multi._envelope is EMPTY_ENVELOPE
+    multi._env = EMPTY_ENVELOPE
+    assert multi._env is EMPTY_ENVELOPE
     assert multi.envelope is not EMPTY_ENVELOPE
     assert multi.envelope.code == env_code
     assert multi.to_gpkg() == data

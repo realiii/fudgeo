@@ -98,7 +98,9 @@ def test_line_string(header, cls, values, env_code, wkb_func, gpkg_func, env):
     assert len(gpkg) > len(legacy)
     assert gpkg.startswith(legacy[:HEADER_OFFSET])
     assert gpkg.endswith(legacy[HEADER_OFFSET:])
-    assert cls.from_gpkg(gpkg) == line
+    from_gpkg = cls.from_gpkg(gpkg)
+    assert not from_gpkg.is_empty
+    assert from_gpkg == line
     assert not line.is_empty
     assert line.envelope == env
 # End test_line_string function
@@ -116,10 +118,10 @@ def test_line_string_envelope(data):
     Test Line String Envelope
     """
     line = LineString.from_gpkg(data)
-    assert line._envelope is not EMPTY_ENVELOPE
+    assert line._env is not EMPTY_ENVELOPE
     assert line.envelope.code == 1
-    line._envelope = EMPTY_ENVELOPE
-    assert line._envelope is EMPTY_ENVELOPE
+    line._env = EMPTY_ENVELOPE
+    assert line._env is EMPTY_ENVELOPE
     assert line.envelope is not EMPTY_ENVELOPE
     assert line.envelope.code == 1
     assert line.to_gpkg() == data
@@ -146,7 +148,9 @@ def test_multi_line_string(header, cls, values, env_code, wkb_func, env):
         multi.attribute = 10
     assert multi._to_wkb() == wkb_func(values)
     gpkg = multi.to_gpkg()
-    assert cls.from_gpkg(gpkg) == multi
+    from_gpkg = cls.from_gpkg(gpkg)
+    assert not from_gpkg.is_empty
+    assert from_gpkg == multi
     assert gpkg.startswith(header(env_code))
     assert not multi.is_empty
     assert multi.envelope == env
@@ -165,10 +169,10 @@ def test_multi_line_string_envelope(data):
     Test multi line string envelope
     """
     multi = MultiLineString.from_gpkg(data)
-    assert multi._envelope is not EMPTY_ENVELOPE
+    assert multi._env is not EMPTY_ENVELOPE
     assert multi.envelope.code == 1
-    multi._envelope = EMPTY_ENVELOPE
-    assert multi._envelope is EMPTY_ENVELOPE
+    multi._env = EMPTY_ENVELOPE
+    assert multi._env is EMPTY_ENVELOPE
     assert multi.envelope is not EMPTY_ENVELOPE
     assert multi.envelope.code == 1
     assert multi.to_gpkg() == data
