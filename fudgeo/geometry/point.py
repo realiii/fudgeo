@@ -6,7 +6,7 @@ Points
 
 from math import isnan, nan
 from struct import pack, unpack
-from typing import Any, List, Type, Union
+from typing import List
 
 from fudgeo.constant import (
     DOUBLE, EMPTY, FOUR_D, FOUR_D_PACK_CODE, FOUR_D_UNPACK_CODE, HEADER_OFFSET,
@@ -18,27 +18,8 @@ from fudgeo.geometry.base import AbstractGeometry
 from fudgeo.geometry.util import (
     EMPTY_ENVELOPE, Envelope, envelope_from_coordinates,
     envelope_from_coordinates_m, envelope_from_coordinates_z,
-    envelope_from_coordinates_zm, make_header, pack_coordinates,
-    unpack_envelope, unpack_header, unpack_points)
-
-
-MULTI_POINT_TYPES = Union[Type['MultiPoint'], Type['MultiPointZ'],
-                          Type['MultiPointM'], Type['MultiPointZM']]
-
-
-def _unpack_multi_point(cls: MULTI_POINT_TYPES, value: bytes,
-                        dimension: int) -> Any:
-    """
-    Unpack Points into MultiPoint
-    """
-    srs_id, env_code, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
-    if is_empty:
-        return cls([], srs_id=srs_id)
-    # noinspection PyTypeChecker
-    obj = cls(unpack_points(value[offset:], dimension=dimension), srs_id=srs_id)
-    obj._env = unpack_envelope(code=env_code, value=value[:offset])
-    return obj
-# End _unpack_multi_point function
+    envelope_from_coordinates_zm, lazy_unpack, make_header, pack_coordinates,
+    unpack_header, unpack_points)
 
 
 class Point(AbstractGeometry):
@@ -444,14 +425,14 @@ class MultiPoint(AbstractGeometry):
     """
     Multi Point
     """
-    __slots__ = 'coordinates',
+    __slots__ = '_coordinates',
 
     def __init__(self, coordinates: List[DOUBLE], srs_id: int) -> None:
         """
         Initialize the MultiPoint class
         """
         super().__init__(srs_id=srs_id)
-        self.coordinates: List[DOUBLE] = coordinates
+        self._coordinates: List[DOUBLE] = coordinates
     # End init built-in
 
     def __eq__(self, other: 'MultiPoint') -> bool:
@@ -464,6 +445,18 @@ class MultiPoint(AbstractGeometry):
             return False
         return self.points == other.points
     # End eq built-in
+
+    @property
+    def coordinates(self) -> List[DOUBLE]:
+        """
+        Coordinates
+        """
+        if self._args:
+            self._coordinates = unpack_points(*self._args)
+            self._args = None
+        # noinspection PyTypeChecker
+        return self._coordinates
+    # End coordinates property
 
     @property
     def is_empty(self) -> bool:
@@ -507,7 +500,7 @@ class MultiPoint(AbstractGeometry):
         """
         From Geopackage
         """
-        return _unpack_multi_point(cls=cls, value=value, dimension=TWO_D)
+        return lazy_unpack(cls=cls, value=value, dimension=TWO_D)
     # End from_gpkg method
 # End MultiPoint class
 
@@ -516,14 +509,14 @@ class MultiPointZ(AbstractGeometry):
     """
     Multi Point Z
     """
-    __slots__ = 'coordinates',
+    __slots__ = '_coordinates',
 
     def __init__(self, coordinates: List[TRIPLE], srs_id: int) -> None:
         """
         Initialize the MultiPointZ class
         """
         super().__init__(srs_id=srs_id)
-        self.coordinates: List[TRIPLE] = coordinates
+        self._coordinates: List[TRIPLE] = coordinates
     # End init built-in
 
     def __eq__(self, other: 'MultiPointZ') -> bool:
@@ -536,6 +529,18 @@ class MultiPointZ(AbstractGeometry):
             return False
         return self.points == other.points
     # End eq built-in
+
+    @property
+    def coordinates(self) -> List[TRIPLE]:
+        """
+        Coordinates
+        """
+        if self._args:
+            self._coordinates = unpack_points(*self._args)
+            self._args = None
+        # noinspection PyTypeChecker
+        return self._coordinates
+    # End coordinates property
 
     @property
     def is_empty(self) -> bool:
@@ -580,7 +585,7 @@ class MultiPointZ(AbstractGeometry):
         """
         From Geopackage
         """
-        return _unpack_multi_point(cls=cls, value=value, dimension=THREE_D)
+        return lazy_unpack(cls=cls, value=value, dimension=THREE_D)
     # End from_gpkg method
 # End MultiPointZ class
 
@@ -589,14 +594,14 @@ class MultiPointM(AbstractGeometry):
     """
     Multi Point M
     """
-    __slots__ = 'coordinates',
+    __slots__ = '_coordinates',
 
     def __init__(self, coordinates: List[TRIPLE], srs_id: int) -> None:
         """
         Initialize the MultiPointM class
         """
         super().__init__(srs_id=srs_id)
-        self.coordinates: List[TRIPLE] = coordinates
+        self._coordinates: List[TRIPLE] = coordinates
     # End init built-in
 
     def __eq__(self, other: 'MultiPointM') -> bool:
@@ -609,6 +614,18 @@ class MultiPointM(AbstractGeometry):
             return False
         return self.points == other.points
     # End eq built-in
+
+    @property
+    def coordinates(self) -> List[TRIPLE]:
+        """
+        Coordinates
+        """
+        if self._args:
+            self._coordinates = unpack_points(*self._args)
+            self._args = None
+        # noinspection PyTypeChecker
+        return self._coordinates
+    # End coordinates property
 
     @property
     def is_empty(self) -> bool:
@@ -653,7 +670,7 @@ class MultiPointM(AbstractGeometry):
         """
         From Geopackage
         """
-        return _unpack_multi_point(cls=cls, value=value, dimension=THREE_D)
+        return lazy_unpack(cls=cls, value=value, dimension=THREE_D)
     # End from_gpkg method
 # End MultiPointM class
 
@@ -662,14 +679,14 @@ class MultiPointZM(AbstractGeometry):
     """
     Multi Point ZM
     """
-    __slots__ = 'coordinates',
+    __slots__ = '_coordinates',
 
     def __init__(self, coordinates: List[QUADRUPLE], srs_id: int) -> None:
         """
         Initialize the MultiPointZM class
         """
         super().__init__(srs_id=srs_id)
-        self.coordinates: List[QUADRUPLE] = coordinates
+        self._coordinates: List[QUADRUPLE] = coordinates
     # End init built-in
 
     def __eq__(self, other: 'MultiPointZM') -> bool:
@@ -682,6 +699,18 @@ class MultiPointZM(AbstractGeometry):
             return False
         return self.points == other.points
     # End eq built-in
+
+    @property
+    def coordinates(self) -> List[QUADRUPLE]:
+        """
+        Coordinates
+        """
+        if self._args:
+            self._coordinates = unpack_points(*self._args)
+            self._args = None
+        # noinspection PyTypeChecker
+        return self._coordinates
+    # End coordinates property
 
     @property
     def is_empty(self) -> bool:
@@ -726,7 +755,7 @@ class MultiPointZM(AbstractGeometry):
         """
         From Geopackage
         """
-        return _unpack_multi_point(cls=cls, value=value, dimension=FOUR_D)
+        return lazy_unpack(cls=cls, value=value, dimension=FOUR_D)
     # End from_gpkg method
 # End MultiPointZM class
 
