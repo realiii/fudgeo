@@ -17,9 +17,9 @@ from tests.crs import WGS_1984_UTM_Zone_23N
 @fixture(scope='session')
 def header():
     """
-    Header
+    Header for Envelope Code 0
     """
-    return make_gpkg_geom_header(4326)
+    return lambda env_code: make_gpkg_geom_header(4326, env_code=env_code)
 # End header function
 
 
