@@ -83,6 +83,14 @@ class LinearRing(AbstractGeometry):
         """
         return pack_coordinates(self.coordinates)
     # End _to_wkb method
+
+    @classmethod
+    def from_gpkg(cls, value: bytes) -> 'LinearRing':  # pragma: nocover
+        """
+        From Geopackage, no-op for Linear Ring
+        """
+        pass
+    # End from_gpkg method
 # End LinearRing class
 
 
@@ -147,6 +155,14 @@ class LinearRingZ(AbstractGeometry):
         self._env = env
         return env
     # End envelope property
+
+    @classmethod
+    def from_gpkg(cls, value: bytes) -> 'LinearRingZ':  # pragma: nocover
+        """
+        From Geopackage, no-op for Linear Ring
+        """
+        pass
+    # End from_gpkg method
 # End LinearRingZ class
 
 
@@ -211,6 +227,14 @@ class LinearRingM(AbstractGeometry):
         """
         return pack_coordinates(self.coordinates, has_m=True)
     # End _to_wkb method
+
+    @classmethod
+    def from_gpkg(cls, value: bytes) -> 'LinearRingM':  # pragma: nocover
+        """
+        From Geopackage, no-op for Linear Ring
+        """
+        pass
+    # End from_gpkg method
 # End LinearRingM class
 
 
@@ -273,6 +297,14 @@ class LinearRingZM(AbstractGeometry):
         """
         return pack_coordinates(self.coordinates, has_z=True, has_m=True)
     # End _to_wkb method
+
+    @classmethod
+    def from_gpkg(cls, value: bytes) -> 'LinearRingZM':  # pragma: nocover
+        """
+        From Geopackage, no-op for Linear Ring
+        """
+        pass
+    # End from_gpkg method
 # End LinearRingZM class
 
 
