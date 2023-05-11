@@ -7,7 +7,7 @@ Base Classes
 from abc import abstractmethod
 from functools import reduce
 from operator import add
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from fudgeo.constant import EMPTY
 from fudgeo.geometry.util import EMPTY_ENVELOPE, Envelope, make_header
@@ -17,7 +17,7 @@ class AbstractGeometry:
     """
     Abstract Geometry
     """
-    __slots__ = 'srs_id', '_env', '_wkb', '_dim'
+    __slots__ = 'srs_id', '_env', '_args'
 
     def __init__(self, srs_id: int) -> None:
         """
@@ -26,8 +26,7 @@ class AbstractGeometry:
         super().__init__()
         self.srs_id: int = srs_id
         self._env: Envelope = EMPTY_ENVELOPE
-        self._wkb: Optional[bytes] = None
-        self._dim: Optional[int] = None
+        self._args: Optional[Tuple[bytes, int]] = None
     # End init built-in
 
     @abstractmethod
