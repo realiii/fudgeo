@@ -32,6 +32,7 @@ def test_geometry_header(cls, srs_id, offset, code, envelope, data):
     """
     Test geometry header + envelope
     """
+    data = memoryview(data)
     sid, env_code, off, is_empty = unpack_header(data[:HEADER_OFFSET])
     assert not is_empty
     assert sid == srs_id
@@ -41,7 +42,7 @@ def test_geometry_header(cls, srs_id, offset, code, envelope, data):
     values = unpack(f'<{count}d', data[HEADER_OFFSET:off])
     tolerance = 10 ** -6
     assert approx(values, abs=tolerance) == envelope
-    env = unpack_envelope(code=env_code, value=data[:offset])
+    env = unpack_envelope(code=env_code, view=data[:offset])
     if code:
         assert approx(env.min_x, abs=tolerance) == envelope[0]
         assert approx(env.max_x, abs=tolerance) == envelope[1]

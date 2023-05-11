@@ -26,7 +26,7 @@ class AbstractGeometry:
         super().__init__()
         self.srs_id: int = srs_id
         self._env: Envelope = EMPTY_ENVELOPE
-        self._args: Optional[Tuple[bytes, int]] = None
+        self._args: Optional[Tuple[memoryview, int]] = None
     # End init built-in
 
     @abstractmethod

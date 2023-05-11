@@ -57,11 +57,11 @@ class Point(AbstractGeometry):
     # End is_empty property
 
     @staticmethod
-    def _unpack(value: bytes) -> DOUBLE:
+    def _unpack(view: memoryview) -> DOUBLE:
         """
         Unpack Values
         """
-        *_, x, y = unpack(TWO_D_UNPACK_CODE, value)
+        *_, x, y = unpack(TWO_D_UNPACK_CODE, view)
         return x, y
     # End _unpack method
 
@@ -94,10 +94,11 @@ class Point(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id, _, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
+        view = memoryview(value)
+        srs_id, _, offset, is_empty = unpack_header(view[:HEADER_OFFSET])
         if is_empty:
             return cls.empty(srs_id)
-        x, y = cls._unpack(value[offset:])
+        x, y = cls._unpack(view[offset:])
         return cls(x=x, y=y, srs_id=srs_id)
     # End from_gpkg method
 
@@ -156,11 +157,11 @@ class PointZ(AbstractGeometry):
     # End is_empty property
 
     @staticmethod
-    def _unpack(value: bytes) -> TRIPLE:
+    def _unpack(view: memoryview) -> TRIPLE:
         """
         Unpack Values
         """
-        *_, x, y, z = unpack(THREE_D_UNPACK_CODE, value)
+        *_, x, y, z = unpack(THREE_D_UNPACK_CODE, view)
         return x, y, z
     # End _unpack method
 
@@ -193,10 +194,11 @@ class PointZ(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id, _, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
+        view = memoryview(value)
+        srs_id, _, offset, is_empty = unpack_header(view[:HEADER_OFFSET])
         if is_empty:
             return cls.empty(srs_id)
-        x, y, z = cls._unpack(value[offset:])
+        x, y, z = cls._unpack(view[offset:])
         return cls(x=x, y=y, z=z, srs_id=srs_id)
     # End from_gpkg method
 
@@ -255,11 +257,11 @@ class PointM(AbstractGeometry):
     # End is_empty property
 
     @staticmethod
-    def _unpack(value: bytes) -> TRIPLE:
+    def _unpack(view: memoryview) -> TRIPLE:
         """
         Unpack Values
         """
-        *_, x, y, m = unpack(THREE_D_UNPACK_CODE, value)
+        *_, x, y, m = unpack(THREE_D_UNPACK_CODE, view)
         return x, y, m
     # End _unpack method
 
@@ -292,10 +294,11 @@ class PointM(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id, _, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
+        view = memoryview(value)
+        srs_id, _, offset, is_empty = unpack_header(view[:HEADER_OFFSET])
         if is_empty:
             return cls.empty(srs_id)
-        x, y, m = cls._unpack(value[offset:])
+        x, y, m = cls._unpack(view[offset:])
         return cls(x=x, y=y, m=m, srs_id=srs_id)
     # End from_gpkg method
 
@@ -358,11 +361,11 @@ class PointZM(AbstractGeometry):
     # End is_empty property
 
     @staticmethod
-    def _unpack(value: bytes) -> QUADRUPLE:
+    def _unpack(view: memoryview) -> QUADRUPLE:
         """
         Unpack Values
         """
-        *_, x, y, z, m = unpack(FOUR_D_UNPACK_CODE, value)
+        *_, x, y, z, m = unpack(FOUR_D_UNPACK_CODE, view)
         return x, y, z, m
     # End _unpack method
 
@@ -395,10 +398,11 @@ class PointZM(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id, _, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
+        view = memoryview(value)
+        srs_id, _, offset, is_empty = unpack_header(view[:HEADER_OFFSET])
         if is_empty:
             return cls.empty(srs_id)
-        x, y, z, m = cls._unpack(value[offset:])
+        x, y, z, m = cls._unpack(view[offset:])
         return cls(x=x, y=y, z=z, m=m, srs_id=srs_id)
     # End from_gpkg method
 

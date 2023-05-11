@@ -196,35 +196,36 @@ def lazy_unpack(cls: Any, value: bytes, dimension: int) -> Any:
     """
     Unpack just the header and envelope, adding data to class for later use.
     """
-    srs_id, env_code, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
+    view = memoryview(value)
+    srs_id, env_code, offset, is_empty = unpack_header(view[:HEADER_OFFSET])
     obj = cls([], srs_id=srs_id)
     if is_empty:
         return obj
-    obj._env = unpack_envelope(code=env_code, value=value[:offset])
-    obj._args = value[offset:], dimension
+    obj._env = unpack_envelope(code=env_code, view=view[:offset])
+    obj._args = view[offset:], dimension
     return obj
 # End lazy_unpack function
 
 
-def unpack_line(value: bytes, dimension: int,
+def unpack_line(view: memoryview, dimension: int,
                 is_ring: bool = False) -> List[Tuple[float, ...]]:
     """
     Unpack Values for LineString
     """
-    count, data = get_count_and_data(value, is_ring=is_ring)
+    count, data = get_count_and_data(view, is_ring=is_ring)
     total = dimension * count
     values: Tuple[float, ...] = unpack(f'<{total}d', data)
     return [values[i:i + dimension] for i in range(0, total, dimension)]
 # End unpack_line function
 
 
-def unpack_points(value: bytes, dimension: int) -> List[Tuple[float, ...]]:
+def unpack_points(view: memoryview, dimension: int) -> ndarray:
     """
     Unpack Values for Multi Point
     """
     offset = 5
     size = (8 * dimension) + offset
-    count, data = get_count_and_data(value)
+    count, data = get_count_and_data(view)
     if not count:
         return []
     total = dimension * count
@@ -255,14 +256,14 @@ def pack_coordinates(coordinates: COORDINATES, has_z: bool = False,
 # End pack_coordinates function
 
 
-def unpack_lines(value: bytes, dimension: int, is_ring: bool = False) \
+def unpack_lines(view: memoryview, dimension: int, is_ring: bool = False) \
         -> List[List[Tuple[float, ...]]]:
     """
     Unpack Values for Multi LineString and Polygons
     """
     size, last_end = 8 * dimension, 0
     offset, unit = (4, COUNT_CODE) if is_ring else (9, '<BII')
-    count, data = get_count_and_data(value)
+    count, data = get_count_and_data(view)
     lines = []
     for _ in range(count):
         *_, length = unpack(unit, data[last_end:last_end + offset])
@@ -276,13 +277,13 @@ def unpack_lines(value: bytes, dimension: int, is_ring: bool = False) \
 # End unpack_lines function
 
 
-def unpack_polygons(value: bytes, dimension: int) \
+def unpack_polygons(view: memoryview, dimension: int) \
         -> List[List[List[Tuple[float, ...]]]]:
     """
     Unpack Values for Multi Polygon Type Containing Polygons
     """
     size, last_end = 8 * dimension, 0
-    count, data = get_count_and_data(value)
+    count, data = get_count_and_data(view)
     polygons = []
     for _ in range(0, count):
         points = unpack_lines(data[last_end:], dimension, is_ring=True)
@@ -293,15 +294,14 @@ def unpack_polygons(value: bytes, dimension: int) \
 # End unpack_polygons method
 
 
-def get_count_and_data(value: bytes, is_ring: bool = False) \
-        -> Tuple[int, bytes]:
+def get_count_and_data(view: memoryview, is_ring: bool = False) \
+        -> Tuple[int, memoryview]:
     """
     Get Count from header and return the value portion of the stream
     """
     first, second = (0, 4) if is_ring else (5, 9)
-    header, data = value[first: second], value[second:]
-    count, = unpack(COUNT_CODE, header)
-    return count, data
+    count, = unpack(COUNT_CODE, view[first: second])
+    return count, view[second:]
 # End get_count_and_data function
 
 
@@ -320,18 +320,18 @@ def make_header(srs_id: int, is_empty: bool, envelope_code: int = 0) -> bytes:
 
 
 @lru_cache(maxsize=None)
-def unpack_header(value: bytes) -> Tuple[int, int, int, bool]:
+def unpack_header(view: memoryview) -> Tuple[int, int, int, bool]:
     """
     Cached Unpacking of a GeoPackage Geometry Header
     """
-    _, _, flags, srs_id = unpack(HEADER_CODE, value)
+    _, _, flags, srs_id = unpack(HEADER_CODE, view)
     envelope_code = (flags & (0x07 << 1)) >> 1
     is_empty = bool((flags & (0x01 << 4)) >> 4)
     return srs_id, envelope_code, ENVELOPE_OFFSET[envelope_code], is_empty
 # End unpack_header function
 
 
-def unpack_envelope(code: int, value: bytes) -> Envelope:
+def unpack_envelope(code: int, view: memoryview) -> Envelope:
     """
     Unpack Envelope
 
@@ -347,7 +347,7 @@ def unpack_envelope(code: int, value: bytes) -> Envelope:
     if code not in ENVELOPE_COUNT:  # pragma: no cover
         return EMPTY_ENVELOPE
     try:
-        values = unpack(f'<{ENVELOPE_COUNT[code]}d', value[HEADER_OFFSET:])
+        values = unpack(f'<{ENVELOPE_COUNT[code]}d', view[HEADER_OFFSET:])
     except StructError:  # pragma: no cover
         return EMPTY_ENVELOPE
     min_x = max_x = min_y = max_y = min_z = max_z = min_m = max_m = nan
