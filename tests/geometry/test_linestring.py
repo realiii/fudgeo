@@ -98,7 +98,9 @@ def test_line_string(header, cls, values, env_code, wkb_func, gpkg_func, env):
     assert len(gpkg) > len(legacy)
     assert gpkg.startswith(legacy[:HEADER_OFFSET])
     assert gpkg.endswith(legacy[HEADER_OFFSET:])
-    assert cls.from_gpkg(gpkg) == line
+    from_gpkg = cls.from_gpkg(gpkg)
+    assert not from_gpkg.is_empty
+    assert from_gpkg == line
     assert not line.is_empty
     assert line.envelope == env
 # End test_line_string function
@@ -146,7 +148,9 @@ def test_multi_line_string(header, cls, values, env_code, wkb_func, env):
         multi.attribute = 10
     assert multi._to_wkb() == wkb_func(values)
     gpkg = multi.to_gpkg()
-    assert cls.from_gpkg(gpkg) == multi
+    from_gpkg = cls.from_gpkg(gpkg)
+    assert not from_gpkg.is_empty
+    assert from_gpkg == multi
     assert gpkg.startswith(header(env_code))
     assert not multi.is_empty
     assert multi.envelope == env

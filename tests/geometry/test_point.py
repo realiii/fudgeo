@@ -130,7 +130,9 @@ def test_multi_point(header, cls, values, wkb_func, env_code, env):
     assert pts._to_wkb() == wkb_func(values)
     gpkg = pts.to_gpkg()
     assert gpkg.startswith(header(env_code))
-    assert cls.from_gpkg(gpkg) == pts
+    from_gpkg_pts = cls.from_gpkg(gpkg)
+    assert not from_gpkg_pts.is_empty
+    assert from_gpkg_pts == pts
     assert pts.envelope == env
 # End test_multi_point function
 
@@ -162,6 +164,7 @@ def test_multi_point_envelope(cls, env_code, data):
     Test Multi Point Envelope
     """
     multi = cls.from_gpkg(data)
+    assert not multi.is_empty
     assert multi._env is not EMPTY_ENVELOPE
     assert multi.envelope.code == env_code
     multi._env = EMPTY_ENVELOPE
