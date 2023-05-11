@@ -359,7 +359,7 @@ class Polygon(AbstractGeometry):
         """
         Is Empty
         """
-        return not len(self.rings)
+        return not (bool(self._args) or bool(self.rings))
     # End is_empty property
 
     @property
@@ -444,7 +444,7 @@ class PolygonZ(AbstractGeometry):
         """
         Is Empty
         """
-        return not len(self.rings)
+        return not (bool(self._args) or bool(self.rings))
     # End is_empty property
 
     @property
@@ -529,7 +529,7 @@ class PolygonM(AbstractGeometry):
         """
         Is Empty
         """
-        return not len(self.rings)
+        return not (bool(self._args) or bool(self.rings))
     # End is_empty property
 
     @property
@@ -615,7 +615,7 @@ class PolygonZM(AbstractGeometry):
         """
         Is Empty
         """
-        return not len(self.rings)
+        return not (bool(self._args) or bool(self.rings))
     # End is_empty property
 
     @property
