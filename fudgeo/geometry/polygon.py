@@ -5,13 +5,13 @@ Polygons
 
 
 from struct import pack
-from typing import Any, List, Type, Union
+from typing import List
 
 from fudgeo.constant import (
-    COUNT_CODE, DOUBLE, FOUR_D, HEADER_OFFSET, QUADRUPLE, THREE_D, TRIPLE,
-    TWO_D, WKB_MULTI_POLYGON_M_PRE, WKB_MULTI_POLYGON_PRE,
-    WKB_MULTI_POLYGON_ZM_PRE, WKB_MULTI_POLYGON_Z_PRE, WKB_POLYGON_M_PRE,
-    WKB_POLYGON_PRE, WKB_POLYGON_ZM_PRE, WKB_POLYGON_Z_PRE)
+    COUNT_CODE, DOUBLE, FOUR_D, QUADRUPLE, THREE_D, TRIPLE, TWO_D,
+    WKB_MULTI_POLYGON_M_PRE, WKB_MULTI_POLYGON_PRE, WKB_MULTI_POLYGON_ZM_PRE,
+    WKB_MULTI_POLYGON_Z_PRE, WKB_POLYGON_M_PRE, WKB_POLYGON_PRE,
+    WKB_POLYGON_ZM_PRE, WKB_POLYGON_Z_PRE)
 from fudgeo.geometry.base import AbstractGeometry
 from fudgeo.geometry.point import Point, PointM, PointZ, PointZM
 from fudgeo.geometry.util import (
@@ -19,45 +19,8 @@ from fudgeo.geometry.util import (
     envelope_from_coordinates_m, envelope_from_coordinates_z,
     envelope_from_coordinates_zm, envelope_from_geometries,
     envelope_from_geometries_m, envelope_from_geometries_z,
-    envelope_from_geometries_zm, pack_coordinates, unpack_envelope,
-    unpack_header, unpack_lines, unpack_polygons)
-
-
-POLYGON_TYPES = Union[Type['Polygon'], Type['PolygonZ'],
-                      Type['PolygonM'], Type['PolygonZM']]
-MULTI_POLYGON_TYPES = Union[Type['MultiPolygon'], Type['MultiPolygonZ'],
-                            Type['MultiPolygonM'], Type['MultiPolygonZM']]
-
-
-def _unpack_polygon(cls: POLYGON_TYPES, value: bytes, dimension: int) -> Any:
-    """
-    Unpack Linear Rings into Polygon
-    """
-    srs_id, env_code, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
-    if is_empty:
-        return cls([], srs_id=srs_id)
-    # noinspection PyTypeChecker
-    obj = cls(unpack_lines(value[offset:], dimension=dimension, is_ring=True),
-              srs_id=srs_id)
-    obj._env = unpack_envelope(code=env_code, value=value[:offset])
-    return obj
-# End _unpack_polygon function
-
-
-def _unpack_multi_polygon(cls: MULTI_POLYGON_TYPES, value: bytes,
-                          dimension: int) -> Any:
-    """
-    Unpack Polygons into MultiPolygon
-    """
-    srs_id, env_code, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
-    if is_empty:
-        return cls([], srs_id=srs_id)
-    # noinspection PyTypeChecker
-    obj = cls(unpack_polygons(value[offset:], dimension=dimension),
-              srs_id=srs_id)
-    obj._env = unpack_envelope(code=env_code, value=value[:offset])
-    return obj
-# End _unpack_multi_polygon function
+    envelope_from_geometries_zm, lazy_unpack, pack_coordinates, unpack_lines,
+    unpack_polygons)
 
 
 class LinearRing(AbstractGeometry):
@@ -317,15 +280,14 @@ class Polygon(AbstractGeometry):
     """
     Polygon
     """
-    __slots__ = 'rings',
+    __slots__ = '_rings',
 
     def __init__(self, coordinates: List[List[DOUBLE]], srs_id: int) -> None:
         """
         Initialize the Polygon class
         """
         super().__init__(srs_id=srs_id)
-        self.rings: List[LinearRing] = [
-            LinearRing(coords, srs_id=srs_id) for coords in coordinates]
+        self._rings: List[LinearRing] = self._make_rings(coordinates)
     # End init built-in
 
     def __eq__(self, other: 'Polygon') -> bool:
@@ -338,6 +300,27 @@ class Polygon(AbstractGeometry):
             return False
         return self.rings == other.rings
     # End eq built-in
+
+    def _make_rings(self, coordinates: List[List[DOUBLE]]) -> List[LinearRing]:
+        """
+        Make Rings
+        """
+        srs_id = self.srs_id
+        return [LinearRing(coords, srs_id=srs_id) for coords in coordinates]
+    # End _make_rings method
+
+    @property
+    def rings(self) -> List[LinearRing]:
+        """
+        Rings
+        """
+        if self._args:
+            # noinspection PyTypeChecker
+            self._rings = self._make_rings(
+                unpack_lines(*self._args, is_ring=True))
+            self._args = None
+        return self._rings
+    # End rings property
 
     @property
     def is_empty(self) -> bool:
@@ -373,7 +356,7 @@ class Polygon(AbstractGeometry):
         """
         From Geopackage
         """
-        return _unpack_polygon(cls=cls, value=value, dimension=TWO_D)
+        return lazy_unpack(cls=cls, value=value, dimension=TWO_D)
     # End from_gpkg method
 # End Polygon class
 
@@ -382,15 +365,14 @@ class PolygonZ(AbstractGeometry):
     """
     Polygon Z
     """
-    __slots__ = 'rings',
+    __slots__ = '_rings',
 
     def __init__(self, coordinates: List[List[TRIPLE]], srs_id: int) -> None:
         """
         Initialize the PolygonZ class
         """
         super().__init__(srs_id=srs_id)
-        self.rings: List[LinearRingZ] = [
-            LinearRingZ(coords, srs_id=srs_id) for coords in coordinates]
+        self._rings: List[LinearRingZ] = self._make_rings(coordinates)
     # End init built-in
 
     def __eq__(self, other: 'PolygonZ') -> bool:
@@ -403,6 +385,27 @@ class PolygonZ(AbstractGeometry):
             return False
         return self.rings == other.rings
     # End eq built-in
+
+    def _make_rings(self, coordinates: List[List[TRIPLE]]) -> List[LinearRingZ]:
+        """
+        Make Rings
+        """
+        srs_id = self.srs_id
+        return [LinearRingZ(coords, srs_id=srs_id) for coords in coordinates]
+    # End _make_rings method
+
+    @property
+    def rings(self) -> List[LinearRingZ]:
+        """
+        Rings
+        """
+        if self._args:
+            # noinspection PyTypeChecker
+            self._rings = self._make_rings(
+                unpack_lines(*self._args, is_ring=True))
+            self._args = None
+        return self._rings
+    # End rings property
 
     @property
     def is_empty(self) -> bool:
@@ -438,7 +441,7 @@ class PolygonZ(AbstractGeometry):
         """
         From Geopackage
         """
-        return _unpack_polygon(cls=cls, value=value, dimension=THREE_D)
+        return lazy_unpack(cls=cls, value=value, dimension=THREE_D)
     # End from_gpkg method
 # End PolygonZ class
 
@@ -447,15 +450,14 @@ class PolygonM(AbstractGeometry):
     """
     Polygon M
     """
-    __slots__ = 'rings',
+    __slots__ = '_rings',
 
     def __init__(self, coordinates: List[List[TRIPLE]], srs_id: int) -> None:
         """
         Initialize the PolygonM class
         """
         super().__init__(srs_id=srs_id)
-        self.rings: List[LinearRingM] = [
-            LinearRingM(coords, srs_id=srs_id) for coords in coordinates]
+        self._rings: List[LinearRingM] = self._make_rings(coordinates)
     # End init built-in
 
     def __eq__(self, other: 'PolygonM') -> bool:
@@ -468,6 +470,27 @@ class PolygonM(AbstractGeometry):
             return False
         return self.rings == other.rings
     # End eq built-in
+
+    def _make_rings(self, coordinates: List[List[TRIPLE]]) -> List[LinearRingM]:
+        """
+        Make Rings
+        """
+        srs_id = self.srs_id
+        return [LinearRingM(coords, srs_id=srs_id) for coords in coordinates]
+    # End _make_rings method
+
+    @property
+    def rings(self) -> List[LinearRingM]:
+        """
+        Rings
+        """
+        if self._args:
+            # noinspection PyTypeChecker
+            self._rings = self._make_rings(
+                unpack_lines(*self._args, is_ring=True))
+            self._args = None
+        return self._rings
+    # End rings property
 
     @property
     def is_empty(self) -> bool:
@@ -503,7 +526,7 @@ class PolygonM(AbstractGeometry):
         """
         From Geopackage
         """
-        return _unpack_polygon(cls=cls, value=value, dimension=THREE_D)
+        return lazy_unpack(cls=cls, value=value, dimension=THREE_D)
     # End from_gpkg method
 # End PolygonM class
 
@@ -512,15 +535,14 @@ class PolygonZM(AbstractGeometry):
     """
     Polygon ZM
     """
-    __slots__ = 'rings',
+    __slots__ = '_rings',
 
     def __init__(self, coordinates: List[List[QUADRUPLE]], srs_id: int) -> None:
         """
         Initialize the PolygonZM class
         """
         super().__init__(srs_id=srs_id)
-        self.rings: List[LinearRingZM] = [
-            LinearRingZM(coords, srs_id=srs_id) for coords in coordinates]
+        self._rings: List[LinearRingZM] = self._make_rings(coordinates)
     # End init built-in
 
     def __eq__(self, other: 'PolygonZM') -> bool:
@@ -533,6 +555,28 @@ class PolygonZM(AbstractGeometry):
             return False
         return self.rings == other.rings
     # End eq built-in
+
+    def _make_rings(self, coordinates: List[List[QUADRUPLE]]) \
+            -> List[LinearRingZM]:
+        """
+        Make Rings
+        """
+        srs_id = self.srs_id
+        return [LinearRingZM(coords, srs_id=srs_id) for coords in coordinates]
+    # End _make_rings method
+
+    @property
+    def rings(self) -> List[LinearRingZM]:
+        """
+        Rings
+        """
+        if self._args:
+            # noinspection PyTypeChecker
+            self._rings = self._make_rings(
+                unpack_lines(*self._args, is_ring=True))
+            self._args = None
+        return self._rings
+    # End rings property
 
     @property
     def is_empty(self) -> bool:
@@ -568,7 +612,7 @@ class PolygonZM(AbstractGeometry):
         """
         From Geopackage
         """
-        return _unpack_polygon(cls=cls, value=value, dimension=FOUR_D)
+        return lazy_unpack(cls=cls, value=value, dimension=FOUR_D)
     # End from_gpkg method
 # End PolygonZM class
 
