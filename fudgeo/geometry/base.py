@@ -5,11 +5,8 @@ Base Classes
 
 
 from abc import abstractmethod
-from functools import reduce
-from operator import add
 from typing import List, Optional, Tuple
 
-from fudgeo.constant import EMPTY
 from fudgeo.geometry.util import EMPTY_ENVELOPE, Envelope, make_header
 
 
@@ -30,7 +27,7 @@ class AbstractGeometry:
     # End init built-in
 
     @abstractmethod
-    def _to_wkb(self, use_prefix: bool = True) -> bytes:  # pragma: nocover
+    def _to_wkb(self, use_prefix: bool = True) -> bytearray:  # pragma: nocover
         """
         To WKB
         """
@@ -38,11 +35,15 @@ class AbstractGeometry:
     # End _to_wkb method
 
     @staticmethod
-    def _join_geometries(geoms: List['AbstractGeometry']) -> bytes:
+    def _join_geometries(prefix: bytes,
+                         geoms: List['AbstractGeometry']) -> bytearray:
         """
         Join Geometries
         """
-        return reduce(add, [geom._to_wkb() for geom in geoms], EMPTY)
+        ary = bytearray(prefix)
+        for geom in geoms:
+            ary.extend(geom._to_wkb())
+        return ary
     # End _join_geometries method
 
     @property

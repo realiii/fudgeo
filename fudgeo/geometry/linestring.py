@@ -414,13 +414,13 @@ class MultiLineString(AbstractGeometry):
         return not (bool(self._args) or bool(self.lines))
     # End is_empty property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
         """
         To WKB
         """
         geoms = self.lines
-        return (WKB_MULTI_LINESTRING_PRE + pack(COUNT_CODE, len(geoms)) +
-                self._join_geometries(geoms))
+        prefix = WKB_MULTI_LINESTRING_PRE + pack(COUNT_CODE, len(geoms))
+        return self._join_geometries(prefix, geoms)
     # End _to_wkb method
 
     @property
@@ -510,13 +510,13 @@ class MultiLineStringZ(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
         """
         To WKB
         """
         geoms = self.lines
-        return (WKB_MULTI_LINESTRING_Z_PRE + pack(COUNT_CODE, len(geoms)) +
-                self._join_geometries(geoms))
+        prefix = WKB_MULTI_LINESTRING_Z_PRE + pack(COUNT_CODE, len(geoms))
+        return self._join_geometries(prefix, geoms)
     # End _to_wkb method
 
     @classmethod
@@ -594,13 +594,13 @@ class MultiLineStringM(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
         """
         To WKB
         """
         geoms = self.lines
-        return (WKB_MULTI_LINESTRING_M_PRE + pack(COUNT_CODE, len(geoms)) +
-                self._join_geometries(geoms))
+        prefix = WKB_MULTI_LINESTRING_M_PRE + pack(COUNT_CODE, len(geoms))
+        return self._join_geometries(prefix, geoms)
     # End _to_wkb method
 
     @classmethod
@@ -679,13 +679,13 @@ class MultiLineStringZM(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
         """
         To WKB
         """
         geoms = self.lines
-        return (WKB_MULTI_LINESTRING_ZM_PRE + pack(COUNT_CODE, len(geoms)) +
-                self._join_geometries(geoms))
+        prefix = WKB_MULTI_LINESTRING_ZM_PRE + pack(COUNT_CODE, len(geoms))
+        return self._join_geometries(prefix, geoms)
     # End _to_wkb method
 
     @classmethod
