@@ -6,7 +6,7 @@ Points
 
 from math import isnan, nan
 from struct import pack, unpack
-from typing import List
+from typing import List, TYPE_CHECKING
 
 from fudgeo.constant import (
     DOUBLE, EMPTY, FOUR_D, FOUR_D_PACK_CODE, FOUR_D_UNPACK_CODE, HEADER_OFFSET,
@@ -16,10 +16,14 @@ from fudgeo.constant import (
     WKB_POINT_M_PRE, WKB_POINT_PRE, WKB_POINT_ZM_PRE, WKB_POINT_Z_PRE)
 from fudgeo.geometry.base import AbstractGeometry
 from fudgeo.geometry.util import (
-    EMPTY_ENVELOPE, Envelope, envelope_from_coordinates,
+    EMPTY_ENVELOPE, Envelope, as_array, envelope_from_coordinates,
     envelope_from_coordinates_m, envelope_from_coordinates_z,
     envelope_from_coordinates_zm, lazy_unpack, make_header, pack_coordinates,
     unpack_header, unpack_points)
+
+
+if TYPE_CHECKING:
+    from numpy import ndarray
 
 
 class Point(AbstractGeometry):
@@ -57,11 +61,11 @@ class Point(AbstractGeometry):
     # End is_empty property
 
     @staticmethod
-    def _unpack(value: bytes) -> DOUBLE:
+    def _unpack(view: memoryview) -> DOUBLE:
         """
         Unpack Values
         """
-        *_, x, y = unpack(TWO_D_UNPACK_CODE, value)
+        *_, x, y = unpack(TWO_D_UNPACK_CODE, view)
         return x, y
     # End _unpack method
 
@@ -85,8 +89,8 @@ class Point(AbstractGeometry):
         """
         To Geopackage
         """
-        return (make_header(srs_id=self.srs_id, is_empty=self.is_empty,
-                            envelope_code=0) + self._to_wkb())
+        return (make_header(srs_id=self.srs_id,
+                            is_empty=self.is_empty) + self._to_wkb())
     # End to_gpkg method
 
     @classmethod
@@ -94,10 +98,11 @@ class Point(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id, _, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
+        view = memoryview(value)
+        srs_id, _, offset, is_empty = unpack_header(view[:HEADER_OFFSET])
         if is_empty:
             return cls.empty(srs_id)
-        x, y = cls._unpack(value[offset:])
+        x, y = cls._unpack(view[offset:])
         return cls(x=x, y=y, srs_id=srs_id)
     # End from_gpkg method
 
@@ -156,11 +161,11 @@ class PointZ(AbstractGeometry):
     # End is_empty property
 
     @staticmethod
-    def _unpack(value: bytes) -> TRIPLE:
+    def _unpack(view: memoryview) -> TRIPLE:
         """
         Unpack Values
         """
-        *_, x, y, z = unpack(THREE_D_UNPACK_CODE, value)
+        *_, x, y, z = unpack(THREE_D_UNPACK_CODE, view)
         return x, y, z
     # End _unpack method
 
@@ -184,8 +189,8 @@ class PointZ(AbstractGeometry):
         """
         To Geopackage
         """
-        return (make_header(srs_id=self.srs_id, is_empty=self.is_empty,
-                            envelope_code=0) + self._to_wkb())
+        return (make_header(srs_id=self.srs_id,
+                            is_empty=self.is_empty) + self._to_wkb())
     # End to_gpkg method
 
     @classmethod
@@ -193,10 +198,11 @@ class PointZ(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id, _, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
+        view = memoryview(value)
+        srs_id, _, offset, is_empty = unpack_header(view[:HEADER_OFFSET])
         if is_empty:
             return cls.empty(srs_id)
-        x, y, z = cls._unpack(value[offset:])
+        x, y, z = cls._unpack(view[offset:])
         return cls(x=x, y=y, z=z, srs_id=srs_id)
     # End from_gpkg method
 
@@ -255,11 +261,11 @@ class PointM(AbstractGeometry):
     # End is_empty property
 
     @staticmethod
-    def _unpack(value: bytes) -> TRIPLE:
+    def _unpack(view: memoryview) -> TRIPLE:
         """
         Unpack Values
         """
-        *_, x, y, m = unpack(THREE_D_UNPACK_CODE, value)
+        *_, x, y, m = unpack(THREE_D_UNPACK_CODE, view)
         return x, y, m
     # End _unpack method
 
@@ -283,8 +289,8 @@ class PointM(AbstractGeometry):
         """
         To Geopackage
         """
-        return (make_header(srs_id=self.srs_id, is_empty=self.is_empty,
-                            envelope_code=0) + self._to_wkb())
+        return (make_header(srs_id=self.srs_id,
+                            is_empty=self.is_empty) + self._to_wkb())
     # End to_gpkg method
 
     @classmethod
@@ -292,10 +298,11 @@ class PointM(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id, _, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
+        view = memoryview(value)
+        srs_id, _, offset, is_empty = unpack_header(view[:HEADER_OFFSET])
         if is_empty:
             return cls.empty(srs_id)
-        x, y, m = cls._unpack(value[offset:])
+        x, y, m = cls._unpack(view[offset:])
         return cls(x=x, y=y, m=m, srs_id=srs_id)
     # End from_gpkg method
 
@@ -358,11 +365,11 @@ class PointZM(AbstractGeometry):
     # End is_empty property
 
     @staticmethod
-    def _unpack(value: bytes) -> QUADRUPLE:
+    def _unpack(view: memoryview) -> QUADRUPLE:
         """
         Unpack Values
         """
-        *_, x, y, z, m = unpack(FOUR_D_UNPACK_CODE, value)
+        *_, x, y, z, m = unpack(FOUR_D_UNPACK_CODE, view)
         return x, y, z, m
     # End _unpack method
 
@@ -386,8 +393,8 @@ class PointZM(AbstractGeometry):
         """
         To Geopackage
         """
-        return (make_header(srs_id=self.srs_id, is_empty=self.is_empty,
-                            envelope_code=0) + self._to_wkb())
+        return (make_header(srs_id=self.srs_id,
+                            is_empty=self.is_empty) + self._to_wkb())
     # End to_gpkg method
 
     @classmethod
@@ -395,10 +402,11 @@ class PointZM(AbstractGeometry):
         """
         From Geopackage
         """
-        srs_id, _, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
+        view = memoryview(value)
+        srs_id, _, offset, is_empty = unpack_header(view[:HEADER_OFFSET])
         if is_empty:
             return cls.empty(srs_id)
-        x, y, z, m = cls._unpack(value[offset:])
+        x, y, z, m = cls._unpack(view[offset:])
         return cls(x=x, y=y, z=z, m=m, srs_id=srs_id)
     # End from_gpkg method
 
@@ -432,7 +440,7 @@ class MultiPoint(AbstractGeometry):
         Initialize the MultiPoint class
         """
         super().__init__(srs_id=srs_id)
-        self._coordinates: List[DOUBLE] = coordinates
+        self._coordinates: 'ndarray' = as_array(coordinates)
     # End init built-in
 
     def __eq__(self, other: 'MultiPoint') -> bool:
@@ -447,7 +455,7 @@ class MultiPoint(AbstractGeometry):
     # End eq built-in
 
     @property
-    def coordinates(self) -> List[DOUBLE]:
+    def coordinates(self) -> 'ndarray':
         """
         Coordinates
         """
@@ -487,12 +495,12 @@ class MultiPoint(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
         """
         To WKB
         """
-        return WKB_MULTI_POINT_PRE + pack_coordinates(
-            self.coordinates, use_prefix=True)
+        return pack_coordinates(
+            WKB_MULTI_POINT_PRE, self.coordinates, use_point_prefix=True)
     # End _to_wkb method
 
     @classmethod
@@ -516,7 +524,7 @@ class MultiPointZ(AbstractGeometry):
         Initialize the MultiPointZ class
         """
         super().__init__(srs_id=srs_id)
-        self._coordinates: List[TRIPLE] = coordinates
+        self._coordinates: 'ndarray' = as_array(coordinates)
     # End init built-in
 
     def __eq__(self, other: 'MultiPointZ') -> bool:
@@ -531,7 +539,7 @@ class MultiPointZ(AbstractGeometry):
     # End eq built-in
 
     @property
-    def coordinates(self) -> List[TRIPLE]:
+    def coordinates(self) -> 'ndarray':
         """
         Coordinates
         """
@@ -572,12 +580,13 @@ class MultiPointZ(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
         """
         To WKB
         """
-        return WKB_MULTI_POINT_Z_PRE + pack_coordinates(
-            self.coordinates, has_z=True, use_prefix=True)
+        return pack_coordinates(
+            WKB_MULTI_POINT_Z_PRE, self.coordinates,
+            has_z=True, use_point_prefix=True)
     # End _to_wkb method
 
     @classmethod
@@ -601,7 +610,7 @@ class MultiPointM(AbstractGeometry):
         Initialize the MultiPointM class
         """
         super().__init__(srs_id=srs_id)
-        self._coordinates: List[TRIPLE] = coordinates
+        self._coordinates: 'ndarray' = as_array(coordinates)
     # End init built-in
 
     def __eq__(self, other: 'MultiPointM') -> bool:
@@ -616,7 +625,7 @@ class MultiPointM(AbstractGeometry):
     # End eq built-in
 
     @property
-    def coordinates(self) -> List[TRIPLE]:
+    def coordinates(self) -> 'ndarray':
         """
         Coordinates
         """
@@ -657,12 +666,13 @@ class MultiPointM(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
         """
         To WKB
         """
-        return WKB_MULTI_POINT_M_PRE + pack_coordinates(
-            self.coordinates, has_m=True, use_prefix=True)
+        return pack_coordinates(
+            WKB_MULTI_POINT_M_PRE, self.coordinates,
+            has_m=True, use_point_prefix=True)
     # End _to_wkb method
 
     @classmethod
@@ -686,7 +696,7 @@ class MultiPointZM(AbstractGeometry):
         Initialize the MultiPointZM class
         """
         super().__init__(srs_id=srs_id)
-        self._coordinates: List[QUADRUPLE] = coordinates
+        self._coordinates: 'ndarray' = as_array(coordinates)
     # End init built-in
 
     def __eq__(self, other: 'MultiPointZM') -> bool:
@@ -701,7 +711,7 @@ class MultiPointZM(AbstractGeometry):
     # End eq built-in
 
     @property
-    def coordinates(self) -> List[QUADRUPLE]:
+    def coordinates(self) -> 'ndarray':
         """
         Coordinates
         """
@@ -742,12 +752,13 @@ class MultiPointZM(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
         """
         To WKB
         """
-        return WKB_MULTI_POINT_ZM_PRE + pack_coordinates(
-            self.coordinates, has_z=True, has_m=True, use_prefix=True)
+        return pack_coordinates(
+            WKB_MULTI_POINT_ZM_PRE, self.coordinates,
+            has_z=True, has_m=True, use_point_prefix=True)
     # End _to_wkb method
 
     @classmethod

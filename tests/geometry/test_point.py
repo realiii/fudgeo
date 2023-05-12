@@ -84,7 +84,7 @@ def test_empty_multi_point(cls):
     """
     geom = cls([], srs_id=WGS84)
     assert isinstance(geom, cls)
-    assert geom.coordinates == []
+    assert not len(geom.coordinates)
     assert geom.is_empty
 # End test_empty_multi_point function
 
@@ -126,7 +126,7 @@ def test_multi_point(header, cls, values, wkb_func, env_code, env):
     with raises(AttributeError):
         # noinspection PyDunderSlots,PyUnresolvedReferences
         pts.attribute = 10
-    assert pts.coordinates == values
+    assert (pts.coordinates == values).all()
     assert pts._to_wkb() == wkb_func(values)
     gpkg = pts.to_gpkg()
     assert gpkg.startswith(header(env_code))

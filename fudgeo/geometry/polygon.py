@@ -5,22 +5,26 @@ Polygons
 
 
 from struct import pack
-from typing import List
+from typing import List, TYPE_CHECKING
 
 from fudgeo.constant import (
-    COUNT_CODE, DOUBLE, FOUR_D, QUADRUPLE, THREE_D, TRIPLE, TWO_D,
+    COUNT_CODE, DOUBLE, EMPTY, FOUR_D, QUADRUPLE, THREE_D, TRIPLE, TWO_D,
     WKB_MULTI_POLYGON_M_PRE, WKB_MULTI_POLYGON_PRE, WKB_MULTI_POLYGON_ZM_PRE,
     WKB_MULTI_POLYGON_Z_PRE, WKB_POLYGON_M_PRE, WKB_POLYGON_PRE,
     WKB_POLYGON_ZM_PRE, WKB_POLYGON_Z_PRE)
 from fudgeo.geometry.base import AbstractGeometry
 from fudgeo.geometry.point import Point, PointM, PointZ, PointZM
 from fudgeo.geometry.util import (
-    EMPTY_ENVELOPE, Envelope, envelope_from_coordinates,
+    EMPTY_ENVELOPE, Envelope, as_array, envelope_from_coordinates,
     envelope_from_coordinates_m, envelope_from_coordinates_z,
     envelope_from_coordinates_zm, envelope_from_geometries,
     envelope_from_geometries_m, envelope_from_geometries_z,
     envelope_from_geometries_zm, lazy_unpack, pack_coordinates, unpack_lines,
     unpack_polygons)
+
+
+if TYPE_CHECKING:
+    from numpy import ndarray
 
 
 class LinearRing(AbstractGeometry):
@@ -34,7 +38,7 @@ class LinearRing(AbstractGeometry):
         Initialize the LinearRing class
         """
         super().__init__(srs_id=srs_id)
-        self.coordinates: List[DOUBLE] = coordinates
+        self.coordinates: 'ndarray' = as_array(coordinates)
     # End init built-in
 
     def __eq__(self, other: 'LinearRing') -> bool:
@@ -77,11 +81,11 @@ class LinearRing(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
         """
         To WKB
         """
-        return pack_coordinates(self.coordinates)
+        return pack_coordinates(EMPTY, self.coordinates)
     # End _to_wkb method
 
     @classmethod
@@ -105,7 +109,7 @@ class LinearRingZ(AbstractGeometry):
         Initialize the LinearRingZ class
         """
         super().__init__(srs_id=srs_id)
-        self.coordinates: List[TRIPLE] = coordinates
+        self.coordinates: 'ndarray' = as_array(coordinates)
     # End init built-in
 
     def __eq__(self, other: 'LinearRingZ') -> bool:
@@ -137,11 +141,11 @@ class LinearRingZ(AbstractGeometry):
                 for x, y, z in self.coordinates]
     # End points property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
         """
         To WKB
         """
-        return pack_coordinates(self.coordinates, has_z=True)
+        return pack_coordinates(EMPTY, self.coordinates, has_z=True)
     # End _to_wkb method
 
     @property
@@ -177,7 +181,7 @@ class LinearRingM(AbstractGeometry):
         Initialize the LinearRingM class
         """
         super().__init__(srs_id=srs_id)
-        self.coordinates: List[TRIPLE] = coordinates
+        self.coordinates: 'ndarray' = as_array(coordinates)
     # End init built-in
 
     def __eq__(self, other: 'LinearRingM') -> bool:
@@ -221,11 +225,11 @@ class LinearRingM(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
         """
         To WKB
         """
-        return pack_coordinates(self.coordinates, has_m=True)
+        return pack_coordinates(EMPTY, self.coordinates, has_m=True)
     # End _to_wkb method
 
     @classmethod
@@ -249,7 +253,7 @@ class LinearRingZM(AbstractGeometry):
         Initialize the LinearRingZM class
         """
         super().__init__(srs_id=srs_id)
-        self.coordinates: List[QUADRUPLE] = coordinates
+        self.coordinates: 'ndarray' = as_array(coordinates)
     # End init built-in
 
     def __eq__(self, other: 'LinearRingZM') -> bool:
@@ -291,11 +295,11 @@ class LinearRingZM(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
         """
         To WKB
         """
-        return pack_coordinates(self.coordinates, has_z=True, has_m=True)
+        return pack_coordinates(EMPTY, self.coordinates, has_z=True, has_m=True)
     # End _to_wkb method
 
     @classmethod
@@ -374,13 +378,13 @@ class Polygon(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
         """
         To WKB
         """
         geoms = self.rings
-        return (WKB_POLYGON_PRE + pack(COUNT_CODE, len(geoms)) +
-                self._join_geometries(geoms))
+        prefix = WKB_POLYGON_PRE + pack(COUNT_CODE, len(geoms))
+        return self._join_geometries(prefix, geoms)
     # End _to_wkb method
 
     @classmethod
@@ -459,13 +463,13 @@ class PolygonZ(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
         """
         To WKB
         """
         geoms = self.rings
-        return (WKB_POLYGON_Z_PRE + pack(COUNT_CODE, len(geoms)) +
-                self._join_geometries(geoms))
+        prefix = WKB_POLYGON_Z_PRE + pack(COUNT_CODE, len(geoms))
+        return self._join_geometries(prefix, geoms)
     # End _to_wkb method
 
     @classmethod
@@ -544,13 +548,13 @@ class PolygonM(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
         """
         To WKB
         """
         geoms = self.rings
-        return (WKB_POLYGON_M_PRE + pack(COUNT_CODE, len(geoms)) +
-                self._join_geometries(geoms))
+        prefix = WKB_POLYGON_M_PRE + pack(COUNT_CODE, len(geoms))
+        return self._join_geometries(prefix, geoms)
     # End _to_wkb method
 
     @classmethod
@@ -630,13 +634,13 @@ class PolygonZM(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
         """
         To WKB
         """
         geoms = self.rings
-        return (WKB_POLYGON_ZM_PRE + pack(COUNT_CODE, len(geoms)) +
-                self._join_geometries(geoms))
+        prefix = WKB_POLYGON_ZM_PRE + pack(COUNT_CODE, len(geoms))
+        return self._join_geometries(prefix, geoms)
     # End _to_wkb method
 
     @classmethod
@@ -716,13 +720,13 @@ class MultiPolygon(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
         """
         To WKB
         """
         geoms = self.polygons
-        return (WKB_MULTI_POLYGON_PRE + pack(COUNT_CODE, len(geoms)) +
-                self._join_geometries(geoms))
+        prefix = WKB_MULTI_POLYGON_PRE + pack(COUNT_CODE, len(geoms))
+        return self._join_geometries(prefix, geoms)
     # End _to_wkb method
 
     @classmethod
@@ -802,13 +806,13 @@ class MultiPolygonZ(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
         """
         To WKB
         """
         geoms = self.polygons
-        return (WKB_MULTI_POLYGON_Z_PRE + pack(COUNT_CODE, len(geoms)) +
-                self._join_geometries(geoms))
+        prefix = WKB_MULTI_POLYGON_Z_PRE + pack(COUNT_CODE, len(geoms))
+        return self._join_geometries(prefix, geoms)
     # End _to_wkb method
 
     @classmethod
@@ -888,13 +892,13 @@ class MultiPolygonM(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
         """
         To WKB
         """
         geoms = self.polygons
-        return (WKB_MULTI_POLYGON_M_PRE + pack(COUNT_CODE, len(geoms)) +
-                self._join_geometries(geoms))
+        prefix = WKB_MULTI_POLYGON_M_PRE + pack(COUNT_CODE, len(geoms))
+        return self._join_geometries(prefix, geoms)
     # End _to_wkb method
 
     @classmethod
@@ -974,13 +978,13 @@ class MultiPolygonZM(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
         """
         To WKB
         """
         geoms = self.polygons
-        return (WKB_MULTI_POLYGON_ZM_PRE + pack(COUNT_CODE, len(geoms)) +
-                self._join_geometries(geoms))
+        prefix = WKB_MULTI_POLYGON_ZM_PRE + pack(COUNT_CODE, len(geoms))
+        return self._join_geometries(prefix, geoms)
     # End _to_wkb method
 
     @classmethod
