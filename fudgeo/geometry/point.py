@@ -495,12 +495,12 @@ class MultiPoint(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
         """
         To WKB
         """
-        return WKB_MULTI_POINT_PRE + pack_coordinates(
-            self.coordinates, use_prefix=True)
+        return pack_coordinates(
+            WKB_MULTI_POINT_PRE, self.coordinates, use_point_prefix=True)
     # End _to_wkb method
 
     @classmethod
@@ -580,12 +580,13 @@ class MultiPointZ(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
         """
         To WKB
         """
-        return WKB_MULTI_POINT_Z_PRE + pack_coordinates(
-            self.coordinates, has_z=True, use_prefix=True)
+        return pack_coordinates(
+            WKB_MULTI_POINT_Z_PRE, self.coordinates,
+            has_z=True, use_point_prefix=True)
     # End _to_wkb method
 
     @classmethod
@@ -665,12 +666,13 @@ class MultiPointM(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
         """
         To WKB
         """
-        return WKB_MULTI_POINT_M_PRE + pack_coordinates(
-            self.coordinates, has_m=True, use_prefix=True)
+        return pack_coordinates(
+            WKB_MULTI_POINT_M_PRE, self.coordinates,
+            has_m=True, use_point_prefix=True)
     # End _to_wkb method
 
     @classmethod
@@ -750,12 +752,13 @@ class MultiPointZM(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
         """
         To WKB
         """
-        return WKB_MULTI_POINT_ZM_PRE + pack_coordinates(
-            self.coordinates, has_z=True, has_m=True, use_prefix=True)
+        return pack_coordinates(
+            WKB_MULTI_POINT_ZM_PRE, self.coordinates,
+            has_z=True, has_m=True, use_point_prefix=True)
     # End _to_wkb method
 
     @classmethod

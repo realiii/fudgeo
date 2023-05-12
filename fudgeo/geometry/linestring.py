@@ -93,11 +93,11 @@ class LineString(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
         """
         To WKB
         """
-        return WKB_LINESTRING_PRE + pack_coordinates(self.coordinates)
+        return pack_coordinates(WKB_LINESTRING_PRE, self.coordinates)
     # End _to_wkb method
 
     @classmethod
@@ -177,12 +177,12 @@ class LineStringZ(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
         """
         To WKB
         """
-        return WKB_LINESTRING_Z_PRE + pack_coordinates(
-            self.coordinates, has_z=True)
+        return pack_coordinates(
+            WKB_LINESTRING_Z_PRE, self.coordinates, has_z=True)
     # End _to_wkb method
 
     @classmethod
@@ -262,12 +262,12 @@ class LineStringM(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
         """
         To WKB
         """
-        return WKB_LINESTRING_M_PRE + pack_coordinates(
-            self.coordinates, has_m=True)
+        return pack_coordinates(
+            WKB_LINESTRING_M_PRE, self.coordinates, has_m=True)
     # End _to_wkb method
 
     @classmethod
@@ -347,12 +347,12 @@ class LineStringZM(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
         """
         To WKB
         """
-        return WKB_LINESTRING_ZM_PRE + pack_coordinates(
-            self.coordinates, has_z=True, has_m=True)
+        return pack_coordinates(
+            WKB_LINESTRING_ZM_PRE, self.coordinates, has_z=True, has_m=True)
     # End _to_wkb method
 
     @classmethod

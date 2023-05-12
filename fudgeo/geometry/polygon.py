@@ -8,7 +8,7 @@ from struct import pack
 from typing import List, TYPE_CHECKING
 
 from fudgeo.constant import (
-    COUNT_CODE, DOUBLE, FOUR_D, QUADRUPLE, THREE_D, TRIPLE, TWO_D,
+    COUNT_CODE, DOUBLE, EMPTY, FOUR_D, QUADRUPLE, THREE_D, TRIPLE, TWO_D,
     WKB_MULTI_POLYGON_M_PRE, WKB_MULTI_POLYGON_PRE, WKB_MULTI_POLYGON_ZM_PRE,
     WKB_MULTI_POLYGON_Z_PRE, WKB_POLYGON_M_PRE, WKB_POLYGON_PRE,
     WKB_POLYGON_ZM_PRE, WKB_POLYGON_Z_PRE)
@@ -81,11 +81,11 @@ class LinearRing(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
         """
         To WKB
         """
-        return pack_coordinates(self.coordinates)
+        return pack_coordinates(EMPTY, self.coordinates)
     # End _to_wkb method
 
     @classmethod
@@ -141,11 +141,11 @@ class LinearRingZ(AbstractGeometry):
                 for x, y, z in self.coordinates]
     # End points property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
         """
         To WKB
         """
-        return pack_coordinates(self.coordinates, has_z=True)
+        return pack_coordinates(EMPTY, self.coordinates, has_z=True)
     # End _to_wkb method
 
     @property
@@ -225,11 +225,11 @@ class LinearRingM(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
         """
         To WKB
         """
-        return pack_coordinates(self.coordinates, has_m=True)
+        return pack_coordinates(EMPTY, self.coordinates, has_m=True)
     # End _to_wkb method
 
     @classmethod
@@ -295,11 +295,11 @@ class LinearRingZM(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytes:
+    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
         """
         To WKB
         """
-        return pack_coordinates(self.coordinates, has_z=True, has_m=True)
+        return pack_coordinates(EMPTY, self.coordinates, has_z=True, has_m=True)
     # End _to_wkb method
 
     @classmethod

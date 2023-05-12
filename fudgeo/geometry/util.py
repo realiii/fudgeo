@@ -248,24 +248,26 @@ def unpack_points(view: memoryview, dimension: int) -> List[Tuple[float, ...]]:
 # End unpack_points function
 
 
-def pack_coordinates(coordinates: COORDINATES, has_z: bool = False,
-                     has_m: bool = False, use_prefix: bool = False) -> bytes:
+def pack_coordinates(prefix: bytes, coordinates: ndarray,
+                     has_z: bool = False, has_m: bool = False,
+                     use_point_prefix: bool = False) -> bytearray:
     """
     Pack Coordinates
     """
-    flat = []
-    for coords in coordinates:
-        flat.extend(coords)
     count = len(coordinates)
-    total = count * sum((TWO_D, has_z, has_m))
-    data = pack(f'<{total}d', *flat)
-    if not use_prefix:
-        return pack(COUNT_CODE, count) + data
+    ary = bytearray(prefix + pack(COUNT_CODE, count))
+    data = coordinates.tobytes()
+    if not use_point_prefix:
+        ary.extend(data)
+        return ary
     length = len(data)
+    view = memoryview(data)
     step = length // count
     prefix = POINT_PREFIX.get((has_z, has_m))
-    parts = [prefix + data[i:i + step] for i in range(0, length, step)]
-    return pack(COUNT_CODE, count) + EMPTY.join(parts)
+    for i in range(0, length, step):
+        ary.extend(prefix)
+        ary.extend(view[i:i + step])
+    return ary
 # End pack_coordinates function
 
 
