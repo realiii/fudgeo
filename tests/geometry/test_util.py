@@ -2,9 +2,10 @@
 """
 Test Utilities
 """
-from math import isnan, nan
+
 from struct import unpack
 
+from numpy import arange, array
 from pytest import approx, mark
 
 from fudgeo.constant import HEADER_OFFSET
@@ -12,8 +13,7 @@ from fudgeo.geometry import (
     MultiPolygon, MultiPolygonM, MultiPolygonZ, MultiPolygonZM)
 from fudgeo.geometry.util import (
     EMPTY_ENVELOPE, Envelope, _envelope_xy, _envelope_xym, _envelope_xyz,
-    _envelope_xyzm, _min_max,
-    envelope_from_coordinates, envelope_from_coordinates_m,
+    _envelope_xyzm, envelope_from_coordinates, envelope_from_coordinates_m,
     envelope_from_coordinates_z, envelope_from_coordinates_zm, unpack_envelope,
     unpack_header)
 
@@ -58,55 +58,33 @@ def test_geometry_header(cls, srs_id, offset, code, envelope, data):
 # End test_geometry_header function
 
 
-@mark.parametrize('values, expected_min, expected_max', [
-    ([], nan, nan),
-    ([nan, nan], nan, nan),
-    ([nan, 1, nan], 1, 1),
-    ([nan, 1, 2, nan], 1, 2),
-])
-def test_min_max(values, expected_min, expected_max):
-    """
-    Test _min_max
-    """
-    result_min, result_max = _min_max(values)
-    if isnan(expected_min):
-        assert isnan(result_min)
-    else:
-        assert result_min == expected_min
-    if isnan(result_max):
-        assert isnan(result_max)
-    else:
-        assert result_max == expected_max
-# End test_min_max function
-
-
 def test_envelope_internal_and_coordinates():
     """
     Test _envelope_xy(zm) functions and related coordinate functions
     """
-    xs = list(range(0, 5))
-    ys = list(range(5, 10))
-    zs = list(range(10, 15))
-    ms = list(range(15, 20))
+    xs = arange(0, 5)
+    ys = arange(5, 10)
+    zs = arange(10, 15)
+    ms = arange(15, 20)
     env = Envelope(code=1, min_x=0, max_x=4, min_y=5, max_y=9)
     assert _envelope_xy(xs=xs, ys=ys) == env
-    assert envelope_from_coordinates(list(zip(xs, ys))) == env
-    assert envelope_from_coordinates([]) is EMPTY_ENVELOPE
+    assert envelope_from_coordinates(array(list(zip(xs, ys)), dtype=float)) == env
+    assert envelope_from_coordinates(array([], dtype=float)) is EMPTY_ENVELOPE
     env = Envelope(code=2, min_x=0, max_x=4, min_y=5, max_y=9,
                    min_z=10, max_z=14)
     assert _envelope_xyz(xs=xs, ys=ys, zs=zs) == env
-    assert envelope_from_coordinates_z(list(zip(xs, ys, zs))) == env
-    assert envelope_from_coordinates_z([]) is EMPTY_ENVELOPE
+    assert envelope_from_coordinates_z(array(list(zip(xs, ys, zs)), dtype=float)) == env
+    assert envelope_from_coordinates_z(array([], dtype=float)) is EMPTY_ENVELOPE
     env = Envelope(code=3, min_x=0, max_x=4, min_y=5, max_y=9,
                    min_m=15, max_m=19)
     assert _envelope_xym(xs=xs, ys=ys, ms=ms) == env
-    assert envelope_from_coordinates_m(list(zip(xs, ys, ms))) == env
-    assert envelope_from_coordinates_m([]) is EMPTY_ENVELOPE
+    assert envelope_from_coordinates_m(array(list(zip(xs, ys, ms)), dtype=float)) == env
+    assert envelope_from_coordinates_m(array([], dtype=float)) is EMPTY_ENVELOPE
     env = Envelope(code=4, min_x=0, max_x=4, min_y=5, max_y=9,
                    min_z=10, max_z=14, min_m=15, max_m=19)
     assert _envelope_xyzm(xs=xs, ys=ys, zs=zs, ms=ms) == env
-    assert envelope_from_coordinates_zm(list(zip(xs, ys, zs, ms))) == env
-    assert envelope_from_coordinates_zm([]) is EMPTY_ENVELOPE
+    assert envelope_from_coordinates_zm(array(list(zip(xs, ys, zs, ms)), dtype=float)) == env
+    assert envelope_from_coordinates_zm(array([], dtype=float)) is EMPTY_ENVELOPE
 # End test_envelope_internal_and_coordinates function
 
 

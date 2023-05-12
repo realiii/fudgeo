@@ -39,7 +39,7 @@ def test_empty_linestring_gpkg():
     line = LineString.from_gpkg(data)
     assert line.to_gpkg() == data
     assert isinstance(line, LineString)
-    assert line.coordinates == []
+    assert not len(line.coordinates)
 # End test_empty_linestring_gpkg function
 
 
@@ -56,7 +56,7 @@ def test_empty_line_string(cls, wkb):
     geom = cls([], srs_id=WGS84)
     assert geom._to_wkb() == wkb
     assert isinstance(geom, cls)
-    assert geom.coordinates == []
+    assert not len(geom.coordinates)
 # End test_empty_line_string function
 
 
@@ -91,7 +91,7 @@ def test_line_string(header, cls, values, env_code, wkb_func, gpkg_func, env):
     with raises(AttributeError):
         # noinspection PyDunderSlots,PyUnresolvedReferences
         line.attribute = 10
-    assert line.coordinates == values
+    assert (line.coordinates == values).all()
     assert line._to_wkb() == wkb_func(values)
     legacy = gpkg_func(header(env_code), values)
     gpkg = line.to_gpkg()
