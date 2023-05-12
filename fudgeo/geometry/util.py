@@ -4,17 +4,18 @@ Utility Functions
 """
 
 
-from functools import lru_cache, reduce
-from math import isfinite, nan
-from operator import add
+from functools import lru_cache
+from math import nan
 # noinspection PyPep8Naming
 from struct import error as StructError, pack, unpack
 from typing import Any, List, TYPE_CHECKING, Tuple, Union
 
+from numpy import array, frombuffer, ndarray
+from bottleneck import nanmax, nanmin
+
 from fudgeo.constant import (
-    COORDINATES, COUNT_CODE, DOUBLE, EMPTY, ENVELOPE_COUNT, ENVELOPE_OFFSET,
-    GP_MAGIC, HEADER_CODE, HEADER_OFFSET, POINT_PREFIX, QUADRUPLE, TRIPLE,
-    TWO_D)
+    COUNT_CODE, EMPTY, ENVELOPE_COUNT, ENVELOPE_OFFSET, GP_MAGIC, HEADER_CODE,
+    HEADER_OFFSET, POINT_PREFIX)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -31,7 +32,16 @@ GEOMS = Union[List['LineString'], List['LinearRing'], List['Polygon']]
 GEOMS_Z = Union[List['LineStringZ'], List['LinearRingZ'], List['PolygonZ']]
 GEOMS_M = Union[List['LineStringM'], List['LinearRingM'], List['PolygonM']]
 GEOMS_ZM = Union[List['LineStringZM'], List['LinearRingZM'], List['PolygonZM']]
-VALUES = List[float]
+
+
+def as_array(coordinates: Any) -> ndarray:
+    """
+    Convert input coordinates to an array
+    """
+    if not isinstance(coordinates, ndarray):
+        coordinates = array(coordinates, dtype=float)
+    return coordinates
+# End as_array function
 
 
 class Envelope:
@@ -196,73 +206,76 @@ def lazy_unpack(cls: Any, value: bytes, dimension: int) -> Any:
     """
     Unpack just the header and envelope, adding data to class for later use.
     """
-    srs_id, env_code, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
+    view = memoryview(value)
+    srs_id, env_code, offset, is_empty = unpack_header(view[:HEADER_OFFSET])
     obj = cls([], srs_id=srs_id)
     if is_empty:
         return obj
-    obj._env = unpack_envelope(code=env_code, value=value[:offset])
-    obj._args = value[offset:], dimension
+    obj._env = unpack_envelope(code=env_code, view=view[:offset])
+    obj._args = view[offset:], dimension
     return obj
 # End lazy_unpack function
 
 
-def unpack_line(value: bytes, dimension: int,
+def unpack_line(view: memoryview, dimension: int,
                 is_ring: bool = False) -> List[Tuple[float, ...]]:
     """
     Unpack Values for LineString
     """
-    count, data = get_count_and_data(value, is_ring=is_ring)
-    total = dimension * count
-    values: Tuple[float, ...] = unpack(f'<{total}d', data)
-    return [values[i:i + dimension] for i in range(0, total, dimension)]
+    count, data = get_count_and_data(view, is_ring=is_ring)
+    return frombuffer(
+        data, dtype=float, count=dimension * count).reshape(-1, dimension)
 # End unpack_line function
 
 
-def unpack_points(value: bytes, dimension: int) -> List[Tuple[float, ...]]:
+def unpack_points(view: memoryview, dimension: int) -> ndarray:
     """
     Unpack Values for Multi Point
     """
     offset = 5
     size = (8 * dimension) + offset
-    count, data = get_count_and_data(value)
+    count, data = get_count_and_data(view)
     if not count:
-        return []
-    total = dimension * count
-    data = [data[i + offset:i + size] for i in range(0, len(data), size)]
-    values: Tuple[float, ...] = unpack(f'<{total}d', reduce(add, data))
-    return [values[i:i + dimension] for i in range(0, total, dimension)]
+        return array([], dtype=float)
+    ary = bytearray()
+    for i in range(0, len(data), size):
+        ary.extend(data[i + offset:i + size])
+    return frombuffer(
+        ary, dtype=float, count=dimension * count).reshape(-1, dimension)
 # End unpack_points function
 
 
-def pack_coordinates(coordinates: COORDINATES, has_z: bool = False,
-                     has_m: bool = False, use_prefix: bool = False) -> bytes:
+def pack_coordinates(prefix: bytes, coordinates: ndarray,
+                     has_z: bool = False, has_m: bool = False,
+                     use_point_prefix: bool = False) -> bytearray:
     """
     Pack Coordinates
     """
-    flat = []
-    for coords in coordinates:
-        flat.extend(coords)
     count = len(coordinates)
-    total = count * sum((TWO_D, has_z, has_m))
-    data = pack(f'<{total}d', *flat)
-    if not use_prefix:
-        return pack(COUNT_CODE, count) + data
+    ary = bytearray(prefix + pack(COUNT_CODE, count))
+    data = coordinates.tobytes()
+    if not use_point_prefix:
+        ary.extend(data)
+        return ary
     length = len(data)
+    view = memoryview(data)
     step = length // count
     prefix = POINT_PREFIX.get((has_z, has_m))
-    parts = [prefix + data[i:i + step] for i in range(0, length, step)]
-    return pack(COUNT_CODE, count) + EMPTY.join(parts)
+    for i in range(0, length, step):
+        ary.extend(prefix)
+        ary.extend(view[i:i + step])
+    return ary
 # End pack_coordinates function
 
 
-def unpack_lines(value: bytes, dimension: int, is_ring: bool = False) \
+def unpack_lines(view: memoryview, dimension: int, is_ring: bool = False) \
         -> List[List[Tuple[float, ...]]]:
     """
     Unpack Values for Multi LineString and Polygons
     """
     size, last_end = 8 * dimension, 0
     offset, unit = (4, COUNT_CODE) if is_ring else (9, '<BII')
-    count, data = get_count_and_data(value)
+    count, data = get_count_and_data(view)
     lines = []
     for _ in range(count):
         *_, length = unpack(unit, data[last_end:last_end + offset])
@@ -276,13 +289,13 @@ def unpack_lines(value: bytes, dimension: int, is_ring: bool = False) \
 # End unpack_lines function
 
 
-def unpack_polygons(value: bytes, dimension: int) \
+def unpack_polygons(view: memoryview, dimension: int) \
         -> List[List[List[Tuple[float, ...]]]]:
     """
     Unpack Values for Multi Polygon Type Containing Polygons
     """
     size, last_end = 8 * dimension, 0
-    count, data = get_count_and_data(value)
+    count, data = get_count_and_data(view)
     polygons = []
     for _ in range(0, count):
         points = unpack_lines(data[last_end:], dimension, is_ring=True)
@@ -293,15 +306,14 @@ def unpack_polygons(value: bytes, dimension: int) \
 # End unpack_polygons method
 
 
-def get_count_and_data(value: bytes, is_ring: bool = False) \
-        -> Tuple[int, bytes]:
+def get_count_and_data(view: memoryview, is_ring: bool = False) \
+        -> Tuple[int, memoryview]:
     """
     Get Count from header and return the value portion of the stream
     """
     first, second = (0, 4) if is_ring else (5, 9)
-    header, data = value[first: second], value[second:]
-    count, = unpack(COUNT_CODE, header)
-    return count, data
+    count, = unpack(COUNT_CODE, view[first: second])
+    return count, view[second:]
 # End get_count_and_data function
 
 
@@ -320,18 +332,18 @@ def make_header(srs_id: int, is_empty: bool, envelope_code: int = 0) -> bytes:
 
 
 @lru_cache(maxsize=None)
-def unpack_header(value: bytes) -> Tuple[int, int, int, bool]:
+def unpack_header(view: memoryview) -> Tuple[int, int, int, bool]:
     """
     Cached Unpacking of a GeoPackage Geometry Header
     """
-    _, _, flags, srs_id = unpack(HEADER_CODE, value)
+    _, _, flags, srs_id = unpack(HEADER_CODE, view)
     envelope_code = (flags & (0x07 << 1)) >> 1
     is_empty = bool((flags & (0x01 << 4)) >> 4)
     return srs_id, envelope_code, ENVELOPE_OFFSET[envelope_code], is_empty
 # End unpack_header function
 
 
-def unpack_envelope(code: int, value: bytes) -> Envelope:
+def unpack_envelope(code: int, view: memoryview) -> Envelope:
     """
     Unpack Envelope
 
@@ -347,7 +359,7 @@ def unpack_envelope(code: int, value: bytes) -> Envelope:
     if code not in ENVELOPE_COUNT:  # pragma: no cover
         return EMPTY_ENVELOPE
     try:
-        values = unpack(f'<{ENVELOPE_COUNT[code]}d', value[HEADER_OFFSET:])
+        values = unpack(f'<{ENVELOPE_COUNT[code]}d', view[HEADER_OFFSET:])
     except StructError:  # pragma: no cover
         return EMPTY_ENVELOPE
     min_x = max_x = min_y = max_y = min_z = max_z = min_m = max_m = nan
@@ -365,20 +377,6 @@ def unpack_envelope(code: int, value: bytes) -> Envelope:
 # End unpack_envelope function
 
 
-def _min_max(values: Union[VALUES, Tuple[float, ...]]) \
-        -> Tuple[float, float]:
-    """
-    Min and Max values, returns nan's if empty list or no finite values.
-    """
-    if not len(values):
-        return nan, nan
-    values = [v for v in values if isfinite(v)]
-    if not values:
-        return nan, nan
-    return min(values), max(values)
-# End _min_max function
-
-
 def envelope_from_geometries(geoms: GEOMS) -> Envelope:
     """
     Envelope from Geometries
@@ -390,7 +388,7 @@ def envelope_from_geometries(geoms: GEOMS) -> Envelope:
         env = geom.envelope
         xs.extend((env.min_x, env.max_x))
         ys.extend((env.min_y, env.max_y))
-    return _envelope_xy(xs=xs, ys=ys)
+    return _envelope_xy(xs=array(xs, dtype=float), ys=array(ys, dtype=float))
 # End envelope_from_geometries function
 
 
@@ -406,7 +404,9 @@ def envelope_from_geometries_z(geoms: GEOMS_Z) -> Envelope:
         xs.extend((env.min_x, env.max_x))
         ys.extend((env.min_y, env.max_y))
         zs.extend((env.min_z, env.max_z))
-    return _envelope_xyz(xs=xs, ys=ys, zs=zs)
+    return _envelope_xyz(
+        xs=array(xs, dtype=float), ys=array(ys, dtype=float),
+        zs=array(zs, dtype=float))
 # End envelope_from_geometries_z function
 
 
@@ -422,7 +422,9 @@ def envelope_from_geometries_m(geoms: GEOMS_M) -> Envelope:
         xs.extend((env.min_x, env.max_x))
         ys.extend((env.min_y, env.max_y))
         ms.extend((env.min_m, env.max_m))
-    return _envelope_xym(xs=xs, ys=ys, ms=ms)
+    return _envelope_xym(
+        xs=array(xs, dtype=float), ys=array(ys, dtype=float),
+        ms=array(ms, dtype=float))
 # End envelope_from_geometries_m function
 
 
@@ -439,94 +441,101 @@ def envelope_from_geometries_zm(geoms: GEOMS_ZM) -> Envelope:
         ys.extend((env.min_y, env.max_y))
         zs.extend((env.min_z, env.max_z))
         ms.extend((env.min_m, env.max_m))
-    return _envelope_xyzm(xs=xs, ys=ys, zs=zs, ms=ms)
+    return _envelope_xyzm(
+        xs=array(xs, dtype=float), ys=array(ys, dtype=float),
+        zs=array(zs, dtype=float), ms=array(ms, dtype=float))
 # End envelope_from_geometries_zm function
 
 
-def envelope_from_coordinates(coordinates: List[DOUBLE]) -> Envelope:
+def envelope_from_coordinates(coordinates: ndarray) -> Envelope:
     """
     Envelope from Coordinates
     """
     if not len(coordinates):
         return EMPTY_ENVELOPE
-    return _envelope_xy(*zip(*coordinates))
+    return _envelope_xy(xs=coordinates[:, 0], ys=coordinates[:, 1])
 # End envelope_from_coordinates function
 
 
-def envelope_from_coordinates_z(coordinates: List[TRIPLE]) -> Envelope:
+def envelope_from_coordinates_z(coordinates: ndarray) -> Envelope:
     """
     Envelope from Coordinates with Z
     """
     if not len(coordinates):
         return EMPTY_ENVELOPE
-    return _envelope_xyz(*zip(*coordinates))
+    return _envelope_xyz(
+        xs=coordinates[:, 0], ys=coordinates[:, 1], zs=coordinates[:, 2])
 # End envelope_from_coordinates_z function
 
 
-def envelope_from_coordinates_m(coordinates: List[TRIPLE]) -> Envelope:
+def envelope_from_coordinates_m(coordinates: ndarray) -> Envelope:
     """
     Envelope from Coordinates with M
     """
     if not len(coordinates):
         return EMPTY_ENVELOPE
-    return _envelope_xym(*zip(*coordinates))
+    return _envelope_xym(
+        xs=coordinates[:, 0], ys=coordinates[:, 1], ms=coordinates[:, 2])
 # End envelope_from_coordinates_m function
 
 
-def envelope_from_coordinates_zm(coordinates: List[QUADRUPLE]) -> Envelope:
+def envelope_from_coordinates_zm(coordinates: ndarray) -> Envelope:
     """
     Envelope from Coordinates with ZM
     """
     if not len(coordinates):
         return EMPTY_ENVELOPE
-    return _envelope_xyzm(*zip(*coordinates))
+    return _envelope_xyzm(
+        xs=coordinates[:, 0], ys=coordinates[:, 1],
+        zs=coordinates[:, 2], ms=coordinates[:, 3])
 # End envelope_from_coordinates_zm function
 
 
-def _envelope_xy(xs: VALUES, ys: VALUES) -> Envelope:
+def _envelope_xy(xs: ndarray, ys: ndarray) -> Envelope:
     """
     Envelope XY
     """
-    min_x, max_x = _min_max(xs)
-    min_y, max_y = _min_max(ys)
+    min_x, max_x = nanmin(xs), nanmax(xs)
+    min_y, max_y = nanmin(ys), nanmax(ys)
     return Envelope(code=1, min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y)
 # End _envelope_xy function
 
 
-def _envelope_xyz(xs: VALUES, ys: VALUES, zs: VALUES) -> Envelope:
+def _envelope_xyz(xs: ndarray, ys: ndarray, zs: ndarray) -> Envelope:
     """
     Envelope XYZ
     """
-    min_x, max_x = _min_max(xs)
-    min_y, max_y = _min_max(ys)
-    min_z, max_z = _min_max(zs)
+    min_x, max_x = nanmin(xs), nanmax(xs)
+    min_y, max_y = nanmin(ys), nanmax(ys)
+    min_z, max_z = nanmin(zs), nanmax(zs)
     return Envelope(code=2, min_x=min_x, max_x=max_x,
                     min_y=min_y, max_y=max_y,
                     min_z=min_z, max_z=max_z)
 # End _envelope_xyz function
 
 
-def _envelope_xym(xs: VALUES, ys: VALUES, ms: VALUES) -> Envelope:
+def _envelope_xym(xs: ndarray, ys: ndarray, ms: ndarray) -> Envelope:
     """
     Envelope XYM
     """
-    min_x, max_x = _min_max(xs)
-    min_y, max_y = _min_max(ys)
-    min_m, max_m = _min_max(ms)
+    min_x, max_x = nanmin(xs), nanmax(xs)
+    min_y, max_y = nanmin(ys), nanmax(ys)
+    min_m, max_m = nanmin(ms), nanmax(ms)
     return Envelope(code=3, min_x=min_x, max_x=max_x,
                     min_y=min_y, max_y=max_y,
                     min_m=min_m, max_m=max_m)
 # End _envelope_xym function
 
 
-def _envelope_xyzm(xs: VALUES, ys: VALUES, zs: VALUES, ms: VALUES) -> Envelope:
+def _envelope_xyzm(xs: ndarray, ys: ndarray,
+                   zs: ndarray, ms: ndarray) -> Envelope:
     """
     Envelope XYZM
     """
-    min_x, max_x = _min_max(xs)
-    min_y, max_y = _min_max(ys)
-    min_z, max_z = _min_max(zs)
-    min_m, max_m = _min_max(ms)
+    min_x, max_x = nanmin(xs), nanmax(xs)
+    min_y, max_y = nanmin(ys), nanmax(ys)
+    min_z, max_z = nanmin(zs), nanmax(zs)
+    min_m, max_m = nanmin(ms), nanmax(ms)
     return Envelope(
         code=4, min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y,
         min_z=min_z, max_z=max_z, min_m=min_m, max_m=max_m)

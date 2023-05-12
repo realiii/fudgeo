@@ -91,7 +91,7 @@ def test_linear_ring(cls, values, env_code, wkb_func, env):
     with raises(AttributeError):
         # noinspection PyDunderSlots,PyUnresolvedReferences
         ring.attribute = 10
-    assert ring.coordinates == values
+    assert (ring.coordinates == values).all()
     wkb = ring._to_wkb()
     assert wkb == wkb_func(values)
     assert not ring.is_empty
