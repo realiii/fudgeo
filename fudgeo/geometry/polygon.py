@@ -5,7 +5,7 @@ Polygons
 
 
 from struct import pack
-from typing import List
+from typing import List, TYPE_CHECKING
 
 from fudgeo.constant import (
     COUNT_CODE, DOUBLE, FOUR_D, QUADRUPLE, THREE_D, TRIPLE, TWO_D,
@@ -15,12 +15,16 @@ from fudgeo.constant import (
 from fudgeo.geometry.base import AbstractGeometry
 from fudgeo.geometry.point import Point, PointM, PointZ, PointZM
 from fudgeo.geometry.util import (
-    EMPTY_ENVELOPE, Envelope, envelope_from_coordinates,
+    EMPTY_ENVELOPE, Envelope, as_array, envelope_from_coordinates,
     envelope_from_coordinates_m, envelope_from_coordinates_z,
     envelope_from_coordinates_zm, envelope_from_geometries,
     envelope_from_geometries_m, envelope_from_geometries_z,
     envelope_from_geometries_zm, lazy_unpack, pack_coordinates, unpack_lines,
     unpack_polygons)
+
+
+if TYPE_CHECKING:
+    from numpy import ndarray
 
 
 class LinearRing(AbstractGeometry):
@@ -34,7 +38,7 @@ class LinearRing(AbstractGeometry):
         Initialize the LinearRing class
         """
         super().__init__(srs_id=srs_id)
-        self.coordinates: List[DOUBLE] = coordinates
+        self.coordinates: 'ndarray' = as_array(coordinates)
     # End init built-in
 
     def __eq__(self, other: 'LinearRing') -> bool:
@@ -105,7 +109,7 @@ class LinearRingZ(AbstractGeometry):
         Initialize the LinearRingZ class
         """
         super().__init__(srs_id=srs_id)
-        self.coordinates: List[TRIPLE] = coordinates
+        self.coordinates: 'ndarray' = as_array(coordinates)
     # End init built-in
 
     def __eq__(self, other: 'LinearRingZ') -> bool:
@@ -177,7 +181,7 @@ class LinearRingM(AbstractGeometry):
         Initialize the LinearRingM class
         """
         super().__init__(srs_id=srs_id)
-        self.coordinates: List[TRIPLE] = coordinates
+        self.coordinates: 'ndarray' = as_array(coordinates)
     # End init built-in
 
     def __eq__(self, other: 'LinearRingM') -> bool:
@@ -249,7 +253,7 @@ class LinearRingZM(AbstractGeometry):
         Initialize the LinearRingZM class
         """
         super().__init__(srs_id=srs_id)
-        self.coordinates: List[QUADRUPLE] = coordinates
+        self.coordinates: 'ndarray' = as_array(coordinates)
     # End init built-in
 
     def __eq__(self, other: 'LinearRingZM') -> bool:

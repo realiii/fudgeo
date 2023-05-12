@@ -5,7 +5,7 @@ Line String
 
 
 from struct import pack
-from typing import List
+from typing import List, TYPE_CHECKING
 
 from fudgeo.constant import (
     COUNT_CODE, DOUBLE, FOUR_D, QUADRUPLE, THREE_D, TRIPLE, TWO_D,
@@ -15,12 +15,16 @@ from fudgeo.constant import (
 from fudgeo.geometry.base import AbstractGeometry
 from fudgeo.geometry.point import Point, PointM, PointZ, PointZM
 from fudgeo.geometry.util import (
-    EMPTY_ENVELOPE, Envelope, envelope_from_coordinates,
+    EMPTY_ENVELOPE, Envelope, as_array, envelope_from_coordinates,
     envelope_from_coordinates_m, envelope_from_coordinates_z,
     envelope_from_coordinates_zm, envelope_from_geometries,
     envelope_from_geometries_m, envelope_from_geometries_z,
     envelope_from_geometries_zm, lazy_unpack, pack_coordinates, unpack_line,
     unpack_lines)
+
+
+if TYPE_CHECKING:
+    from numpy import ndarray
 
 
 class LineString(AbstractGeometry):
@@ -34,7 +38,7 @@ class LineString(AbstractGeometry):
         Initialize the LineString class
         """
         super().__init__(srs_id=srs_id)
-        self._coordinates: List[DOUBLE] = coordinates
+        self._coordinates: 'ndarray' = as_array(coordinates)
     # End init built-in
 
     def __eq__(self, other: 'LineString') -> bool:
@@ -49,7 +53,7 @@ class LineString(AbstractGeometry):
     # End eq built-in
 
     @property
-    def coordinates(self) -> List[DOUBLE]:
+    def coordinates(self) -> 'ndarray':
         """
         Coordinates
         """
@@ -117,7 +121,7 @@ class LineStringZ(AbstractGeometry):
         Initialize the LineStringZ class
         """
         super().__init__(srs_id=srs_id)
-        self._coordinates: List[TRIPLE] = coordinates
+        self._coordinates: 'ndarray' = as_array(coordinates)
     # End init built-in
 
     def __eq__(self, other: 'LineStringZ') -> bool:
@@ -132,7 +136,7 @@ class LineStringZ(AbstractGeometry):
     # End eq built-in
 
     @property
-    def coordinates(self) -> List[TRIPLE]:
+    def coordinates(self) -> 'ndarray':
         """
         Coordinates
         """
@@ -202,7 +206,7 @@ class LineStringM(AbstractGeometry):
         Initialize the LineStringM class
         """
         super().__init__(srs_id=srs_id)
-        self._coordinates: List[TRIPLE] = coordinates
+        self._coordinates: 'ndarray' = as_array(coordinates)
     # End init built-in
 
     def __eq__(self, other: 'LineStringM') -> bool:
@@ -217,7 +221,7 @@ class LineStringM(AbstractGeometry):
     # End eq built-in
 
     @property
-    def coordinates(self) -> List[TRIPLE]:
+    def coordinates(self) -> 'ndarray':
         """
         Coordinates
         """
@@ -287,7 +291,7 @@ class LineStringZM(AbstractGeometry):
         Initialize the LineStringZM class
         """
         super().__init__(srs_id=srs_id)
-        self._coordinates: List[QUADRUPLE] = coordinates
+        self._coordinates: 'ndarray' = as_array(coordinates)
     # End init built-in
 
     def __eq__(self, other: 'LineStringZM') -> bool:
@@ -302,7 +306,7 @@ class LineStringZM(AbstractGeometry):
     # End eq built-in
 
     @property
-    def coordinates(self) -> List[QUADRUPLE]:
+    def coordinates(self) -> 'ndarray':
         """
         Coordinates
         """

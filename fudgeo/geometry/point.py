@@ -6,7 +6,7 @@ Points
 
 from math import isnan, nan
 from struct import pack, unpack
-from typing import List
+from typing import List, TYPE_CHECKING
 
 from fudgeo.constant import (
     DOUBLE, EMPTY, FOUR_D, FOUR_D_PACK_CODE, FOUR_D_UNPACK_CODE, HEADER_OFFSET,
@@ -16,10 +16,14 @@ from fudgeo.constant import (
     WKB_POINT_M_PRE, WKB_POINT_PRE, WKB_POINT_ZM_PRE, WKB_POINT_Z_PRE)
 from fudgeo.geometry.base import AbstractGeometry
 from fudgeo.geometry.util import (
-    EMPTY_ENVELOPE, Envelope, envelope_from_coordinates,
+    EMPTY_ENVELOPE, Envelope, as_array, envelope_from_coordinates,
     envelope_from_coordinates_m, envelope_from_coordinates_z,
     envelope_from_coordinates_zm, lazy_unpack, make_header, pack_coordinates,
     unpack_header, unpack_points)
+
+
+if TYPE_CHECKING:
+    from numpy import ndarray
 
 
 class Point(AbstractGeometry):
@@ -436,7 +440,7 @@ class MultiPoint(AbstractGeometry):
         Initialize the MultiPoint class
         """
         super().__init__(srs_id=srs_id)
-        self._coordinates: List[DOUBLE] = coordinates
+        self._coordinates: 'ndarray' = as_array(coordinates)
     # End init built-in
 
     def __eq__(self, other: 'MultiPoint') -> bool:
@@ -451,7 +455,7 @@ class MultiPoint(AbstractGeometry):
     # End eq built-in
 
     @property
-    def coordinates(self) -> List[DOUBLE]:
+    def coordinates(self) -> 'ndarray':
         """
         Coordinates
         """
@@ -520,7 +524,7 @@ class MultiPointZ(AbstractGeometry):
         Initialize the MultiPointZ class
         """
         super().__init__(srs_id=srs_id)
-        self._coordinates: List[TRIPLE] = coordinates
+        self._coordinates: 'ndarray' = as_array(coordinates)
     # End init built-in
 
     def __eq__(self, other: 'MultiPointZ') -> bool:
@@ -535,7 +539,7 @@ class MultiPointZ(AbstractGeometry):
     # End eq built-in
 
     @property
-    def coordinates(self) -> List[TRIPLE]:
+    def coordinates(self) -> 'ndarray':
         """
         Coordinates
         """
@@ -605,7 +609,7 @@ class MultiPointM(AbstractGeometry):
         Initialize the MultiPointM class
         """
         super().__init__(srs_id=srs_id)
-        self._coordinates: List[TRIPLE] = coordinates
+        self._coordinates: 'ndarray' = as_array(coordinates)
     # End init built-in
 
     def __eq__(self, other: 'MultiPointM') -> bool:
@@ -620,7 +624,7 @@ class MultiPointM(AbstractGeometry):
     # End eq built-in
 
     @property
-    def coordinates(self) -> List[TRIPLE]:
+    def coordinates(self) -> 'ndarray':
         """
         Coordinates
         """
@@ -690,7 +694,7 @@ class MultiPointZM(AbstractGeometry):
         Initialize the MultiPointZM class
         """
         super().__init__(srs_id=srs_id)
-        self._coordinates: List[QUADRUPLE] = coordinates
+        self._coordinates: 'ndarray' = as_array(coordinates)
     # End init built-in
 
     def __eq__(self, other: 'MultiPointZM') -> bool:
@@ -705,7 +709,7 @@ class MultiPointZM(AbstractGeometry):
     # End eq built-in
 
     @property
-    def coordinates(self) -> List[QUADRUPLE]:
+    def coordinates(self) -> 'ndarray':
         """
         Coordinates
         """

@@ -11,6 +11,9 @@ from operator import add
 from struct import error as StructError, pack, unpack
 from typing import Any, List, TYPE_CHECKING, Tuple, Union
 
+from numpy import array, frombuffer, isfinite, nan, ndarray
+from bottleneck import nanmax, nanmin
+
 from fudgeo.constant import (
     COORDINATES, COUNT_CODE, DOUBLE, EMPTY, ENVELOPE_COUNT, ENVELOPE_OFFSET,
     GP_MAGIC, HEADER_CODE, HEADER_OFFSET, POINT_PREFIX, QUADRUPLE, TRIPLE,
@@ -31,7 +34,16 @@ GEOMS = Union[List['LineString'], List['LinearRing'], List['Polygon']]
 GEOMS_Z = Union[List['LineStringZ'], List['LinearRingZ'], List['PolygonZ']]
 GEOMS_M = Union[List['LineStringM'], List['LinearRingM'], List['PolygonM']]
 GEOMS_ZM = Union[List['LineStringZM'], List['LinearRingZM'], List['PolygonZM']]
-VALUES = List[float]
+
+
+def as_array(coordinates: Any) -> ndarray:
+    """
+    Convert input coordinates to an array
+    """
+    if not isinstance(coordinates, ndarray):
+        coordinates = array(coordinates, dtype=float)
+    return coordinates
+# End as_array function
 
 
 class Envelope:
