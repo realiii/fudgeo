@@ -4,9 +4,7 @@
 Python. `fudgeo` is a simple package for creating OGC GeoPackages, Feature 
 Classes, Tables, and geometries (read and write).
 
-Inspired by elements of [**pygeopkg**](https://github.com/realiii/pygeopkg).
-
-For more details on OGC GeoPackages, please see the [OGC web page](http://www.geopackage.org/).
+For details on OGC GeoPackages, please see the [OGC web page](http://www.geopackage.org/).
 
 
 ## Installation
@@ -22,11 +20,13 @@ The `fudgeo` library is compatible with Python 3.7 to 3.11.
 ## Usage
 
 `fudgeo` can be used to: 
-* Create a new empty GeoPackage or Open an existing GeoPackage.
-* Create new Feature Classes and Tables (optional overwrite)
-* Insert feature (geometry and attributes) into a Feature Class.
-* Insert rows into a Table (in the normal SQLite way)
-* Drop Feature Classes and Tables
+* Create a new empty `GeoPackage`
+* Open an existing `GeoPackage`
+* Create new `FeatureClass` or `Table` with optional overwrite
+* Insert record (attributes) into a `Table`
+* Insert feature (geometry and attributes) into a `FeatureClass`
+* Insert rows into a `Table` (in the normal `SQLite` way)
+* Drop `FeatureClass` or Table`
 
 
 ### Create an Empty GeoPackage / Open GeoPackage
@@ -209,3 +209,91 @@ features = cursor.fetchall()
 
 [MIT](https://choosealicense.com/licenses/mit/)
 
+## Release History
+
+### v0.5.0
+* performance improvements for geometry reading (especially for geometries with large numbers of points / parts)
+* performance improvements for geometry writing
+* incorporated `numpy` and `bottleneck` as dependencies
+
+### v0.4.2
+* only unpack header and delay unpacking coordinates until needed
+* write envelope to geometry header
+
+### v0.4.1
+* unpack envelope from header (when available)
+* add `envelope` property to 2D, 3D, and 4D geometry
+* derive envelope from underlying coordinates / geometries if not set from header
+
+### v0.4.0
+* add string representations to `GeoPackage`, `Table`, and `FeatureClass`
+* allow optional creation of the `gpkg_ogr_contents`, defaults to True (create)
+* split `geometry` module into a sub-package
+
+### v0.3.10
+* add `escaped_name` property to `BaseTable`, applies to `Table` and `FeatureClass`
+* escape the name of input table / feature class during `create`
+
+### v0.3.9
+* quote reversal, doubles inside of singles for `escaped_name`
+
+### v0.3.8
+* add `fields` property to `BaseTable`, applies to `Table` and `FeatureClass`
+* add `field_names` property to `BaseTable`, applies to `Table` and `FeatureClass`
+* add `escaped_name` property to `Field` to return name valid for use in queries
+* add type hinting to embedded sql statements and supporting values
+
+### v0.3.7
+* add `is_empty` property to geometries, improved handling for empty geometries
+* update `user_version` to `10300`
+* add handling for geometry headers with envelopes (skipping content)
+* add type hinting to constants
+
+### v0.3.6
+* add `srs_id` (optional) to `SpatialReferenceSystem` instantiation, default to `org_coord_sys_id` if not specified
+
+### v0.3.5
+* store `coordinates` in attribute on 2D, 3D, and 4D geometry
+* avoid creating points on instantiation of geometry
+* expose `points` property to return point objects for 2D, 3D, and 4D geometry
+
+### v0.3.4
+* add `from_tuple` class methods to `Point`, `PointZ`, `PointM`, and `PointZM`
+
+### v0.3.3
+* catch possible exception when parsing microseconds from time
+* add converter for `timestamp` to use same converter as `datetime`
+* use lower case table names in queries
+
+### v0.3.2
+* include `PolygonM`, `PolygonZM`, `MultiPolygonM`, and `MultiPolygonZM` in geometry registration
+
+### v0.3.1
+* delay opening a `GeoPackage` connection until `connection` property is accessed 
+
+### v0.3.0
+* add support for `PolygonM`, `PolygonZM`, `MultiPolygonM`, and `MultiPolygonZM`
+* add `geometry_column_name` and `geometry_type` properties to `FeatureClass`
+* simplify query used by `has_z` and `has_m`
+
+### v0.2.1
+* improve `_convert_datetime` to handle different formats for timestamp (contributed by [@alexeygribko](https://github.com/alexeygribko))
+
+### v0.2.0
+* improve `_convert_datetime` to handle timezone
+* add `DATETIME` tp `SQLFieldType`
+
+### v0.1.2
+* add option to overwrite feature classes and tables in `create_feature_class` and `create_table` methods 
+* add option to overwrite in `create` method on `FeatureClass` and `Table` classes
+* add `drop` method on `FeatureClass` and `Table` classes
+
+### v0.1.1
+* make compatible with Python 3.7 and up (update type hints, remove walrus)
+* add support for OGR contents table (`gpkg_ogr_contents`) and triggers
+* add `tables` and `feature_classes` properties to `GeoPackage` class
+* include `application_id` and `user_version` in SQL definition
+* fix timestamp format (was missing seconds)
+
+### v0.1.0
+* initial release, basic port of legacy `pygeopkg` package
