@@ -4,20 +4,18 @@ Utility Functions
 """
 
 
-from functools import lru_cache, reduce
-from math import isfinite, nan
-from operator import add
+from functools import lru_cache
+from math import nan
 # noinspection PyPep8Naming
 from struct import error as StructError, pack, unpack
 from typing import Any, List, TYPE_CHECKING, Tuple, Union
 
-from numpy import array, frombuffer, isfinite, nan, ndarray
+from numpy import array, frombuffer, ndarray
 from bottleneck import nanmax, nanmin
 
 from fudgeo.constant import (
-    COORDINATES, COUNT_CODE, DOUBLE, EMPTY, ENVELOPE_COUNT, ENVELOPE_OFFSET,
-    GP_MAGIC, HEADER_CODE, HEADER_OFFSET, POINT_PREFIX, QUADRUPLE, TRIPLE,
-    TWO_D)
+    COUNT_CODE, EMPTY, ENVELOPE_COUNT, ENVELOPE_OFFSET, GP_MAGIC, HEADER_CODE,
+    HEADER_OFFSET, POINT_PREFIX)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -225,13 +223,12 @@ def unpack_line(view: memoryview, dimension: int,
     Unpack Values for LineString
     """
     count, data = get_count_and_data(view, is_ring=is_ring)
-    total = dimension * count
-    values: Tuple[float, ...] = unpack(f'<{total}d', data)
-    return [values[i:i + dimension] for i in range(0, total, dimension)]
+    return frombuffer(
+        data, dtype=float, count=dimension * count).reshape(-1, dimension)
 # End unpack_line function
 
 
-def unpack_points(view: memoryview, dimension: int) -> List[Tuple[float, ...]]:
+def unpack_points(view: memoryview, dimension: int) -> ndarray:
     """
     Unpack Values for Multi Point
     """
@@ -239,12 +236,12 @@ def unpack_points(view: memoryview, dimension: int) -> List[Tuple[float, ...]]:
     size = (8 * dimension) + offset
     count, data = get_count_and_data(view)
     if not count:
-        return []
-    total = dimension * count
-    data = [data[i + offset:i + size].tobytes()
-            for i in range(0, len(data), size)]
-    values: Tuple[float, ...] = unpack(f'<{total}d', reduce(add, data))
-    return [values[i:i + dimension] for i in range(0, total, dimension)]
+        return array([], dtype=float)
+    ary = bytearray()
+    for i in range(0, len(data), size):
+        ary.extend(data[i + offset:i + size])
+    return frombuffer(
+        ary, dtype=float, count=dimension * count).reshape(-1, dimension)
 # End unpack_points function
 
 
@@ -380,20 +377,6 @@ def unpack_envelope(code: int, view: memoryview) -> Envelope:
 # End unpack_envelope function
 
 
-def _min_max(values: Union[VALUES, Tuple[float, ...]]) \
-        -> Tuple[float, float]:
-    """
-    Min and Max values, returns nan's if empty list or no finite values.
-    """
-    if not len(values):
-        return nan, nan
-    values = [v for v in values if isfinite(v)]
-    if not values:
-        return nan, nan
-    return min(values), max(values)
-# End _min_max function
-
-
 def envelope_from_geometries(geoms: GEOMS) -> Envelope:
     """
     Envelope from Geometries
@@ -405,7 +388,7 @@ def envelope_from_geometries(geoms: GEOMS) -> Envelope:
         env = geom.envelope
         xs.extend((env.min_x, env.max_x))
         ys.extend((env.min_y, env.max_y))
-    return _envelope_xy(xs=xs, ys=ys)
+    return _envelope_xy(xs=array(xs, dtype=float), ys=array(ys, dtype=float))
 # End envelope_from_geometries function
 
 
@@ -421,7 +404,9 @@ def envelope_from_geometries_z(geoms: GEOMS_Z) -> Envelope:
         xs.extend((env.min_x, env.max_x))
         ys.extend((env.min_y, env.max_y))
         zs.extend((env.min_z, env.max_z))
-    return _envelope_xyz(xs=xs, ys=ys, zs=zs)
+    return _envelope_xyz(
+        xs=array(xs, dtype=float), ys=array(ys, dtype=float),
+        zs=array(zs, dtype=float))
 # End envelope_from_geometries_z function
 
 
@@ -437,7 +422,9 @@ def envelope_from_geometries_m(geoms: GEOMS_M) -> Envelope:
         xs.extend((env.min_x, env.max_x))
         ys.extend((env.min_y, env.max_y))
         ms.extend((env.min_m, env.max_m))
-    return _envelope_xym(xs=xs, ys=ys, ms=ms)
+    return _envelope_xym(
+        xs=array(xs, dtype=float), ys=array(ys, dtype=float),
+        ms=array(ms, dtype=float))
 # End envelope_from_geometries_m function
 
 
@@ -454,94 +441,101 @@ def envelope_from_geometries_zm(geoms: GEOMS_ZM) -> Envelope:
         ys.extend((env.min_y, env.max_y))
         zs.extend((env.min_z, env.max_z))
         ms.extend((env.min_m, env.max_m))
-    return _envelope_xyzm(xs=xs, ys=ys, zs=zs, ms=ms)
+    return _envelope_xyzm(
+        xs=array(xs, dtype=float), ys=array(ys, dtype=float),
+        zs=array(zs, dtype=float), ms=array(ms, dtype=float))
 # End envelope_from_geometries_zm function
 
 
-def envelope_from_coordinates(coordinates: List[DOUBLE]) -> Envelope:
+def envelope_from_coordinates(coordinates: ndarray) -> Envelope:
     """
     Envelope from Coordinates
     """
     if not len(coordinates):
         return EMPTY_ENVELOPE
-    return _envelope_xy(*zip(*coordinates))
+    return _envelope_xy(xs=coordinates[:, 0], ys=coordinates[:, 1])
 # End envelope_from_coordinates function
 
 
-def envelope_from_coordinates_z(coordinates: List[TRIPLE]) -> Envelope:
+def envelope_from_coordinates_z(coordinates: ndarray) -> Envelope:
     """
     Envelope from Coordinates with Z
     """
     if not len(coordinates):
         return EMPTY_ENVELOPE
-    return _envelope_xyz(*zip(*coordinates))
+    return _envelope_xyz(
+        xs=coordinates[:, 0], ys=coordinates[:, 1], zs=coordinates[:, 2])
 # End envelope_from_coordinates_z function
 
 
-def envelope_from_coordinates_m(coordinates: List[TRIPLE]) -> Envelope:
+def envelope_from_coordinates_m(coordinates: ndarray) -> Envelope:
     """
     Envelope from Coordinates with M
     """
     if not len(coordinates):
         return EMPTY_ENVELOPE
-    return _envelope_xym(*zip(*coordinates))
+    return _envelope_xym(
+        xs=coordinates[:, 0], ys=coordinates[:, 1], ms=coordinates[:, 2])
 # End envelope_from_coordinates_m function
 
 
-def envelope_from_coordinates_zm(coordinates: List[QUADRUPLE]) -> Envelope:
+def envelope_from_coordinates_zm(coordinates: ndarray) -> Envelope:
     """
     Envelope from Coordinates with ZM
     """
     if not len(coordinates):
         return EMPTY_ENVELOPE
-    return _envelope_xyzm(*zip(*coordinates))
+    return _envelope_xyzm(
+        xs=coordinates[:, 0], ys=coordinates[:, 1],
+        zs=coordinates[:, 2], ms=coordinates[:, 3])
 # End envelope_from_coordinates_zm function
 
 
-def _envelope_xy(xs: VALUES, ys: VALUES) -> Envelope:
+def _envelope_xy(xs: ndarray, ys: ndarray) -> Envelope:
     """
     Envelope XY
     """
-    min_x, max_x = _min_max(xs)
-    min_y, max_y = _min_max(ys)
+    min_x, max_x = nanmin(xs), nanmax(xs)
+    min_y, max_y = nanmin(ys), nanmax(ys)
     return Envelope(code=1, min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y)
 # End _envelope_xy function
 
 
-def _envelope_xyz(xs: VALUES, ys: VALUES, zs: VALUES) -> Envelope:
+def _envelope_xyz(xs: ndarray, ys: ndarray, zs: ndarray) -> Envelope:
     """
     Envelope XYZ
     """
-    min_x, max_x = _min_max(xs)
-    min_y, max_y = _min_max(ys)
-    min_z, max_z = _min_max(zs)
+    min_x, max_x = nanmin(xs), nanmax(xs)
+    min_y, max_y = nanmin(ys), nanmax(ys)
+    min_z, max_z = nanmin(zs), nanmax(zs)
     return Envelope(code=2, min_x=min_x, max_x=max_x,
                     min_y=min_y, max_y=max_y,
                     min_z=min_z, max_z=max_z)
 # End _envelope_xyz function
 
 
-def _envelope_xym(xs: VALUES, ys: VALUES, ms: VALUES) -> Envelope:
+def _envelope_xym(xs: ndarray, ys: ndarray, ms: ndarray) -> Envelope:
     """
     Envelope XYM
     """
-    min_x, max_x = _min_max(xs)
-    min_y, max_y = _min_max(ys)
-    min_m, max_m = _min_max(ms)
+    min_x, max_x = nanmin(xs), nanmax(xs)
+    min_y, max_y = nanmin(ys), nanmax(ys)
+    min_m, max_m = nanmin(ms), nanmax(ms)
     return Envelope(code=3, min_x=min_x, max_x=max_x,
                     min_y=min_y, max_y=max_y,
                     min_m=min_m, max_m=max_m)
 # End _envelope_xym function
 
 
-def _envelope_xyzm(xs: VALUES, ys: VALUES, zs: VALUES, ms: VALUES) -> Envelope:
+def _envelope_xyzm(xs: ndarray, ys: ndarray,
+                   zs: ndarray, ms: ndarray) -> Envelope:
     """
     Envelope XYZM
     """
-    min_x, max_x = _min_max(xs)
-    min_y, max_y = _min_max(ys)
-    min_z, max_z = _min_max(zs)
-    min_m, max_m = _min_max(ms)
+    min_x, max_x = nanmin(xs), nanmax(xs)
+    min_y, max_y = nanmin(ys), nanmax(ys)
+    min_z, max_z = nanmin(zs), nanmax(zs)
+    min_m, max_m = nanmin(ms), nanmax(ms)
     return Envelope(
         code=4, min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y,
         min_z=min_z, max_z=max_z, min_m=min_m, max_m=max_m)
