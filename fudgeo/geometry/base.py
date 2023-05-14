@@ -27,7 +27,7 @@ class AbstractGeometry:
     # End init built-in
 
     @abstractmethod
-    def _to_wkb(self, use_prefix: bool = True) -> bytearray:  # pragma: nocover
+    def _to_wkb(self) -> bytearray:  # pragma: nocover
         """
         To WKB
         """

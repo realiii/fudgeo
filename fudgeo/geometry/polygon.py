@@ -81,7 +81,7 @@ class LinearRing(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
+    def _to_wkb(self) -> bytearray:
         """
         To WKB
         """
@@ -141,7 +141,7 @@ class LinearRingZ(AbstractGeometry):
                 for x, y, z in self.coordinates]
     # End points property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
+    def _to_wkb(self) -> bytearray:
         """
         To WKB
         """
@@ -225,7 +225,7 @@ class LinearRingM(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
+    def _to_wkb(self) -> bytearray:
         """
         To WKB
         """
@@ -295,7 +295,7 @@ class LinearRingZM(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
+    def _to_wkb(self) -> bytearray:
         """
         To WKB
         """
@@ -378,7 +378,7 @@ class Polygon(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
+    def _to_wkb(self) -> bytearray:
         """
         To WKB
         """
@@ -463,7 +463,7 @@ class PolygonZ(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
+    def _to_wkb(self) -> bytearray:
         """
         To WKB
         """
@@ -548,7 +548,7 @@ class PolygonM(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
+    def _to_wkb(self) -> bytearray:
         """
         To WKB
         """
@@ -634,7 +634,7 @@ class PolygonZM(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
+    def _to_wkb(self) -> bytearray:
         """
         To WKB
         """
@@ -720,7 +720,7 @@ class MultiPolygon(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
+    def _to_wkb(self) -> bytearray:
         """
         To WKB
         """
@@ -806,7 +806,7 @@ class MultiPolygonZ(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
+    def _to_wkb(self) -> bytearray:
         """
         To WKB
         """
@@ -892,7 +892,7 @@ class MultiPolygonM(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
+    def _to_wkb(self) -> bytearray:
         """
         To WKB
         """
@@ -978,7 +978,7 @@ class MultiPolygonZM(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
+    def _to_wkb(self) -> bytearray:
         """
         To WKB
         """

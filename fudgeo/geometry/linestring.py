@@ -93,7 +93,7 @@ class LineString(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
+    def _to_wkb(self) -> bytearray:
         """
         To WKB
         """
@@ -177,7 +177,7 @@ class LineStringZ(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
+    def _to_wkb(self) -> bytearray:
         """
         To WKB
         """
@@ -262,7 +262,7 @@ class LineStringM(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
+    def _to_wkb(self) -> bytearray:
         """
         To WKB
         """
@@ -347,7 +347,7 @@ class LineStringZM(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
+    def _to_wkb(self) -> bytearray:
         """
         To WKB
         """
@@ -418,7 +418,7 @@ class MultiLineString(AbstractGeometry):
         return not (bool(self._args) or bool(self.lines))
     # End is_empty property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
+    def _to_wkb(self) -> bytearray:
         """
         To WKB
         """
@@ -514,7 +514,7 @@ class MultiLineStringZ(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
+    def _to_wkb(self) -> bytearray:
         """
         To WKB
         """
@@ -598,7 +598,7 @@ class MultiLineStringM(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
+    def _to_wkb(self) -> bytearray:
         """
         To WKB
         """
@@ -683,7 +683,7 @@ class MultiLineStringZM(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self, use_prefix: bool = True) -> bytearray:
+    def _to_wkb(self) -> bytearray:
         """
         To WKB
         """
