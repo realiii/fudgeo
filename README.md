@@ -211,6 +211,9 @@ features = cursor.fetchall()
 
 ## Release History
 
+### v0.5.1
+* small performance improvements by reducing `bytes` concatenation and building up `bytearray`
+
 ### v0.5.0
 * performance improvements for geometry reading (especially for geometries with large numbers of points / parts)
 * performance improvements for geometry writing
