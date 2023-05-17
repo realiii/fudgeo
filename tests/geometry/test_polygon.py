@@ -54,7 +54,8 @@ def test_empty_polygon(cls, wkb):
     Test Empty Polygon
     """
     geom = cls([], srs_id=WGS84)
-    assert geom._to_wkb() == wkb
+    ary = bytearray()
+    assert geom._to_wkb(ary) == wkb
     assert isinstance(geom, cls)
     assert geom.rings == []
 # End test_empty_polygon function
@@ -71,7 +72,8 @@ def test_empty_multi_polygon(cls, wkb):
     Test Empty Multi Polygon
     """
     geom = cls([], srs_id=WGS84)
-    assert geom._to_wkb() == wkb
+    ary = bytearray()
+    assert geom._to_wkb(ary) == wkb
     assert isinstance(geom, cls)
     assert geom.polygons == []
 # End test_empty_multi_polygon function
@@ -92,7 +94,8 @@ def test_linear_ring(cls, values, env_code, wkb_func, env):
         # noinspection PyDunderSlots,PyUnresolvedReferences
         ring.attribute = 10
     assert (ring.coordinates == values).all()
-    wkb = ring._to_wkb()
+    ary = bytearray()
+    wkb = ring._to_wkb(ary)
     assert wkb == wkb_func(values)
     assert not ring.is_empty
     assert ring.envelope == env
@@ -117,7 +120,8 @@ def test_polygon(header, cls, values, env_code, wkb_func, env):
     with raises(AttributeError):
         # noinspection PyDunderSlots,PyUnresolvedReferences
         poly.attribute = 10
-    assert poly._to_wkb() == wkb_func(values)
+    ary = bytearray()
+    assert poly._to_wkb(ary) == wkb_func(values)
     gpkg = poly.to_gpkg()
     assert gpkg.startswith(header(env_code))
     from_gpkg = cls.from_gpkg(gpkg)
@@ -146,7 +150,8 @@ def test_multi_polygon(header, cls, values, env_code, wkb_func, env):
     with raises(AttributeError):
         # noinspection PyDunderSlots,PyUnresolvedReferences
         poly.attribute = 10
-    assert poly._to_wkb() == wkb_func(values)
+    ary = bytearray()
+    assert poly._to_wkb(ary) == wkb_func(values)
     gpkg = poly.to_gpkg()
     assert gpkg.startswith(header(env_code))
     from_gpkg = cls.from_gpkg(gpkg)

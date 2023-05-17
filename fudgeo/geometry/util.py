@@ -202,15 +202,16 @@ class Envelope:
 EMPTY_ENVELOPE = Envelope(code=0, min_x=nan, max_x=nan, min_y=nan, max_y=nan)
 
 
-def lazy_unpack(cls: Any, value: bytes, dimension: int) -> Any:
+def lazy_unpack(cls: Any, value: Union[bytes, bytearray],
+                dimension: int) -> Any:
     """
     Unpack just the header and envelope, adding data to class for later use.
     """
-    view = memoryview(value)
-    srs_id, env_code, offset, is_empty = unpack_header(view[:HEADER_OFFSET])
+    srs_id, env_code, offset, is_empty = unpack_header(bytes(value[:HEADER_OFFSET]))
     obj = cls([], srs_id=srs_id)
     if is_empty:
         return obj
+    view = memoryview(value)
     obj._env = unpack_envelope(code=env_code, view=view[:offset])
     obj._args = view[offset:], dimension
     return obj
@@ -218,7 +219,7 @@ def lazy_unpack(cls: Any, value: bytes, dimension: int) -> Any:
 
 
 def unpack_line(view: memoryview, dimension: int,
-                is_ring: bool = False) -> List[Tuple[float, ...]]:
+                is_ring: bool = False) -> ndarray:
     """
     Unpack Values for LineString
     """
@@ -245,14 +246,14 @@ def unpack_points(view: memoryview, dimension: int) -> ndarray:
 # End unpack_points function
 
 
-def pack_coordinates(prefix: bytes, coordinates: ndarray,
+def pack_coordinates(ary: bytearray, prefix: bytes, coordinates: ndarray,
                      has_z: bool = False, has_m: bool = False,
                      use_point_prefix: bool = False) -> bytearray:
     """
     Pack Coordinates
     """
     count = len(coordinates)
-    ary = bytearray(prefix + pack(COUNT_CODE, count))
+    ary.extend(prefix + pack(COUNT_CODE, count))
     data = coordinates.tobytes()
     if not use_point_prefix:
         ary.extend(data)
@@ -269,7 +270,7 @@ def pack_coordinates(prefix: bytes, coordinates: ndarray,
 
 
 def unpack_lines(view: memoryview, dimension: int, is_ring: bool = False) \
-        -> List[List[Tuple[float, ...]]]:
+        -> List[ndarray]:
     """
     Unpack Values for Multi LineString and Polygons
     """
@@ -280,9 +281,7 @@ def unpack_lines(view: memoryview, dimension: int, is_ring: bool = False) \
     for _ in range(count):
         *_, length = unpack(unit, data[last_end:last_end + offset])
         end = last_end + offset + (size * length)
-        # noinspection PyTypeChecker
-        points: List[Tuple[float, ...]] = unpack_line(
-            data[last_end:end], dimension, is_ring=is_ring)
+        points = unpack_line(data[last_end:end], dimension, is_ring=is_ring)
         last_end = end
         lines.append(points)
     return lines
@@ -290,7 +289,7 @@ def unpack_lines(view: memoryview, dimension: int, is_ring: bool = False) \
 
 
 def unpack_polygons(view: memoryview, dimension: int) \
-        -> List[List[List[Tuple[float, ...]]]]:
+        -> List[List[ndarray]]:
     """
     Unpack Values for Multi Polygon Type Containing Polygons
     """
@@ -332,7 +331,7 @@ def make_header(srs_id: int, is_empty: bool, envelope_code: int = 0) -> bytes:
 
 
 @lru_cache(maxsize=None)
-def unpack_header(view: memoryview) -> Tuple[int, int, int, bool]:
+def unpack_header(view: Union[bytes, memoryview]) -> Tuple[int, int, int, bool]:
     """
     Cached Unpacking of a GeoPackage Geometry Header
     """
