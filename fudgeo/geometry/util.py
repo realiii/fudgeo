@@ -202,12 +202,12 @@ class Envelope:
 EMPTY_ENVELOPE = Envelope(code=0, min_x=nan, max_x=nan, min_y=nan, max_y=nan)
 
 
-def lazy_unpack(cls: Any, value: bytes, dimension: int) -> Any:
+def lazy_unpack(cls: Any, value: Union[bytes, bytearray],
+                dimension: int) -> Any:
     """
     Unpack just the header and envelope, adding data to class for later use.
     """
-    view = memoryview(value)
-    srs_id, env_code, offset, is_empty = unpack_header(view[:HEADER_OFFSET])
+    srs_id, env_code, offset, is_empty = unpack_header(bytes(value[:HEADER_OFFSET]))
     obj = cls([], srs_id=srs_id)
     if is_empty:
         return obj
