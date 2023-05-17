@@ -211,6 +211,7 @@ def lazy_unpack(cls: Any, value: Union[bytes, bytearray],
     obj = cls([], srs_id=srs_id)
     if is_empty:
         return obj
+    view = memoryview(value)
     obj._env = unpack_envelope(code=env_code, view=view[:offset])
     obj._args = view[offset:], dimension
     return obj
