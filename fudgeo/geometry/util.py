@@ -219,7 +219,7 @@ def lazy_unpack(cls: Any, value: Union[bytes, bytearray],
 
 
 def unpack_line(view: memoryview, dimension: int,
-                is_ring: bool = False) -> List[Tuple[float, ...]]:
+                is_ring: bool = False) -> ndarray:
     """
     Unpack Values for LineString
     """
@@ -270,7 +270,7 @@ def pack_coordinates(ary: bytearray, prefix: bytes, coordinates: ndarray,
 
 
 def unpack_lines(view: memoryview, dimension: int, is_ring: bool = False) \
-        -> List[List[Tuple[float, ...]]]:
+        -> List[ndarray]:
     """
     Unpack Values for Multi LineString and Polygons
     """
@@ -291,7 +291,7 @@ def unpack_lines(view: memoryview, dimension: int, is_ring: bool = False) \
 
 
 def unpack_polygons(view: memoryview, dimension: int) \
-        -> List[List[List[Tuple[float, ...]]]]:
+        -> List[List[ndarray]]:
     """
     Unpack Values for Multi Polygon Type Containing Polygons
     """
@@ -333,7 +333,7 @@ def make_header(srs_id: int, is_empty: bool, envelope_code: int = 0) -> bytes:
 
 
 @lru_cache(maxsize=None)
-def unpack_header(view: memoryview) -> Tuple[int, int, int, bool]:
+def unpack_header(view: Union[bytes, memoryview]) -> Tuple[int, int, int, bool]:
     """
     Cached Unpacking of a GeoPackage Geometry Header
     """
