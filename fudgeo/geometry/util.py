@@ -281,9 +281,7 @@ def unpack_lines(view: memoryview, dimension: int, is_ring: bool = False) \
     for _ in range(count):
         *_, length = unpack(unit, data[last_end:last_end + offset])
         end = last_end + offset + (size * length)
-        # noinspection PyTypeChecker
-        points: List[Tuple[float, ...]] = unpack_line(
-            data[last_end:end], dimension, is_ring=is_ring)
+        points = unpack_line(data[last_end:end], dimension, is_ring=is_ring)
         last_end = end
         lines.append(points)
     return lines
