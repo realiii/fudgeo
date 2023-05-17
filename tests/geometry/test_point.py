@@ -123,7 +123,8 @@ def test_multi_point(header, cls, values, wkb_func, env_code, env):
         # noinspection PyDunderSlots,PyUnresolvedReferences
         pts.attribute = 10
     assert (pts.coordinates == values).all()
-    assert pts._to_wkb() == wkb_func(values)
+    ary = bytearray()
+    assert pts._to_wkb(ary) == wkb_func(values)
     gpkg = pts.to_gpkg()
     assert gpkg.startswith(header(env_code))
     from_gpkg_pts = cls.from_gpkg(gpkg)
