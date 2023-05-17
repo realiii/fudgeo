@@ -11,9 +11,9 @@ from fudgeo.geometry import LineString, Point, Polygon
 
 
 @mark.parametrize('scale, geom_type, expected', [
-    (1, Point, 0.045),
-    (1, LineString, 0.008),
-    (1, Polygon, 0.008),
+    (1, Point, 0.04),
+    (1, LineString, 0.0055),
+    (1, Polygon, 0.005),
 ])
 def test_performance(random_utm_coordinates, scale, geom_type, expected):
     """
