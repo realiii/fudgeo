@@ -6,7 +6,7 @@ Points
 
 from math import isnan, nan
 from struct import pack, unpack
-from typing import List, TYPE_CHECKING
+from typing import List, Optional, TYPE_CHECKING
 
 from fudgeo.constant import (
     DOUBLE, FOUR_D, FOUR_D_PACK_CODE, FOUR_D_UNPACK_CODE, HEADER_OFFSET,
@@ -69,7 +69,7 @@ class Point(AbstractGeometry):
         return x, y
     # End _unpack method
 
-    def _to_wkb(self) -> bytes:
+    def _to_wkb(self, ary: Optional[bytearray] = None) -> bytes:
         """
         To WKB
         """
@@ -168,7 +168,7 @@ class PointZ(AbstractGeometry):
         return x, y, z
     # End _unpack method
 
-    def _to_wkb(self) -> bytes:
+    def _to_wkb(self, ary: Optional[bytearray] = None) -> bytes:
         """
         To WKB
         """
@@ -267,7 +267,7 @@ class PointM(AbstractGeometry):
         return x, y, m
     # End _unpack method
 
-    def _to_wkb(self) -> bytes:
+    def _to_wkb(self, ary: Optional[bytearray] = None) -> bytes:
         """
         To WKB
         """
@@ -370,7 +370,7 @@ class PointZM(AbstractGeometry):
         return x, y, z, m
     # End _unpack method
 
-    def _to_wkb(self) -> bytes:
+    def _to_wkb(self, ary: Optional[bytearray] = None) -> bytes:
         """
         To WKB
         """
@@ -391,7 +391,7 @@ class PointZM(AbstractGeometry):
         To Geopackage
         """
         return (make_header(srs_id=self.srs_id,
-                            is_empty=self.is_empty) + self._to_wkb())
+                            is_empty=self.is_empty) + self._to_wkb(None))
     # End to_gpkg method
 
     @classmethod
@@ -492,12 +492,12 @@ class MultiPoint(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self) -> bytearray:
+    def _to_wkb(self, ary: bytearray) -> bytearray:
         """
         To WKB
         """
         return pack_coordinates(
-            WKB_MULTI_POINT_PRE, self.coordinates, use_point_prefix=True)
+            ary, WKB_MULTI_POINT_PRE, self.coordinates, use_point_prefix=True)
     # End _to_wkb method
 
     @classmethod
@@ -577,12 +577,12 @@ class MultiPointZ(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self) -> bytearray:
+    def _to_wkb(self, ary: bytearray) -> bytearray:
         """
         To WKB
         """
         return pack_coordinates(
-            WKB_MULTI_POINT_Z_PRE, self.coordinates,
+            ary, WKB_MULTI_POINT_Z_PRE, self.coordinates,
             has_z=True, use_point_prefix=True)
     # End _to_wkb method
 
@@ -663,12 +663,12 @@ class MultiPointM(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self) -> bytearray:
+    def _to_wkb(self, ary: bytearray) -> bytearray:
         """
         To WKB
         """
         return pack_coordinates(
-            WKB_MULTI_POINT_M_PRE, self.coordinates,
+            ary, WKB_MULTI_POINT_M_PRE, self.coordinates,
             has_m=True, use_point_prefix=True)
     # End _to_wkb method
 
@@ -749,12 +749,12 @@ class MultiPointZM(AbstractGeometry):
         return env
     # End envelope property
 
-    def _to_wkb(self) -> bytearray:
+    def _to_wkb(self, ary: bytearray) -> bytearray:
         """
         To WKB
         """
         return pack_coordinates(
-            WKB_MULTI_POINT_ZM_PRE, self.coordinates,
+            ary, WKB_MULTI_POINT_ZM_PRE, self.coordinates,
             has_z=True, has_m=True, use_point_prefix=True)
     # End _to_wkb method
 

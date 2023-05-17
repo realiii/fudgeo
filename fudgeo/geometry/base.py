@@ -27,7 +27,7 @@ class AbstractGeometry:
     # End init built-in
 
     @abstractmethod
-    def _to_wkb(self) -> bytearray:  # pragma: nocover
+    def _to_wkb(self, ary: bytearray) -> bytearray:  # pragma: nocover
         """
         To WKB
         """
@@ -35,14 +35,13 @@ class AbstractGeometry:
     # End _to_wkb method
 
     @staticmethod
-    def _join_geometries(prefix: bytes,
+    def _join_geometries(ary: bytearray,
                          geoms: List['AbstractGeometry']) -> bytearray:
         """
         Join Geometries
         """
-        ary = bytearray(prefix)
         for geom in geoms:
-            ary.extend(geom._to_wkb())
+            geom._to_wkb(ary)
         return ary
     # End _join_geometries method
 
@@ -69,8 +68,9 @@ class AbstractGeometry:
         To Geopackage
         """
         env_code, env_wkb = self.envelope.to_wkb()
-        return (make_header(srs_id=self.srs_id, is_empty=self.is_empty,
-                            envelope_code=env_code) + env_wkb + self._to_wkb())
+        ary = bytearray(make_header(srs_id=self.srs_id, is_empty=self.is_empty,
+                        envelope_code=env_code) + env_wkb)
+        return self._to_wkb(ary)
     # End to_gpkg method
 
     @classmethod

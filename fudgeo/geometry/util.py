@@ -245,14 +245,14 @@ def unpack_points(view: memoryview, dimension: int) -> ndarray:
 # End unpack_points function
 
 
-def pack_coordinates(prefix: bytes, coordinates: ndarray,
+def pack_coordinates(ary: bytearray, prefix: bytes, coordinates: ndarray,
                      has_z: bool = False, has_m: bool = False,
                      use_point_prefix: bool = False) -> bytearray:
     """
     Pack Coordinates
     """
     count = len(coordinates)
-    ary = bytearray(prefix + pack(COUNT_CODE, count))
+    ary.extend(prefix + pack(COUNT_CODE, count))
     data = coordinates.tobytes()
     if not use_point_prefix:
         ary.extend(data)
