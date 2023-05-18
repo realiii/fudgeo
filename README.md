@@ -23,10 +23,12 @@ The `fudgeo` library is compatible with Python 3.7 to 3.11.
 * Create a new empty `GeoPackage`
 * Open an existing `GeoPackage`
 * Create new `FeatureClass` or `Table` with optional overwrite
+* Create `SpatialReferenceSystem` for a `FeatureClass`
 * Insert record (attributes) into a `Table`
 * Insert feature (geometry and attributes) into a `FeatureClass`
-* Insert rows into a `Table` (in the normal `SQLite` way)
-* Drop `FeatureClass` or Table`
+* Work with data in `Table` or `FeatureClass` in a normal `SQLite` manner (e.g. `SELECT`, `INSERT`, `UPDATE`, `DELETE`)
+* Drop `FeatureClass` or `Table`
+* Retrieve fields from a `FeatureClass` or `Table`
 
 
 ### Create an Empty GeoPackage / Open GeoPackage
@@ -210,6 +212,11 @@ features = cursor.fetchall()
 [MIT](https://choosealicense.com/licenses/mit/)
 
 ## Release History
+
+### v0.5.2
+* store empty state on the instance during geometry read
+* introduce base classes for common capability and parametrize via class attributes
+* add stub files to provide type hinting specialization 
 
 ### v0.5.1
 * small performance improvements by reducing `bytes` concatenation and building up `bytearray`
