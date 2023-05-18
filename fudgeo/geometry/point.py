@@ -6,21 +6,18 @@ Points
 
 from math import isnan, nan
 from struct import pack, unpack
-from typing import List, Optional, TYPE_CHECKING
+from typing import Any, ClassVar, List, Optional, TYPE_CHECKING
 
 from fudgeo.constant import (
-    DOUBLE, FOUR_D, FOUR_D_PACK_CODE, FOUR_D_UNPACK_CODE, HEADER_OFFSET,
-    QUADRUPLE, THREE_D, THREE_D_PACK_CODE, THREE_D_UNPACK_CODE, TRIPLE, TWO_D,
-    TWO_D_PACK_CODE, TWO_D_UNPACK_CODE, WKB_MULTI_POINT_M_PRE,
+    DOUBLE, EMPTY, EnvelopeCode, FOUR_D, FOUR_D_PACK_CODE, FOUR_D_UNPACK_CODE,
+    HEADER_OFFSET, QUADRUPLE, THREE_D, THREE_D_PACK_CODE, THREE_D_UNPACK_CODE,
+    TRIPLE, TWO_D, TWO_D_PACK_CODE, TWO_D_UNPACK_CODE, WKB_MULTI_POINT_M_PRE,
     WKB_MULTI_POINT_PRE, WKB_MULTI_POINT_ZM_PRE, WKB_MULTI_POINT_Z_PRE,
     WKB_POINT_M_PRE, WKB_POINT_PRE, WKB_POINT_ZM_PRE, WKB_POINT_Z_PRE)
 from fudgeo.geometry.base import AbstractGeometry
 from fudgeo.geometry.util import (
-    EMPTY_ENVELOPE, Envelope, as_array, envelope_from_coordinates,
-    envelope_from_coordinates_m, envelope_from_coordinates_z,
-    envelope_from_coordinates_zm, lazy_unpack, make_header, pack_coordinates,
-    unpack_header, unpack_points)
-
+    EMPTY_ENVELOPE, ENV_COORD, Envelope, as_array, lazy_unpack, make_header,
+    pack_coordinates, unpack_header, unpack_points)
 
 if TYPE_CHECKING:
     from numpy import ndarray
@@ -426,345 +423,154 @@ class PointZM(AbstractGeometry):
 # End PointZM class
 
 
-class MultiPoint(AbstractGeometry):
+class BaseMultiPoint(AbstractGeometry):
+    """
+    Base Multi Point
+    """
+    __slots__ = '_coordinates',
+
+    _class: ClassVar[Any] = object
+    _dimension: ClassVar[int] = 0
+    _env_code: ClassVar[int] = EnvelopeCode.empty
+    _has_m: ClassVar[bool] = False
+    _has_z: ClassVar[bool] = False
+    _wkb_prefix: ClassVar[bytes] = EMPTY
+
+    def __init__(self, coordinates: List, srs_id: int) -> None:
+        """
+        Initialize the BaseMultiPoint class
+        """
+        super().__init__(srs_id=srs_id)
+        self._coordinates: 'ndarray' = as_array(coordinates)
+    # End init built-in
+
+    def __eq__(self, other: Any) -> bool:
+        """
+        Equals
+        """
+        if not isinstance(other, self.__class__):  # pragma: nocover
+            return NotImplemented
+        if self.srs_id != other.srs_id:
+            return False
+        return self.points == other.points
+    # End eq built-in
+
+    @property
+    def coordinates(self) -> 'ndarray':
+        """
+        Coordinates
+        """
+        if self._args:
+            self._coordinates = unpack_points(*self._args)
+            self._args = None
+        # noinspection PyTypeChecker
+        return self._coordinates
+    # End coordinates property
+
+    @property
+    def is_empty(self) -> bool:
+        """
+        Is Empty
+        """
+        return self._is_empty or not len(self.coordinates)
+    # End is_empty property
+
+    @property
+    def points(self) -> List:
+        """
+        Points
+        """
+        srs_id = self.srs_id
+        cls = self._class
+        return [cls.from_tuple(coords, srs_id=srs_id)
+                for coords in self.coordinates]
+    # End points property
+
+    @property
+    def envelope(self) -> Envelope:
+        """
+        Envelope
+        """
+        if self._env is not EMPTY_ENVELOPE:
+            return self._env
+        env = ENV_COORD[self._env_code](self.coordinates)
+        self._env = env
+        return env
+    # End envelope property
+
+    def _to_wkb(self, ary: bytearray) -> bytearray:
+        """
+        To WKB
+        """
+        return pack_coordinates(
+            ary, self._wkb_prefix, self.coordinates,
+            has_z=self._has_z, has_m=self._has_m,
+            use_point_prefix=True)
+    # End _to_wkb method
+
+    @classmethod
+    def from_gpkg(cls, value: bytes) -> Any:
+        """
+        From Geopackage
+        """
+        return lazy_unpack(cls=cls, value=value, dimension=cls._dimension)
+    # End from_gpkg method
+# End BaseMultiPoint class
+
+
+class MultiPoint(BaseMultiPoint):
     """
     Multi Point
     """
     __slots__ = '_coordinates',
 
-    def __init__(self, coordinates: List[DOUBLE], srs_id: int) -> None:
-        """
-        Initialize the MultiPoint class
-        """
-        super().__init__(srs_id=srs_id)
-        self._coordinates: 'ndarray' = as_array(coordinates)
-    # End init built-in
-
-    def __eq__(self, other: 'MultiPoint') -> bool:
-        """
-        Equals
-        """
-        if not isinstance(other, MultiPoint):  # pragma: nocover
-            return NotImplemented
-        if self.srs_id != other.srs_id:
-            return False
-        return self.points == other.points
-    # End eq built-in
-
-    @property
-    def coordinates(self) -> 'ndarray':
-        """
-        Coordinates
-        """
-        if self._args:
-            self._coordinates = unpack_points(*self._args)
-            self._args = None
-        # noinspection PyTypeChecker
-        return self._coordinates
-    # End coordinates property
-
-    @property
-    def is_empty(self) -> bool:
-        """
-        Is Empty
-        """
-        return not len(self.coordinates)
-    # End is_empty property
-
-    @property
-    def points(self) -> List[Point]:
-        """
-        Points
-        """
-        srs_id = self.srs_id
-        return [Point(x=x, y=y, srs_id=srs_id) for x, y in self.coordinates]
-    # End points property
-
-    @property
-    def envelope(self) -> Envelope:
-        """
-        Envelope
-        """
-        if self._env is not EMPTY_ENVELOPE:
-            return self._env
-        env = envelope_from_coordinates(self.coordinates)
-        self._env = env
-        return env
-    # End envelope property
-
-    def _to_wkb(self, ary: bytearray) -> bytearray:
-        """
-        To WKB
-        """
-        return pack_coordinates(
-            ary, WKB_MULTI_POINT_PRE, self.coordinates, use_point_prefix=True)
-    # End _to_wkb method
-
-    @classmethod
-    def from_gpkg(cls, value: bytes) -> 'MultiPoint':
-        """
-        From Geopackage
-        """
-        return lazy_unpack(cls=cls, value=value, dimension=TWO_D)
-    # End from_gpkg method
+    _class: ClassVar[Any] = Point
+    _dimension: ClassVar[int] = TWO_D
+    _env_code: ClassVar[int] = EnvelopeCode.xy
+    _wkb_prefix: ClassVar[bytes] = WKB_MULTI_POINT_PRE
 # End MultiPoint class
 
 
-class MultiPointZ(AbstractGeometry):
+class MultiPointZ(BaseMultiPoint):
     """
     Multi Point Z
     """
     __slots__ = '_coordinates',
 
-    def __init__(self, coordinates: List[TRIPLE], srs_id: int) -> None:
-        """
-        Initialize the MultiPointZ class
-        """
-        super().__init__(srs_id=srs_id)
-        self._coordinates: 'ndarray' = as_array(coordinates)
-    # End init built-in
-
-    def __eq__(self, other: 'MultiPointZ') -> bool:
-        """
-        Equals
-        """
-        if not isinstance(other, MultiPointZ):  # pragma: nocover
-            return NotImplemented
-        if self.srs_id != other.srs_id:
-            return False
-        return self.points == other.points
-    # End eq built-in
-
-    @property
-    def coordinates(self) -> 'ndarray':
-        """
-        Coordinates
-        """
-        if self._args:
-            self._coordinates = unpack_points(*self._args)
-            self._args = None
-        # noinspection PyTypeChecker
-        return self._coordinates
-    # End coordinates property
-
-    @property
-    def is_empty(self) -> bool:
-        """
-        Is Empty
-        """
-        return not len(self.coordinates)
-    # End is_empty property
-
-    @property
-    def points(self) -> List[PointZ]:
-        """
-        Points
-        """
-        srs_id = self.srs_id
-        return [PointZ(x=x, y=y, z=z, srs_id=srs_id)
-                for x, y, z in self.coordinates]
-    # End points property
-
-    @property
-    def envelope(self) -> Envelope:
-        """
-        Envelope
-        """
-        if self._env is not EMPTY_ENVELOPE:
-            return self._env
-        env = envelope_from_coordinates_z(self.coordinates)
-        self._env = env
-        return env
-    # End envelope property
-
-    def _to_wkb(self, ary: bytearray) -> bytearray:
-        """
-        To WKB
-        """
-        return pack_coordinates(
-            ary, WKB_MULTI_POINT_Z_PRE, self.coordinates,
-            has_z=True, use_point_prefix=True)
-    # End _to_wkb method
-
-    @classmethod
-    def from_gpkg(cls, value: bytes) -> 'MultiPointZ':
-        """
-        From Geopackage
-        """
-        return lazy_unpack(cls=cls, value=value, dimension=THREE_D)
-    # End from_gpkg method
+    _class: ClassVar[Any] = PointZ
+    _dimension: ClassVar[int] = THREE_D
+    _env_code: ClassVar[int] = EnvelopeCode.xyz
+    _has_z: ClassVar[bool] = True
+    _wkb_prefix: ClassVar[bytes] = WKB_MULTI_POINT_Z_PRE
 # End MultiPointZ class
 
 
-class MultiPointM(AbstractGeometry):
+class MultiPointM(BaseMultiPoint):
     """
     Multi Point M
     """
     __slots__ = '_coordinates',
 
-    def __init__(self, coordinates: List[TRIPLE], srs_id: int) -> None:
-        """
-        Initialize the MultiPointM class
-        """
-        super().__init__(srs_id=srs_id)
-        self._coordinates: 'ndarray' = as_array(coordinates)
-    # End init built-in
-
-    def __eq__(self, other: 'MultiPointM') -> bool:
-        """
-        Equals
-        """
-        if not isinstance(other, MultiPointM):  # pragma: nocover
-            return NotImplemented
-        if self.srs_id != other.srs_id:
-            return False
-        return self.points == other.points
-    # End eq built-in
-
-    @property
-    def coordinates(self) -> 'ndarray':
-        """
-        Coordinates
-        """
-        if self._args:
-            self._coordinates = unpack_points(*self._args)
-            self._args = None
-        # noinspection PyTypeChecker
-        return self._coordinates
-    # End coordinates property
-
-    @property
-    def is_empty(self) -> bool:
-        """
-        Is Empty
-        """
-        return not len(self.coordinates)
-    # End is_empty property
-
-    @property
-    def points(self) -> List[PointM]:
-        """
-        Points
-        """
-        srs_id = self.srs_id
-        return [PointM(x=x, y=y, m=m, srs_id=srs_id)
-                for x, y, m in self.coordinates]
-    # End points property
-
-    @property
-    def envelope(self) -> Envelope:
-        """
-        Envelope
-        """
-        if self._env is not EMPTY_ENVELOPE:
-            return self._env
-        env = envelope_from_coordinates_m(self.coordinates)
-        self._env = env
-        return env
-    # End envelope property
-
-    def _to_wkb(self, ary: bytearray) -> bytearray:
-        """
-        To WKB
-        """
-        return pack_coordinates(
-            ary, WKB_MULTI_POINT_M_PRE, self.coordinates,
-            has_m=True, use_point_prefix=True)
-    # End _to_wkb method
-
-    @classmethod
-    def from_gpkg(cls, value: bytes) -> 'MultiPointM':
-        """
-        From Geopackage
-        """
-        return lazy_unpack(cls=cls, value=value, dimension=THREE_D)
-    # End from_gpkg method
+    _class: ClassVar[Any] = PointM
+    _dimension: ClassVar[int] = THREE_D
+    _env_code: ClassVar[int] = EnvelopeCode.xym
+    _has_m: ClassVar[bool] = True
+    _wkb_prefix: ClassVar[bytes] = WKB_MULTI_POINT_M_PRE
 # End MultiPointM class
 
 
-class MultiPointZM(AbstractGeometry):
+class MultiPointZM(BaseMultiPoint):
     """
     Multi Point ZM
     """
     __slots__ = '_coordinates',
 
-    def __init__(self, coordinates: List[QUADRUPLE], srs_id: int) -> None:
-        """
-        Initialize the MultiPointZM class
-        """
-        super().__init__(srs_id=srs_id)
-        self._coordinates: 'ndarray' = as_array(coordinates)
-    # End init built-in
-
-    def __eq__(self, other: 'MultiPointZM') -> bool:
-        """
-        Equals
-        """
-        if not isinstance(other, MultiPointZM):  # pragma: nocover
-            return NotImplemented
-        if self.srs_id != other.srs_id:
-            return False
-        return self.points == other.points
-    # End eq built-in
-
-    @property
-    def coordinates(self) -> 'ndarray':
-        """
-        Coordinates
-        """
-        if self._args:
-            self._coordinates = unpack_points(*self._args)
-            self._args = None
-        # noinspection PyTypeChecker
-        return self._coordinates
-    # End coordinates property
-
-    @property
-    def is_empty(self) -> bool:
-        """
-        Is Empty
-        """
-        return not len(self.coordinates)
-    # End is_empty property
-
-    @property
-    def points(self) -> List[PointZM]:
-        """
-        Points
-        """
-        srs_id = self.srs_id
-        return [PointZM(x=x, y=y, z=z, m=m, srs_id=srs_id)
-                for x, y, z, m in self.coordinates]
-    # End points property
-
-    @property
-    def envelope(self) -> Envelope:
-        """
-        Envelope
-        """
-        if self._env is not EMPTY_ENVELOPE:
-            return self._env
-        env = envelope_from_coordinates_zm(self.coordinates)
-        self._env = env
-        return env
-    # End envelope property
-
-    def _to_wkb(self, ary: bytearray) -> bytearray:
-        """
-        To WKB
-        """
-        return pack_coordinates(
-            ary, WKB_MULTI_POINT_ZM_PRE, self.coordinates,
-            has_z=True, has_m=True, use_point_prefix=True)
-    # End _to_wkb method
-
-    @classmethod
-    def from_gpkg(cls, value: bytes) -> 'MultiPointZM':
-        """
-        From Geopackage
-        """
-        return lazy_unpack(cls=cls, value=value, dimension=FOUR_D)
-    # End from_gpkg method
+    _class: ClassVar[Any] = PointZM
+    _dimension: ClassVar[int] = FOUR_D
+    _env_code: ClassVar[int] = EnvelopeCode.xyzm
+    _has_m: ClassVar[bool] = True
+    _has_z: ClassVar[bool] = True
+    _wkb_prefix: ClassVar[bytes] = WKB_MULTI_POINT_ZM_PRE
 # End MultiPointZM class
 
 

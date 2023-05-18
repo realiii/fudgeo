@@ -68,20 +68,28 @@ def test_empty_point(cls, wkb):
 # End test_empty_point function
 
 
-@mark.parametrize('cls', [
-    MultiPoint,
-    MultiPointZ,
-    MultiPointM,
-    MultiPointZM
+@mark.parametrize('cls, wkb, data', [
+    (MultiPoint, b'\x01\x04\x00\x00\x00\x00\x00\x00\x00', b'GP\x00\x11\xe6\x10\x00\x00\x01\x04\x00\x00\x00\x00\x00\x00\x00'),
+    (MultiPointZ, b'\x01\xec\x03\x00\x00\x00\x00\x00\x00', b'GP\x00\x11\xe6\x10\x00\x00\x01\xec\x03\x00\x00\x00\x00\x00\x00'),
+    (MultiPointM, b'\x01\xd4\x07\x00\x00\x00\x00\x00\x00', b'GP\x00\x11\xe6\x10\x00\x00\x01\xd4\x07\x00\x00\x00\x00\x00\x00'),
+    (MultiPointZM, b'\x01\xbc\x0b\x00\x00\x00\x00\x00\x00', b'GP\x00\x11\xe6\x10\x00\x00\x01\xbc\x0b\x00\x00\x00\x00\x00\x00'),
 ])
-def test_empty_multi_point(cls):
+def test_empty_multi_point(cls, wkb, data):
     """
     Test Empty Multi Point
     """
     geom = cls([], srs_id=WGS84)
+    ary = bytearray()
+    assert geom._to_wkb(ary) == wkb
     assert isinstance(geom, cls)
     assert not len(geom.coordinates)
-    assert geom.is_empty
+    assert geom.points == []
+    assert geom._is_empty is None
+    assert geom.is_empty is True
+    assert geom.to_gpkg() == data
+    geom = cls.from_gpkg(data)
+    assert geom._is_empty is True
+    assert geom.is_empty is True
 # End test_empty_multi_point function
 
 
