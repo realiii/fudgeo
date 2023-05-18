@@ -5,47 +5,46 @@ Polygons
 
 
 from struct import pack
-from typing import List, TYPE_CHECKING
+from typing import Any, ClassVar, List, TYPE_CHECKING
 
 from fudgeo.constant import (
-    COUNT_CODE, DOUBLE, EMPTY, FOUR_D, QUADRUPLE, THREE_D, TRIPLE, TWO_D,
+    COUNT_CODE, EMPTY, EnvelopeCode, FOUR_D, THREE_D, TWO_D,
     WKB_MULTI_POLYGON_M_PRE, WKB_MULTI_POLYGON_PRE, WKB_MULTI_POLYGON_ZM_PRE,
     WKB_MULTI_POLYGON_Z_PRE, WKB_POLYGON_M_PRE, WKB_POLYGON_PRE,
     WKB_POLYGON_ZM_PRE, WKB_POLYGON_Z_PRE)
 from fudgeo.geometry.base import AbstractGeometry
 from fudgeo.geometry.point import Point, PointM, PointZ, PointZM
 from fudgeo.geometry.util import (
-    EMPTY_ENVELOPE, Envelope, as_array, envelope_from_coordinates,
-    envelope_from_coordinates_m, envelope_from_coordinates_z,
-    envelope_from_coordinates_zm, envelope_from_geometries,
-    envelope_from_geometries_m, envelope_from_geometries_z,
-    envelope_from_geometries_zm, lazy_unpack, pack_coordinates, unpack_lines,
-    unpack_polygons)
+    EMPTY_ENVELOPE, ENV_COORD, ENV_GEOM, Envelope, as_array, lazy_unpack,
+    pack_coordinates, unpack_lines, unpack_polygons)
 
 
 if TYPE_CHECKING:
     from numpy import ndarray
 
 
-class LinearRing(AbstractGeometry):
+class BaseLinearRing(AbstractGeometry):
     """
-    Linear Ring
+    Base Linear Ring
     """
     __slots__ = 'coordinates',
 
-    def __init__(self, coordinates: List[DOUBLE], srs_id: int) -> None:
+    _class: ClassVar[Any] = object
+    _env_code: ClassVar[int] = EnvelopeCode.empty
+
+    def __init__(self, coordinates: List, srs_id: int) -> None:
         """
-        Initialize the LinearRing class
+        Initialize the BaseLinearRing class
         """
         super().__init__(srs_id=srs_id)
         self.coordinates: 'ndarray' = as_array(coordinates)
     # End init built-in
 
-    def __eq__(self, other: 'LinearRing') -> bool:
+    def __eq__(self, other: Any) -> bool:
         """
         Equals
         """
-        if not isinstance(other, LinearRing):  # pragma: nocover
+        if not isinstance(other, self.__class__):  # pragma: nocover
             return NotImplemented
         if self.srs_id != other.srs_id:
             return False
@@ -61,12 +60,14 @@ class LinearRing(AbstractGeometry):
     # End is_empty property
 
     @property
-    def points(self) -> List[Point]:
+    def points(self) -> List:
         """
         Points
         """
         srs_id = self.srs_id
-        return [Point(x=x, y=y, srs_id=srs_id) for x, y in self.coordinates]
+        cls = self._class
+        return [cls.from_tuple(coords, srs_id=srs_id)
+                for coords in self.coordinates]
     # End points property
 
     @property
@@ -76,7 +77,7 @@ class LinearRing(AbstractGeometry):
         """
         if self._env is not EMPTY_ENVELOPE:
             return self._env
-        env = envelope_from_coordinates(self.coordinates)
+        env = ENV_COORD[self._env_code](self.coordinates)
         self._env = env
         return env
     # End envelope property
@@ -89,199 +90,118 @@ class LinearRing(AbstractGeometry):
     # End _to_wkb method
 
     @classmethod
-    def from_gpkg(cls, value: bytes) -> 'LinearRing':  # pragma: nocover
+    def from_gpkg(cls, value: bytes) -> Any:  # pragma: nocover
         """
         From Geopackage, no-op for Linear Ring
         """
         pass
     # End from_gpkg method
+# End BaseLinearRing class
+
+
+class LinearRing(BaseLinearRing):
+    """
+    Linear Ring
+    """
+    __slots__ = 'coordinates',
+
+    _class: ClassVar[Any] = Point
+    _env_code: ClassVar[int] = EnvelopeCode.xy
 # End LinearRing class
 
 
-class LinearRingZ(AbstractGeometry):
+class LinearRingZ(BaseLinearRing):
     """
     Linear Ring Z
     """
     __slots__ = 'coordinates',
 
-    def __init__(self, coordinates: List[TRIPLE], srs_id: int) -> None:
-        """
-        Initialize the LinearRingZ class
-        """
-        super().__init__(srs_id=srs_id)
-        self.coordinates: 'ndarray' = as_array(coordinates)
-    # End init built-in
-
-    def __eq__(self, other: 'LinearRingZ') -> bool:
-        """
-        Equals
-        """
-        if not isinstance(other, LinearRingZ):  # pragma: nocover
-            return NotImplemented
-        if self.srs_id != other.srs_id:
-            return False
-        return self.points == other.points
-    # End eq built-in
-
-    @property
-    def is_empty(self) -> bool:
-        """
-        Is Empty
-        """
-        return not len(self.coordinates)
-    # End is_empty property
-
-    @property
-    def points(self) -> List[PointZ]:
-        """
-        Points
-        """
-        srs_id = self.srs_id
-        return [PointZ(x=x, y=y, z=z, srs_id=srs_id)
-                for x, y, z in self.coordinates]
-    # End points property
-
-    def _to_wkb(self, ary: bytearray) -> bytearray:
-        """
-        To WKB
-        """
-        return pack_coordinates(ary, EMPTY, self.coordinates, has_z=True)
-    # End _to_wkb method
-
-    @property
-    def envelope(self) -> Envelope:
-        """
-        Envelope
-        """
-        if self._env is not EMPTY_ENVELOPE:
-            return self._env
-        env = envelope_from_coordinates_z(self.coordinates)
-        self._env = env
-        return env
-    # End envelope property
-
-    @classmethod
-    def from_gpkg(cls, value: bytes) -> 'LinearRingZ':  # pragma: nocover
-        """
-        From Geopackage, no-op for Linear Ring
-        """
-        pass
-    # End from_gpkg method
+    _class: ClassVar[Any] = PointZ
+    _env_code: ClassVar[int] = EnvelopeCode.xyz
 # End LinearRingZ class
 
 
-class LinearRingM(AbstractGeometry):
+class LinearRingM(BaseLinearRing):
     """
     Linear Ring M
     """
     __slots__ = 'coordinates',
 
-    def __init__(self, coordinates: List[TRIPLE], srs_id: int) -> None:
-        """
-        Initialize the LinearRingM class
-        """
-        super().__init__(srs_id=srs_id)
-        self.coordinates: 'ndarray' = as_array(coordinates)
-    # End init built-in
-
-    def __eq__(self, other: 'LinearRingM') -> bool:
-        """
-        Equals
-        """
-        if not isinstance(other, LinearRingM):  # pragma: nocover
-            return NotImplemented
-        if self.srs_id != other.srs_id:
-            return False
-        return self.points == other.points
-    # End eq built-in
-
-    @property
-    def is_empty(self) -> bool:
-        """
-        Is Empty
-        """
-        return not len(self.coordinates)
-    # End is_empty property
-
-    @property
-    def points(self) -> List[PointM]:
-        """
-        Points
-        """
-        srs_id = self.srs_id
-        return [PointM(x=x, y=y, m=m, srs_id=srs_id)
-                for x, y, m in self.coordinates]
-    # End points property
-
-    @property
-    def envelope(self) -> Envelope:
-        """
-        Envelope
-        """
-        if self._env is not EMPTY_ENVELOPE:
-            return self._env
-        env = envelope_from_coordinates_m(self.coordinates)
-        self._env = env
-        return env
-    # End envelope property
-
-    def _to_wkb(self, ary: bytearray) -> bytearray:
-        """
-        To WKB
-        """
-        return pack_coordinates(ary, EMPTY, self.coordinates, has_m=True)
-    # End _to_wkb method
-
-    @classmethod
-    def from_gpkg(cls, value: bytes) -> 'LinearRingM':  # pragma: nocover
-        """
-        From Geopackage, no-op for Linear Ring
-        """
-        pass
-    # End from_gpkg method
+    _class: ClassVar[Any] = PointM
+    _env_code: ClassVar[int] = EnvelopeCode.xym
 # End LinearRingM class
 
 
-class LinearRingZM(AbstractGeometry):
+class LinearRingZM(BaseLinearRing):
     """
     Linear Ring ZM
     """
     __slots__ = 'coordinates',
 
-    def __init__(self, coordinates: List[QUADRUPLE], srs_id: int) -> None:
+    _class: ClassVar[Any] = PointZM
+    _env_code: ClassVar[int] = EnvelopeCode.xyzm
+# End LinearRingZM class
+
+
+class BasePolygon(AbstractGeometry):
+    """
+    Base Polygon
+    """
+    __slots__ = '_rings',
+
+    _class: ClassVar[Any] = object
+    _dimension: ClassVar[int] = 0
+    _env_code: ClassVar[int] = EnvelopeCode.empty
+    _wkb_prefix: ClassVar[bytes] = EMPTY
+
+    def __init__(self, coordinates: List[List], srs_id: int) -> None:
         """
-        Initialize the LinearRingZM class
+        Initialize the BasePolygon class
         """
         super().__init__(srs_id=srs_id)
-        self.coordinates: 'ndarray' = as_array(coordinates)
+        self._rings: List = self._make_rings(coordinates)
     # End init built-in
 
-    def __eq__(self, other: 'LinearRingZM') -> bool:
+    def __eq__(self, other: Any) -> bool:
         """
         Equals
         """
-        if not isinstance(other, LinearRingZM):  # pragma: nocover
+        if not isinstance(other, self.__class__):  # pragma: nocover
             return NotImplemented
-        return self.points == other.points
+        if self.srs_id != other.srs_id:
+            return False
+        return self.rings == other.rings
     # End eq built-in
+
+    def _make_rings(self, coordinates: List[List]) -> List:
+        """
+        Make Rings
+        """
+        srs_id = self.srs_id
+        cls = self._class
+        return [cls(coords, srs_id=srs_id) for coords in coordinates]
+    # End _make_rings method
+
+    @property
+    def rings(self) -> List:
+        """
+        Rings
+        """
+        if self._args:
+            # noinspection PyTypeChecker
+            self._rings = self._make_rings(
+                unpack_lines(*self._args, is_ring=True))
+            self._args = None
+        return self._rings
+    # End rings property
 
     @property
     def is_empty(self) -> bool:
         """
         Is Empty
         """
-        return not len(self.coordinates)
+        return self._is_empty or not (bool(self._args) or bool(self.rings))
     # End is_empty property
-
-    @property
-    def points(self) -> List[PointZM]:
-        """
-        Points
-        """
-        srs_id = self.srs_id
-        return [PointZM(x=x, y=y, z=z, m=m, srs_id=srs_id)
-                for x, y, z, m in self.coordinates]
-    # End points property
 
     @property
     def envelope(self) -> Envelope:
@@ -290,7 +210,7 @@ class LinearRingZM(AbstractGeometry):
         """
         if self._env is not EMPTY_ENVELOPE:
             return self._env
-        env = envelope_from_coordinates_zm(self.coordinates)
+        env = ENV_GEOM[self._env_code](self.rings)
         self._env = env
         return env
     # End envelope property
@@ -299,328 +219,131 @@ class LinearRingZM(AbstractGeometry):
         """
         To WKB
         """
-        return pack_coordinates(
-            ary, EMPTY, self.coordinates, has_z=True, has_m=True)
+        geoms = self.rings
+        ary.extend(self._wkb_prefix + pack(COUNT_CODE, len(geoms)))
+        return self._join_geometries(ary, geoms)
     # End _to_wkb method
 
     @classmethod
-    def from_gpkg(cls, value: bytes) -> 'LinearRingZM':  # pragma: nocover
+    def from_gpkg(cls, value: bytes) -> Any:
         """
-        From Geopackage, no-op for Linear Ring
+        From Geopackage
         """
-        pass
+        return lazy_unpack(cls=cls, value=value, dimension=cls._dimension)
     # End from_gpkg method
-# End LinearRingZM class
+# End BasePolygon class
 
 
-class Polygon(AbstractGeometry):
+class Polygon(BasePolygon):
     """
     Polygon
     """
     __slots__ = '_rings',
 
-    def __init__(self, coordinates: List[List[DOUBLE]], srs_id: int) -> None:
-        """
-        Initialize the Polygon class
-        """
-        super().__init__(srs_id=srs_id)
-        self._rings: List[LinearRing] = self._make_rings(coordinates)
-    # End init built-in
-
-    def __eq__(self, other: 'Polygon') -> bool:
-        """
-        Equals
-        """
-        if not isinstance(other, Polygon):  # pragma: nocover
-            return NotImplemented
-        if self.srs_id != other.srs_id:
-            return False
-        return self.rings == other.rings
-    # End eq built-in
-
-    def _make_rings(self, coordinates: List[List[DOUBLE]]) -> List[LinearRing]:
-        """
-        Make Rings
-        """
-        srs_id = self.srs_id
-        return [LinearRing(coords, srs_id=srs_id) for coords in coordinates]
-    # End _make_rings method
-
-    @property
-    def rings(self) -> List[LinearRing]:
-        """
-        Rings
-        """
-        if self._args:
-            # noinspection PyTypeChecker
-            self._rings = self._make_rings(
-                unpack_lines(*self._args, is_ring=True))
-            self._args = None
-        return self._rings
-    # End rings property
-
-    @property
-    def is_empty(self) -> bool:
-        """
-        Is Empty
-        """
-        return not (bool(self._args) or bool(self.rings))
-    # End is_empty property
-
-    @property
-    def envelope(self) -> Envelope:
-        """
-        Envelope
-        """
-        if self._env is not EMPTY_ENVELOPE:
-            return self._env
-        env = envelope_from_geometries(self.rings)
-        self._env = env
-        return env
-    # End envelope property
-
-    def _to_wkb(self, ary: bytearray) -> bytearray:
-        """
-        To WKB
-        """
-        geoms = self.rings
-        ary.extend(WKB_POLYGON_PRE + pack(COUNT_CODE, len(geoms)))
-        return self._join_geometries(ary, geoms)
-    # End _to_wkb method
-
-    @classmethod
-    def from_gpkg(cls, value: bytes) -> 'Polygon':
-        """
-        From Geopackage
-        """
-        return lazy_unpack(cls=cls, value=value, dimension=TWO_D)
-    # End from_gpkg method
+    _class: ClassVar[Any] = LinearRing
+    _dimension: ClassVar[int] = TWO_D
+    _env_code: ClassVar[int] = EnvelopeCode.xy
+    _wkb_prefix: ClassVar[bytes] = WKB_POLYGON_PRE
 # End Polygon class
 
 
-class PolygonZ(AbstractGeometry):
+class PolygonZ(BasePolygon):
     """
     Polygon Z
     """
     __slots__ = '_rings',
 
-    def __init__(self, coordinates: List[List[TRIPLE]], srs_id: int) -> None:
-        """
-        Initialize the PolygonZ class
-        """
-        super().__init__(srs_id=srs_id)
-        self._rings: List[LinearRingZ] = self._make_rings(coordinates)
-    # End init built-in
-
-    def __eq__(self, other: 'PolygonZ') -> bool:
-        """
-        Equals
-        """
-        if not isinstance(other, PolygonZ):  # pragma: nocover
-            return NotImplemented
-        if self.srs_id != other.srs_id:
-            return False
-        return self.rings == other.rings
-    # End eq built-in
-
-    def _make_rings(self, coordinates: List[List[TRIPLE]]) -> List[LinearRingZ]:
-        """
-        Make Rings
-        """
-        srs_id = self.srs_id
-        return [LinearRingZ(coords, srs_id=srs_id) for coords in coordinates]
-    # End _make_rings method
-
-    @property
-    def rings(self) -> List[LinearRingZ]:
-        """
-        Rings
-        """
-        if self._args:
-            # noinspection PyTypeChecker
-            self._rings = self._make_rings(
-                unpack_lines(*self._args, is_ring=True))
-            self._args = None
-        return self._rings
-    # End rings property
-
-    @property
-    def is_empty(self) -> bool:
-        """
-        Is Empty
-        """
-        return not (bool(self._args) or bool(self.rings))
-    # End is_empty property
-
-    @property
-    def envelope(self) -> Envelope:
-        """
-        Envelope
-        """
-        if self._env is not EMPTY_ENVELOPE:
-            return self._env
-        env = envelope_from_geometries_z(self.rings)
-        self._env = env
-        return env
-    # End envelope property
-
-    def _to_wkb(self, ary: bytearray) -> bytearray:
-        """
-        To WKB
-        """
-        geoms = self.rings
-        ary.extend(WKB_POLYGON_Z_PRE + pack(COUNT_CODE, len(geoms)))
-        return self._join_geometries(ary, geoms)
-    # End _to_wkb method
-
-    @classmethod
-    def from_gpkg(cls, value: bytes) -> 'PolygonZ':
-        """
-        From Geopackage
-        """
-        return lazy_unpack(cls=cls, value=value, dimension=THREE_D)
-    # End from_gpkg method
+    _class: ClassVar[Any] = LinearRingZ
+    _dimension: ClassVar[int] = THREE_D
+    _env_code: ClassVar[int] = EnvelopeCode.xyz
+    _wkb_prefix: ClassVar[bytes] = WKB_POLYGON_Z_PRE
 # End PolygonZ class
 
 
-class PolygonM(AbstractGeometry):
+class PolygonM(BasePolygon):
     """
     Polygon M
     """
     __slots__ = '_rings',
 
-    def __init__(self, coordinates: List[List[TRIPLE]], srs_id: int) -> None:
-        """
-        Initialize the PolygonM class
-        """
-        super().__init__(srs_id=srs_id)
-        self._rings: List[LinearRingM] = self._make_rings(coordinates)
-    # End init built-in
-
-    def __eq__(self, other: 'PolygonM') -> bool:
-        """
-        Equals
-        """
-        if not isinstance(other, PolygonM):  # pragma: nocover
-            return NotImplemented
-        if self.srs_id != other.srs_id:
-            return False
-        return self.rings == other.rings
-    # End eq built-in
-
-    def _make_rings(self, coordinates: List[List[TRIPLE]]) -> List[LinearRingM]:
-        """
-        Make Rings
-        """
-        srs_id = self.srs_id
-        return [LinearRingM(coords, srs_id=srs_id) for coords in coordinates]
-    # End _make_rings method
-
-    @property
-    def rings(self) -> List[LinearRingM]:
-        """
-        Rings
-        """
-        if self._args:
-            # noinspection PyTypeChecker
-            self._rings = self._make_rings(
-                unpack_lines(*self._args, is_ring=True))
-            self._args = None
-        return self._rings
-    # End rings property
-
-    @property
-    def is_empty(self) -> bool:
-        """
-        Is Empty
-        """
-        return not (bool(self._args) or bool(self.rings))
-    # End is_empty property
-
-    @property
-    def envelope(self) -> Envelope:
-        """
-        Envelope
-        """
-        if self._env is not EMPTY_ENVELOPE:
-            return self._env
-        env = envelope_from_geometries_m(self.rings)
-        self._env = env
-        return env
-    # End envelope property
-
-    def _to_wkb(self, ary: bytearray) -> bytearray:
-        """
-        To WKB
-        """
-        geoms = self.rings
-        ary.extend(WKB_POLYGON_M_PRE + pack(COUNT_CODE, len(geoms)))
-        return self._join_geometries(ary, geoms)
-    # End _to_wkb method
-
-    @classmethod
-    def from_gpkg(cls, value: bytes) -> 'PolygonM':
-        """
-        From Geopackage
-        """
-        return lazy_unpack(cls=cls, value=value, dimension=THREE_D)
-    # End from_gpkg method
+    _class: ClassVar[Any] = LinearRingM
+    _dimension: ClassVar[int] = THREE_D
+    _env_code: ClassVar[int] = EnvelopeCode.xym
+    _wkb_prefix: ClassVar[bytes] = WKB_POLYGON_M_PRE
 # End PolygonM class
 
 
-class PolygonZM(AbstractGeometry):
+class PolygonZM(BasePolygon):
     """
     Polygon ZM
     """
     __slots__ = '_rings',
 
-    def __init__(self, coordinates: List[List[QUADRUPLE]], srs_id: int) -> None:
+    _class: ClassVar[Any] = LinearRingZM
+    _dimension: ClassVar[int] = FOUR_D
+    _env_code: ClassVar[int] = EnvelopeCode.xyzm
+    _wkb_prefix: ClassVar[bytes] = WKB_POLYGON_ZM_PRE
+# End PolygonZM class
+
+
+class BaseMultiPolygon(AbstractGeometry):
+    """
+    Base Multi Polygon
+    """
+    __slots__ = '_polygons',
+
+    _class: ClassVar[Any] = object
+    _dimension: ClassVar[int] = 0
+    _env_code: ClassVar[int] = EnvelopeCode.empty
+    _wkb_prefix: ClassVar[bytes] = EMPTY
+
+    def __init__(self, coordinates: List[List[List]],
+                 srs_id: int) -> None:
         """
-        Initialize the PolygonZM class
+        Initialize the BaseMultiPolygon class
         """
         super().__init__(srs_id=srs_id)
-        self._rings: List[LinearRingZM] = self._make_rings(coordinates)
+        self._polygons: List = self._make_polygons(coordinates)
     # End init built-in
 
-    def __eq__(self, other: 'PolygonZM') -> bool:
+    def __eq__(self, other: Any) -> bool:
         """
         Equals
         """
-        if not isinstance(other, PolygonZM):  # pragma: nocover
+        if not isinstance(other, self.__class__):  # pragma: nocover
             return NotImplemented
         if self.srs_id != other.srs_id:
             return False
-        return self.rings == other.rings
+        return self.polygons == other.polygons
     # End eq built-in
 
-    def _make_rings(self, coordinates: List[List[QUADRUPLE]]) \
-            -> List[LinearRingZM]:
+    def _make_polygons(self, coordinates: List[List[List]]) -> List:
         """
-        Make Rings
+        Make Polygons
         """
         srs_id = self.srs_id
-        return [LinearRingZM(coords, srs_id=srs_id) for coords in coordinates]
-    # End _make_rings method
+        cls = self._class
+        return [cls(coords, srs_id=srs_id) for coords in coordinates]
+    # End _make_polygons method
 
     @property
-    def rings(self) -> List[LinearRingZM]:
+    def polygons(self) -> List:
         """
-        Rings
+        Polygons
         """
         if self._args:
             # noinspection PyTypeChecker
-            self._rings = self._make_rings(
-                unpack_lines(*self._args, is_ring=True))
+            self._polygons = self._make_polygons(unpack_polygons(*self._args))
             self._args = None
-        return self._rings
-    # End rings property
+        return self._polygons
+    # End polygons property
 
     @property
     def is_empty(self) -> bool:
         """
         Is Empty
         """
-        return not (bool(self._args) or bool(self.rings))
+        return self._is_empty or not (bool(self._args) or bool(self.polygons))
     # End is_empty property
 
     @property
@@ -630,7 +353,7 @@ class PolygonZM(AbstractGeometry):
         """
         if self._env is not EMPTY_ENVELOPE:
             return self._env
-        env = envelope_from_geometries_zm(self.rings)
+        env = ENV_GEOM[self._env_code](self.polygons)
         self._env = env
         return env
     # End envelope property
@@ -639,362 +362,70 @@ class PolygonZM(AbstractGeometry):
         """
         To WKB
         """
-        geoms = self.rings
-        ary.extend(WKB_POLYGON_ZM_PRE + pack(COUNT_CODE, len(geoms)))
+        geoms = self.polygons
+        ary.extend(self._wkb_prefix + pack(COUNT_CODE, len(geoms)))
         return self._join_geometries(ary, geoms)
     # End _to_wkb method
 
     @classmethod
-    def from_gpkg(cls, value: bytes) -> 'PolygonZM':
+    def from_gpkg(cls, value: bytes) -> Any:
         """
         From Geopackage
         """
-        return lazy_unpack(cls=cls, value=value, dimension=FOUR_D)
+        return lazy_unpack(cls=cls, value=value, dimension=cls._dimension)
     # End from_gpkg method
-# End PolygonZM class
+# End BaseMultiPolygon class
 
 
-class MultiPolygon(AbstractGeometry):
+class MultiPolygon(BaseMultiPolygon):
     """
     Multi Polygon
     """
     __slots__ = '_polygons',
 
-    def __init__(self, coordinates: List[List[List[DOUBLE]]],
-                 srs_id: int) -> None:
-        """
-        Initialize the MultiPolygon class
-        """
-        super().__init__(srs_id=srs_id)
-        self._polygons: List[Polygon] = self._make_polygons(coordinates)
-    # End init built-in
-
-    def __eq__(self, other: 'MultiPolygon') -> bool:
-        """
-        Equals
-        """
-        if not isinstance(other, MultiPolygon):  # pragma: nocover
-            return NotImplemented
-        if self.srs_id != other.srs_id:
-            return False
-        return self.polygons == other.polygons
-    # End eq built-in
-
-    def _make_polygons(self, coordinates: List[List[List[DOUBLE]]]) \
-            -> List[Polygon]:
-        """
-        Make Polygons
-        """
-        srs_id = self.srs_id
-        return [Polygon(coords, srs_id=srs_id) for coords in coordinates]
-    # End _make_polygons method
-
-    @property
-    def polygons(self) -> List[Polygon]:
-        """
-        Polygons
-        """
-        if self._args:
-            # noinspection PyTypeChecker
-            self._polygons = self._make_polygons(unpack_polygons(*self._args))
-            self._args = None
-        return self._polygons
-    # End polygons property
-
-    @property
-    def is_empty(self) -> bool:
-        """
-        Is Empty
-        """
-        return not (bool(self._args) or bool(self.polygons))
-    # End is_empty property
-
-    @property
-    def envelope(self) -> Envelope:
-        """
-        Envelope
-        """
-        if self._env is not EMPTY_ENVELOPE:
-            return self._env
-        env = envelope_from_geometries(self.polygons)
-        self._env = env
-        return env
-    # End envelope property
-
-    def _to_wkb(self, ary: bytearray) -> bytearray:
-        """
-        To WKB
-        """
-        geoms = self.polygons
-        ary.extend(WKB_MULTI_POLYGON_PRE + pack(COUNT_CODE, len(geoms)))
-        return self._join_geometries(ary, geoms)
-    # End _to_wkb method
-
-    @classmethod
-    def from_gpkg(cls, value: bytes) -> 'MultiPolygon':
-        """
-        From Geopackage
-        """
-        return lazy_unpack(cls=cls, value=value, dimension=TWO_D)
-    # End from_gpkg method
+    _class: ClassVar[Any] = Polygon
+    _dimension: ClassVar[int] = TWO_D
+    _env_code: ClassVar[int] = EnvelopeCode.xy
+    _wkb_prefix: ClassVar[bytes] = WKB_MULTI_POLYGON_PRE
 # End MultiPolygon class
 
 
-class MultiPolygonZ(AbstractGeometry):
+class MultiPolygonZ(BaseMultiPolygon):
     """
     Multi Polygon Z
     """
     __slots__ = '_polygons',
 
-    def __init__(self, coordinates: List[List[List[TRIPLE]]],
-                 srs_id: int) -> None:
-        """
-        Initialize the MultiPolygonZ class
-        """
-        super().__init__(srs_id=srs_id)
-        self._polygons: List[PolygonZ] = self._make_polygons(coordinates)
-    # End init built-in
-
-    def __eq__(self, other: 'MultiPolygonZ') -> bool:
-        """
-        Equals
-        """
-        if not isinstance(other, MultiPolygonZ):  # pragma: nocover
-            return NotImplemented
-        if self.srs_id != other.srs_id:
-            return False
-        return self.polygons == other.polygons
-    # End eq built-in
-
-    def _make_polygons(self, coordinates: List[List[List[TRIPLE]]]) \
-            -> List[PolygonZ]:
-        """
-        Make Polygons
-        """
-        srs_id = self.srs_id
-        return [PolygonZ(coords, srs_id=srs_id) for coords in coordinates]
-    # End _make_polygons method
-
-    @property
-    def polygons(self) -> List[PolygonZ]:
-        """
-        Polygons
-        """
-        if self._args:
-            # noinspection PyTypeChecker
-            self._polygons = self._make_polygons(unpack_polygons(*self._args))
-            self._args = None
-        return self._polygons
-    # End polygons property
-
-    @property
-    def is_empty(self) -> bool:
-        """
-        Is Empty
-        """
-        return not (bool(self._args) or bool(self.polygons))
-    # End is_empty property
-
-    @property
-    def envelope(self) -> Envelope:
-        """
-        Envelope
-        """
-        if self._env is not EMPTY_ENVELOPE:
-            return self._env
-        env = envelope_from_geometries_z(self.polygons)
-        self._env = env
-        return env
-    # End envelope property
-
-    def _to_wkb(self, ary: bytearray) -> bytearray:
-        """
-        To WKB
-        """
-        geoms = self.polygons
-        ary.extend(WKB_MULTI_POLYGON_Z_PRE + pack(COUNT_CODE, len(geoms)))
-        return self._join_geometries(ary, geoms)
-    # End _to_wkb method
-
-    @classmethod
-    def from_gpkg(cls, value: bytes) -> 'MultiPolygonZ':
-        """
-        From Geopackage
-        """
-        return lazy_unpack(cls=cls, value=value, dimension=THREE_D)
-    # End from_gpkg method
+    _class: ClassVar[Any] = PolygonZ
+    _dimension: ClassVar[int] = THREE_D
+    _env_code: ClassVar[int] = EnvelopeCode.xyz
+    _wkb_prefix: ClassVar[bytes] = WKB_MULTI_POLYGON_Z_PRE
 # End MultiPolygonZ class
 
 
-class MultiPolygonM(AbstractGeometry):
+class MultiPolygonM(BaseMultiPolygon):
     """
     Multi Polygon M
     """
     __slots__ = '_polygons',
 
-    def __init__(self, coordinates: List[List[List[TRIPLE]]],
-                 srs_id: int) -> None:
-        """
-        Initialize the MultiPolygonM class
-        """
-        super().__init__(srs_id=srs_id)
-        self._polygons: List[PolygonM] = self._make_polygons(coordinates)
-    # End init built-in
-
-    def __eq__(self, other: 'MultiPolygonM') -> bool:
-        """
-        Equals
-        """
-        if not isinstance(other, MultiPolygonM):  # pragma: nocover
-            return NotImplemented
-        if self.srs_id != other.srs_id:
-            return False
-        return self.polygons == other.polygons
-    # End eq built-in
-
-    def _make_polygons(self, coordinates: List[List[List[TRIPLE]]]) \
-            -> List[PolygonM]:
-        """
-        Make Polygons
-        """
-        srs_id = self.srs_id
-        return [PolygonM(coords, srs_id=srs_id) for coords in coordinates]
-    # End _make_polygons method
-
-    @property
-    def polygons(self) -> List[PolygonM]:
-        """
-        Polygons
-        """
-        if self._args:
-            # noinspection PyTypeChecker
-            self._polygons = self._make_polygons(unpack_polygons(*self._args))
-            self._args = None
-        return self._polygons
-    # End polygons property
-
-    @property
-    def is_empty(self) -> bool:
-        """
-        Is Empty
-        """
-        return not (bool(self._args) or bool(self.polygons))
-    # End is_empty property
-
-    @property
-    def envelope(self) -> Envelope:
-        """
-        Envelope
-        """
-        if self._env is not EMPTY_ENVELOPE:
-            return self._env
-        env = envelope_from_geometries_m(self.polygons)
-        self._env = env
-        return env
-    # End envelope property
-
-    def _to_wkb(self, ary: bytearray) -> bytearray:
-        """
-        To WKB
-        """
-        geoms = self.polygons
-        ary.extend(WKB_MULTI_POLYGON_M_PRE + pack(COUNT_CODE, len(geoms)))
-        return self._join_geometries(ary, geoms)
-    # End _to_wkb method
-
-    @classmethod
-    def from_gpkg(cls, value: bytes) -> 'MultiPolygonM':
-        """
-        From Geopackage
-        """
-        return lazy_unpack(cls=cls, value=value, dimension=THREE_D)
-    # End from_gpkg method
+    _class: ClassVar[Any] = PolygonM
+    _dimension: ClassVar[int] = THREE_D
+    _env_code: ClassVar[int] = EnvelopeCode.xym
+    _wkb_prefix: ClassVar[bytes] = WKB_MULTI_POLYGON_M_PRE
 # End MultiPolygonM class
 
 
-class MultiPolygonZM(AbstractGeometry):
+class MultiPolygonZM(BaseMultiPolygon):
     """
-    Multi Polygon M
+    Multi Polygon ZM
     """
     __slots__ = '_polygons',
 
-    def __init__(self, coordinates: List[List[List[QUADRUPLE]]],
-                 srs_id: int) -> None:
-        """
-        Initialize the MultiPolygonZM class
-        """
-        super().__init__(srs_id=srs_id)
-        self._polygons: List[PolygonZM] = self._make_polygons(coordinates)
-    # End init built-in
-
-    def __eq__(self, other: 'MultiPolygonZM') -> bool:
-        """
-        Equals
-        """
-        if not isinstance(other, MultiPolygonZM):  # pragma: nocover
-            return NotImplemented
-        if self.srs_id != other.srs_id:
-            return False
-        return self.polygons == other.polygons
-    # End eq built-in
-
-    def _make_polygons(self, coordinates: List[List[List[QUADRUPLE]]]) \
-            -> List[PolygonZM]:
-        """
-        Make Polygons
-        """
-        srs_id = self.srs_id
-        return [PolygonZM(coords, srs_id=srs_id) for coords in coordinates]
-    # End _make_rings method
-
-    @property
-    def polygons(self) -> List[PolygonZM]:
-        """
-        Polygons
-        """
-        if self._args:
-            # noinspection PyTypeChecker
-            self._polygons = self._make_polygons(unpack_polygons(*self._args))
-            self._args = None
-        return self._polygons
-    # End polygons property
-
-    @property
-    def is_empty(self) -> bool:
-        """
-        Is Empty
-        """
-        return not (bool(self._args) or bool(self.polygons))
-    # End is_empty property
-
-    @property
-    def envelope(self) -> Envelope:
-        """
-        Envelope
-        """
-        if self._env is not EMPTY_ENVELOPE:
-            return self._env
-        env = envelope_from_geometries_zm(self.polygons)
-        self._env = env
-        return env
-    # End envelope property
-
-    def _to_wkb(self, ary: bytearray) -> bytearray:
-        """
-        To WKB
-        """
-        geoms = self.polygons
-        ary.extend(WKB_MULTI_POLYGON_ZM_PRE + pack(COUNT_CODE, len(geoms)))
-        return self._join_geometries(ary, geoms)
-    # End _to_wkb method
-
-    @classmethod
-    def from_gpkg(cls, value: bytes) -> 'MultiPolygonZM':
-        """
-        From Geopackage
-        """
-        return lazy_unpack(cls=cls, value=value, dimension=FOUR_D)
-    # End from_gpkg method
+    _class: ClassVar[Any] = PolygonZM
+    _dimension: ClassVar[int] = FOUR_D
+    _env_code: ClassVar[int] = EnvelopeCode.xyzm
+    _wkb_prefix: ClassVar[bytes] = WKB_MULTI_POLYGON_ZM_PRE
 # End MultiPolygonZM class
 
 

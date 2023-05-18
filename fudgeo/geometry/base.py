@@ -14,7 +14,7 @@ class AbstractGeometry:
     """
     Abstract Geometry
     """
-    __slots__ = 'srs_id', '_env', '_args'
+    __slots__ = 'srs_id', '_env', '_args', '_is_empty'
 
     def __init__(self, srs_id: int) -> None:
         """
@@ -24,6 +24,7 @@ class AbstractGeometry:
         self.srs_id: int = srs_id
         self._env: Envelope = EMPTY_ENVELOPE
         self._args: Optional[Tuple[memoryview, int]] = None
+        self._is_empty: Optional[bool] = None
     # End init built-in
 
     @abstractmethod

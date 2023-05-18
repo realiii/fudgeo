@@ -5,7 +5,7 @@ Constants
 
 
 from struct import pack
-from typing import Dict, List, Tuple, Union
+from typing import ClassVar, Dict, List, Tuple, Union
 
 
 DOUBLE = Tuple[float, float]
@@ -72,8 +72,22 @@ POINT_PREFIX: Dict[Tuple[bool, bool], bytes] = {
 }
 
 
+class EnvelopeCode:
+    """
+    Envelope Code
+    """
+    empty: ClassVar[int] = 0
+    xy: ClassVar[int] = 1
+    xyz: ClassVar[int] = 2
+    xym: ClassVar[int] = 3
+    xyzm: ClassVar[int] = 4
+# End EnvelopeCode class
+
+
 HEADER_OFFSET: int = 8
-ENVELOPE_LENGTH: Dict[int, int] = {0: 0, 1: 32, 2: 48, 3: 48, 4: 64}
+ENVELOPE_LENGTH: Dict[int, int] = {
+    EnvelopeCode.empty: 0, EnvelopeCode.xy: 32, EnvelopeCode.xyz: 48,
+    EnvelopeCode.xym: 48, EnvelopeCode.xyzm: 64}
 ENVELOPE_COUNT: Dict[int, int] = {k: v // 8 for k, v in ENVELOPE_LENGTH.items()}
 ENVELOPE_OFFSET = {k: v + HEADER_OFFSET for k, v in ENVELOPE_LENGTH.items()}
 
