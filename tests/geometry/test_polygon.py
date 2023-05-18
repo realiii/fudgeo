@@ -61,13 +61,13 @@ def test_empty_polygon(cls, wkb):
 # End test_empty_polygon function
 
 
-@mark.parametrize('cls, wkb', [
-    (MultiPolygon, b'\x01\x06\x00\x00\x00\x00\x00\x00\x00'),
-    (MultiPolygonZ, b'\x01\xee\x03\x00\x00\x00\x00\x00\x00'),
-    (MultiPolygonM, b'\x01\xd6\x07\x00\x00\x00\x00\x00\x00'),
-    (MultiPolygonZM, b'\x01\xbe\x0b\x00\x00\x00\x00\x00\x00')
+@mark.parametrize('cls, wkb, data', [
+    (MultiPolygon, b'\x01\x06\x00\x00\x00\x00\x00\x00\x00', b'GP\x00\x11\xe6\x10\x00\x00\x01\x06\x00\x00\x00\x00\x00\x00\x00'),
+    (MultiPolygonZ, b'\x01\xee\x03\x00\x00\x00\x00\x00\x00', b'GP\x00\x11\xe6\x10\x00\x00\x01\xee\x03\x00\x00\x00\x00\x00\x00'),
+    (MultiPolygonM, b'\x01\xd6\x07\x00\x00\x00\x00\x00\x00', b'GP\x00\x11\xe6\x10\x00\x00\x01\xd6\x07\x00\x00\x00\x00\x00\x00'),
+    (MultiPolygonZM, b'\x01\xbe\x0b\x00\x00\x00\x00\x00\x00', b'GP\x00\x11\xe6\x10\x00\x00\x01\xbe\x0b\x00\x00\x00\x00\x00\x00')
 ])
-def test_empty_multi_polygon(cls, wkb):
+def test_empty_multi_polygon(cls, wkb, data):
     """
     Test Empty Multi Polygon
     """
@@ -76,6 +76,12 @@ def test_empty_multi_polygon(cls, wkb):
     assert geom._to_wkb(ary) == wkb
     assert isinstance(geom, cls)
     assert geom.polygons == []
+    assert geom._is_empty is None
+    assert geom.is_empty is True
+    assert geom.to_gpkg() == data
+    geom = cls.from_gpkg(data)
+    assert geom._is_empty is True
+    assert geom.is_empty is True
 # End test_empty_multi_polygon function
 
 

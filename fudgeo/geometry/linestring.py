@@ -5,47 +5,50 @@ Line String
 
 
 from struct import pack
-from typing import List, TYPE_CHECKING
+from typing import Any, ClassVar, List, TYPE_CHECKING
 
 from fudgeo.constant import (
-    COUNT_CODE, DOUBLE, FOUR_D, QUADRUPLE, THREE_D, TRIPLE, TWO_D,
+    COUNT_CODE, EMPTY, EnvelopeCode, FOUR_D, THREE_D, TWO_D,
     WKB_LINESTRING_M_PRE, WKB_LINESTRING_PRE, WKB_LINESTRING_ZM_PRE,
     WKB_LINESTRING_Z_PRE, WKB_MULTI_LINESTRING_M_PRE, WKB_MULTI_LINESTRING_PRE,
     WKB_MULTI_LINESTRING_ZM_PRE, WKB_MULTI_LINESTRING_Z_PRE)
 from fudgeo.geometry.base import AbstractGeometry
 from fudgeo.geometry.point import Point, PointM, PointZ, PointZM
 from fudgeo.geometry.util import (
-    EMPTY_ENVELOPE, Envelope, as_array, envelope_from_coordinates,
-    envelope_from_coordinates_m, envelope_from_coordinates_z,
-    envelope_from_coordinates_zm, envelope_from_geometries,
-    envelope_from_geometries_m, envelope_from_geometries_z,
-    envelope_from_geometries_zm, lazy_unpack, pack_coordinates, unpack_line,
-    unpack_lines)
+    EMPTY_ENVELOPE, ENV_COORD, ENV_GEOM, Envelope, as_array, lazy_unpack,
+    pack_coordinates, unpack_line, unpack_lines)
 
 
 if TYPE_CHECKING:
     from numpy import ndarray
 
 
-class LineString(AbstractGeometry):
+class BaseLineString(AbstractGeometry):
     """
-    LineString
+    Base Line String
     """
     __slots__ = '_coordinates',
 
-    def __init__(self, coordinates: List[DOUBLE], srs_id: int) -> None:
+    _class: ClassVar[Any] = object
+    _dimension: ClassVar[int] = 0
+    _env_code: ClassVar[int] = EnvelopeCode.empty
+    _has_m: ClassVar[bool] = False
+    _has_z: ClassVar[bool] = False
+    _wkb_prefix: ClassVar[bytes] = EMPTY
+
+    def __init__(self, coordinates: List, srs_id: int) -> None:
         """
-        Initialize the LineString class
+        Initialize the BaseLineString class
         """
         super().__init__(srs_id=srs_id)
         self._coordinates: 'ndarray' = as_array(coordinates)
     # End init built-in
 
-    def __eq__(self, other: 'LineString') -> bool:
+    def __eq__(self, other: Any) -> bool:
         """
         Equals
         """
-        if not isinstance(other, LineString):  # pragma: nocover
+        if not isinstance(other, self.__class__):  # pragma: nocover
             return NotImplemented
         if self.srs_id != other.srs_id:
             return False
@@ -69,16 +72,18 @@ class LineString(AbstractGeometry):
         """
         Is Empty
         """
-        return not len(self.coordinates)
+        return self._is_empty or not len(self.coordinates)
     # End is_empty property
 
     @property
-    def points(self) -> List[Point]:
+    def points(self) -> List:
         """
         Points
         """
         srs_id = self.srs_id
-        return [Point(x=x, y=y, srs_id=srs_id) for x, y in self.coordinates]
+        cls = self._class
+        return [cls.from_tuple(coords, srs_id=srs_id)
+                for coords in self.coordinates]
     # End points property
 
     @property
@@ -88,7 +93,7 @@ class LineString(AbstractGeometry):
         """
         if self._env is not EMPTY_ENVELOPE:
             return self._env
-        env = envelope_from_coordinates(self.coordinates)
+        env = ENV_COORD[self._env_code](self.coordinates)
         self._env = env
         return env
     # End envelope property
@@ -97,282 +102,88 @@ class LineString(AbstractGeometry):
         """
         To WKB
         """
-        return pack_coordinates(ary, WKB_LINESTRING_PRE, self.coordinates)
+        return pack_coordinates(ary, self._wkb_prefix, self.coordinates,
+                                has_z=self._has_z, has_m=self._has_m)
     # End _to_wkb method
 
     @classmethod
-    def from_gpkg(cls, value: bytes) -> 'LineString':
+    def from_gpkg(cls, value: bytes) -> Any:
         """
         From Geopackage
         """
-        return lazy_unpack(cls=cls, value=value, dimension=TWO_D)
+        return lazy_unpack(cls=cls, value=value, dimension=cls._dimension)
     # End from_gpkg method
+# End BaseLineString class
+
+
+class LineString(BaseLineString):
+    """
+    Line String
+    """
+    __slots__ = '_coordinates',
+
+    _class: ClassVar[Any] = Point
+    _dimension: ClassVar[int] = TWO_D
+    _env_code: ClassVar[int] = EnvelopeCode.xy
+    _wkb_prefix: ClassVar[bytes] = WKB_LINESTRING_PRE
 # End LineString class
 
 
-class LineStringZ(AbstractGeometry):
+class LineStringZ(BaseLineString):
     """
-    LineStringZ
+    Line String Z
     """
     __slots__ = '_coordinates',
 
-    def __init__(self, coordinates: List[TRIPLE], srs_id: int) -> None:
-        """
-        Initialize the LineStringZ class
-        """
-        super().__init__(srs_id=srs_id)
-        self._coordinates: 'ndarray' = as_array(coordinates)
-    # End init built-in
-
-    def __eq__(self, other: 'LineStringZ') -> bool:
-        """
-        Equals
-        """
-        if not isinstance(other, LineStringZ):  # pragma: nocover
-            return NotImplemented
-        if self.srs_id != other.srs_id:
-            return False
-        return self.points == other.points
-    # End eq built-in
-
-    @property
-    def coordinates(self) -> 'ndarray':
-        """
-        Coordinates
-        """
-        if self._args:
-            self._coordinates = unpack_line(*self._args)
-            self._args = None
-        # noinspection PyTypeChecker
-        return self._coordinates
-    # End coordinates property
-
-    @property
-    def is_empty(self) -> bool:
-        """
-        Is Empty
-        """
-        return not len(self.coordinates)
-    # End is_empty property
-
-    @property
-    def points(self) -> List[PointZ]:
-        """
-        Points
-        """
-        srs_id = self.srs_id
-        return [PointZ(x=x, y=y, z=z, srs_id=srs_id)
-                for x, y, z in self.coordinates]
-    # End points property
-
-    @property
-    def envelope(self) -> Envelope:
-        """
-        Envelope
-        """
-        if self._env is not EMPTY_ENVELOPE:
-            return self._env
-        env = envelope_from_coordinates_z(self.coordinates)
-        self._env = env
-        return env
-    # End envelope property
-
-    def _to_wkb(self, ary: bytearray) -> bytearray:
-        """
-        To WKB
-        """
-        return pack_coordinates(
-            ary, WKB_LINESTRING_Z_PRE, self.coordinates, has_z=True)
-    # End _to_wkb method
-
-    @classmethod
-    def from_gpkg(cls, value: bytes) -> 'LineStringZ':
-        """
-        From Geopackage
-        """
-        return lazy_unpack(cls=cls, value=value, dimension=THREE_D)
-    # End from_gpkg method
+    _class: ClassVar[Any] = PointZ
+    _dimension: ClassVar[int] = THREE_D
+    _env_code: ClassVar[int] = EnvelopeCode.xyz
+    _has_z: ClassVar[bool] = True
+    _wkb_prefix: ClassVar[bytes] = WKB_LINESTRING_Z_PRE
 # End LineStringZ class
 
 
-class LineStringM(AbstractGeometry):
+class LineStringM(BaseLineString):
     """
-    LineStringM
+    Line String M
     """
     __slots__ = '_coordinates',
 
-    def __init__(self, coordinates: List[TRIPLE], srs_id: int) -> None:
-        """
-        Initialize the LineStringM class
-        """
-        super().__init__(srs_id=srs_id)
-        self._coordinates: 'ndarray' = as_array(coordinates)
-    # End init built-in
-
-    def __eq__(self, other: 'LineStringM') -> bool:
-        """
-        Equals
-        """
-        if not isinstance(other, LineStringM):  # pragma: nocover
-            return NotImplemented
-        if self.srs_id != other.srs_id:
-            return False
-        return self.points == other.points
-    # End eq built-in
-
-    @property
-    def coordinates(self) -> 'ndarray':
-        """
-        Coordinates
-        """
-        if self._args:
-            self._coordinates = unpack_line(*self._args)
-            self._args = None
-        # noinspection PyTypeChecker
-        return self._coordinates
-    # End coordinates property
-
-    @property
-    def is_empty(self) -> bool:
-        """
-        Is Empty
-        """
-        return not len(self.coordinates)
-    # End is_empty property
-
-    @property
-    def points(self) -> List[PointM]:
-        """
-        Points
-        """
-        srs_id = self.srs_id
-        return [PointM(x=x, y=y, m=m, srs_id=srs_id)
-                for x, y, m in self.coordinates]
-    # End points property
-
-    @property
-    def envelope(self) -> Envelope:
-        """
-        Envelope
-        """
-        if self._env is not EMPTY_ENVELOPE:
-            return self._env
-        env = envelope_from_coordinates_m(self.coordinates)
-        self._env = env
-        return env
-    # End envelope property
-
-    def _to_wkb(self, ary: bytearray) -> bytearray:
-        """
-        To WKB
-        """
-        return pack_coordinates(
-            ary, WKB_LINESTRING_M_PRE, self.coordinates, has_m=True)
-    # End _to_wkb method
-
-    @classmethod
-    def from_gpkg(cls, value: bytes) -> 'LineStringM':
-        """
-        From Geopackage
-        """
-        return lazy_unpack(cls=cls, value=value, dimension=THREE_D)
-    # End from_gpkg method
+    _class: ClassVar[Any] = PointM
+    _dimension: ClassVar[int] = THREE_D
+    _env_code: ClassVar[int] = EnvelopeCode.xym
+    _has_m: ClassVar[bool] = True
+    _wkb_prefix: ClassVar[bytes] = WKB_LINESTRING_M_PRE
 # End LineStringM class
 
 
-class LineStringZM(AbstractGeometry):
+class LineStringZM(BaseLineString):
     """
-    LineStringZM
+    Line String ZM
     """
     __slots__ = '_coordinates',
 
-    def __init__(self, coordinates: List[QUADRUPLE], srs_id: int) -> None:
-        """
-        Initialize the LineStringZM class
-        """
-        super().__init__(srs_id=srs_id)
-        self._coordinates: 'ndarray' = as_array(coordinates)
-    # End init built-in
-
-    def __eq__(self, other: 'LineStringZM') -> bool:
-        """
-        Equals
-        """
-        if not isinstance(other, LineStringZM):  # pragma: nocover
-            return NotImplemented
-        if self.srs_id != other.srs_id:
-            return False
-        return self.points == other.points
-    # End eq built-in
-
-    @property
-    def coordinates(self) -> 'ndarray':
-        """
-        Coordinates
-        """
-        if self._args:
-            self._coordinates = unpack_line(*self._args)
-            self._args = None
-        # noinspection PyTypeChecker
-        return self._coordinates
-    # End coordinates property
-
-    @property
-    def is_empty(self) -> bool:
-        """
-        Is Empty
-        """
-        return not len(self.coordinates)
-    # End is_empty property
-
-    @property
-    def points(self) -> List[PointZM]:
-        """
-        Points
-        """
-        srs_id = self.srs_id
-        return [PointZM(x=x, y=y, z=z, m=m, srs_id=srs_id)
-                for x, y, z, m in self.coordinates]
-    # End points property
-
-    @property
-    def envelope(self) -> Envelope:
-        """
-        Envelope
-        """
-        if self._env is not EMPTY_ENVELOPE:
-            return self._env
-        env = envelope_from_coordinates_zm(self.coordinates)
-        self._env = env
-        return env
-    # End envelope property
-
-    def _to_wkb(self, ary: bytearray) -> bytearray:
-        """
-        To WKB
-        """
-        return pack_coordinates(
-            ary, WKB_LINESTRING_ZM_PRE, self.coordinates,
-            has_z=True, has_m=True)
-    # End _to_wkb method
-
-    @classmethod
-    def from_gpkg(cls, value: bytes) -> 'LineStringZM':
-        """
-        From Geopackage
-        """
-        return lazy_unpack(cls=cls, value=value, dimension=FOUR_D)
-    # End from_gpkg method
+    _class: ClassVar[Any] = PointZM
+    _dimension: ClassVar[int] = FOUR_D
+    _env_code: ClassVar[int] = EnvelopeCode.xyzm
+    _has_m: ClassVar[bool] = True
+    _has_z: ClassVar[bool] = True
+    _wkb_prefix: ClassVar[bytes] = WKB_LINESTRING_ZM_PRE
 # End LineStringZM class
 
 
-class MultiLineString(AbstractGeometry):
+class BaseMultiLineString(AbstractGeometry):
     """
-    Multi LineString
+    Base Multi Line String
     """
     __slots__ = '_lines',
 
-    def __init__(self, coordinates: List[List[DOUBLE]], srs_id: int) -> None:
+    _class: ClassVar[Any] = object
+    _dimension: ClassVar[int] = 0
+    _env_code: ClassVar[int] = EnvelopeCode.empty
+    _wkb_prefix: ClassVar[bytes] = EMPTY
+
+    def __init__(self, coordinates: List[List], srs_id: int) -> None:
         """
         Initialize the MultiLineString class
         """
@@ -380,27 +191,29 @@ class MultiLineString(AbstractGeometry):
         self._lines: List[LineString] = self._make_lines(coordinates)
     # End init built-in
 
-    def __eq__(self, other: 'MultiLineString') -> bool:
+    def __eq__(self, other: Any) -> bool:
         """
         Equals
         """
-        if not isinstance(other, MultiLineString):  # pragma: nocover
+        if not isinstance(other, self.__class__):  # pragma: nocover
             return NotImplemented
         if self.srs_id != other.srs_id:
             return False
         return self.lines == other.lines
     # End eq built-in
 
-    def _make_lines(self, coordinates: List[List[DOUBLE]]) -> List[LineString]:
+    def _make_lines(self, coordinates: List[List]) -> List:
         """
         Make Lines
         """
         srs_id = self.srs_id
-        return [LineString(coords, srs_id=srs_id) for coords in coordinates]
+        cls = self._class
+        # noinspection PyArgumentList
+        return [cls(coords, srs_id=srs_id) for coords in coordinates]
     # End init built-in
 
     @property
-    def lines(self) -> List[LineString]:
+    def lines(self) -> List:
         """
         Lines
         """
@@ -416,7 +229,7 @@ class MultiLineString(AbstractGeometry):
         """
         Is Empty
         """
-        return not (bool(self._args) or bool(self.lines))
+        return self._is_empty or not (bool(self._args) or bool(self.lines))
     # End is_empty property
 
     def _to_wkb(self, ary: bytearray) -> bytearray:
@@ -424,7 +237,7 @@ class MultiLineString(AbstractGeometry):
         To WKB
         """
         geoms = self.lines
-        ary.extend(WKB_MULTI_LINESTRING_PRE + pack(COUNT_CODE, len(geoms)))
+        ary.extend(self._wkb_prefix + pack(COUNT_CODE, len(geoms)))
         return self._join_geometries(ary, geoms)
     # End _to_wkb method
 
@@ -435,271 +248,70 @@ class MultiLineString(AbstractGeometry):
         """
         if self._env is not EMPTY_ENVELOPE:
             return self._env
-        env = envelope_from_geometries(self.lines)
+        env = ENV_GEOM[self._env_code](self.lines)
         self._env = env
         return env
     # End envelope property
 
     @classmethod
-    def from_gpkg(cls, value: bytes) -> 'MultiLineString':
+    def from_gpkg(cls, value: bytes) -> Any:
         """
         From Geopackage
         """
-        return lazy_unpack(cls=cls, value=value, dimension=TWO_D)
+        return lazy_unpack(cls=cls, value=value, dimension=cls._dimension)
     # End from_gpkg method
+# End BaseMultiLineString class
+
+
+class MultiLineString(BaseMultiLineString):
+    """
+    Multi Line String
+    """
+    __slots__ = '_lines',
+
+    _class: ClassVar[Any] = LineString
+    _dimension: ClassVar[int] = TWO_D
+    _env_code: ClassVar[int] = EnvelopeCode.xy
+    _wkb_prefix: ClassVar[bytes] = WKB_MULTI_LINESTRING_PRE
 # End MultiLineString class
 
 
-class MultiLineStringZ(AbstractGeometry):
+class MultiLineStringZ(BaseMultiLineString):
     """
-    Multi LineString Z
+    Multi Line String Z
     """
     __slots__ = '_lines',
 
-    def __init__(self, coordinates: List[List[TRIPLE]], srs_id: int) -> None:
-        """
-        Initialize the MultiLineStringZ class
-        """
-        super().__init__(srs_id=srs_id)
-        self._lines: List[LineStringZ] = self._make_lines(coordinates)
-    # End init built-in
-
-    def __eq__(self, other: 'MultiLineStringZ') -> bool:
-        """
-        Equals
-        """
-        if not isinstance(other, MultiLineStringZ):  # pragma: nocover
-            return NotImplemented
-        if self.srs_id != other.srs_id:
-            return False
-        return self.lines == other.lines
-    # End eq built-in
-
-    def _make_lines(self, coordinates: List[List[TRIPLE]]) -> List[LineStringZ]:
-        """
-        Make Lines
-        """
-        srs_id = self.srs_id
-        return [LineStringZ(coords, srs_id=srs_id) for coords in coordinates]
-    # End init built-in
-
-    @property
-    def lines(self) -> List[LineStringZ]:
-        """
-        Lines
-        """
-        if self._args:
-            # noinspection PyTypeChecker
-            self._lines = self._make_lines(unpack_lines(*self._args))
-            self._args = None
-        return self._lines
-    # End lines property
-
-    @property
-    def is_empty(self) -> bool:
-        """
-        Is Empty
-        """
-        return not (bool(self._args) or bool(self.lines))
-    # End is_empty property
-
-    @property
-    def envelope(self) -> Envelope:
-        """
-        Envelope
-        """
-        if self._env is not EMPTY_ENVELOPE:
-            return self._env
-        env = envelope_from_geometries_z(self.lines)
-        self._env = env
-        return env
-    # End envelope property
-
-    def _to_wkb(self, ary: bytearray) -> bytearray:
-        """
-        To WKB
-        """
-        geoms = self.lines
-        ary.extend(WKB_MULTI_LINESTRING_Z_PRE + pack(COUNT_CODE, len(geoms)))
-        return self._join_geometries(ary, geoms)
-    # End _to_wkb method
-
-    @classmethod
-    def from_gpkg(cls, value: bytes) -> 'MultiLineStringZ':
-        """
-        From Geopackage
-        """
-        return lazy_unpack(cls=cls, value=value, dimension=THREE_D)
-    # End from_gpkg method
+    _class: ClassVar[Any] = LineStringZ
+    _dimension: ClassVar[int] = THREE_D
+    _env_code: ClassVar[int] = EnvelopeCode.xyz
+    _wkb_prefix: ClassVar[bytes] = WKB_MULTI_LINESTRING_Z_PRE
 # End MultiLineStringZ class
 
 
-class MultiLineStringM(AbstractGeometry):
+class MultiLineStringM(BaseMultiLineString):
     """
-    Multi LineString M
+    Multi Line String M
     """
     __slots__ = '_lines',
 
-    def __init__(self, coordinates: List[List[TRIPLE]], srs_id: int) -> None:
-        """
-        Initialize the MultiLineStringM class
-        """
-        super().__init__(srs_id=srs_id)
-        self._lines: List[LineStringM] = self._make_lines(coordinates)
-    # End init built-in
-
-    def __eq__(self, other: 'MultiLineStringM') -> bool:
-        """
-        Equals
-        """
-        if not isinstance(other, MultiLineStringM):  # pragma: nocover
-            return NotImplemented
-        if self.srs_id != other.srs_id:
-            return False
-        return self.lines == other.lines
-    # End eq built-in
-
-    def _make_lines(self, coordinates: List[List[TRIPLE]]) -> List[LineStringM]:
-        """
-        Make Lines
-        """
-        srs_id = self.srs_id
-        return [LineStringM(coords, srs_id=srs_id) for coords in coordinates]
-    # End init built-in
-
-    @property
-    def lines(self) -> List[LineStringM]:
-        """
-        Lines
-        """
-        if self._args:
-            # noinspection PyTypeChecker
-            self._lines = self._make_lines(unpack_lines(*self._args))
-            self._args = None
-        return self._lines
-    # End lines property
-
-    @property
-    def is_empty(self) -> bool:
-        """
-        Is Empty
-        """
-        return not (bool(self._args) or bool(self.lines))
-    # End is_empty property
-
-    @property
-    def envelope(self) -> Envelope:
-        """
-        Envelope
-        """
-        if self._env is not EMPTY_ENVELOPE:
-            return self._env
-        env = envelope_from_geometries_m(self.lines)
-        self._env = env
-        return env
-    # End envelope property
-
-    def _to_wkb(self, ary: bytearray) -> bytearray:
-        """
-        To WKB
-        """
-        geoms = self.lines
-        ary.extend(WKB_MULTI_LINESTRING_M_PRE + pack(COUNT_CODE, len(geoms)))
-        return self._join_geometries(ary, geoms)
-    # End _to_wkb method
-
-    @classmethod
-    def from_gpkg(cls, value: bytes) -> 'MultiLineStringM':
-        """
-        From Geopackage
-        """
-        return lazy_unpack(cls=cls, value=value, dimension=THREE_D)
-    # End from_gpkg method
+    _class: ClassVar[Any] = LineStringM
+    _dimension: ClassVar[int] = THREE_D
+    _env_code: ClassVar[int] = EnvelopeCode.xym
+    _wkb_prefix: ClassVar[bytes] = WKB_MULTI_LINESTRING_M_PRE
 # End MultiLineStringM class
 
 
-class MultiLineStringZM(AbstractGeometry):
+class MultiLineStringZM(BaseMultiLineString):
     """
-    Multi LineString ZM
+    Multi Line String ZM
     """
     __slots__ = '_lines',
 
-    def __init__(self, coordinates: List[List[QUADRUPLE]], srs_id: int) -> None:
-        """
-        Initialize the MultiLineStringZM class
-        """
-        super().__init__(srs_id=srs_id)
-        self._lines: List[LineStringZM] = self._make_lines(coordinates)
-    # End init built-in
-
-    def __eq__(self, other: 'MultiLineStringZM') -> bool:
-        """
-        Equals
-        """
-        if not isinstance(other, MultiLineStringZM):  # pragma: nocover
-            return NotImplemented
-        if self.srs_id != other.srs_id:
-            return False
-        return self.lines == other.lines
-    # End eq built-in
-
-    def _make_lines(self, coordinates: List[List[QUADRUPLE]]) \
-            -> List[LineStringZM]:
-        """
-        Make Lines
-        """
-        srs_id = self.srs_id
-        return [LineStringZM(coords, srs_id=srs_id) for coords in coordinates]
-    # End init built-in
-
-    @property
-    def lines(self) -> List[LineStringZM]:
-        """
-        Lines
-        """
-        if self._args:
-            # noinspection PyTypeChecker
-            self._lines = self._make_lines(unpack_lines(*self._args))
-            self._args = None
-        return self._lines
-    # End lines property
-
-    @property
-    def is_empty(self) -> bool:
-        """
-        Is Empty
-        """
-        return not (bool(self._args) or bool(self.lines))
-    # End is_empty property
-
-    @property
-    def envelope(self) -> Envelope:
-        """
-        Envelope
-        """
-        if self._env is not EMPTY_ENVELOPE:
-            return self._env
-        env = envelope_from_geometries_zm(self.lines)
-        self._env = env
-        return env
-    # End envelope property
-
-    def _to_wkb(self, ary: bytearray) -> bytearray:
-        """
-        To WKB
-        """
-        geoms = self.lines
-        ary.extend(WKB_MULTI_LINESTRING_ZM_PRE + pack(COUNT_CODE, len(geoms)))
-        return self._join_geometries(ary, geoms)
-    # End _to_wkb method
-
-    @classmethod
-    def from_gpkg(cls, value: bytes) -> 'MultiLineStringZM':
-        """
-        From Geopackage
-        """
-        return lazy_unpack(cls=cls, value=value, dimension=FOUR_D)
-    # End from_gpkg method
+    _class: ClassVar[Any] = LineStringZM
+    _dimension: ClassVar[int] = FOUR_D
+    _env_code: ClassVar[int] = EnvelopeCode.xyzm
+    _wkb_prefix: ClassVar[bytes] = WKB_MULTI_LINESTRING_ZM_PRE
 # End MultiLineStringZM class
 
 

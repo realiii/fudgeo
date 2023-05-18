@@ -8,13 +8,14 @@ from functools import lru_cache
 from math import nan
 # noinspection PyPep8Naming
 from struct import error as StructError, pack, unpack
-from typing import Any, List, TYPE_CHECKING, Tuple, Union
+from typing import Any, Callable, Dict, List, TYPE_CHECKING, Tuple, Union
 
 from numpy import array, frombuffer, ndarray
 from bottleneck import nanmax, nanmin
 
 from fudgeo.constant import (
-    COUNT_CODE, EMPTY, ENVELOPE_COUNT, ENVELOPE_OFFSET, GP_MAGIC, HEADER_CODE,
+    COUNT_CODE, EMPTY, ENVELOPE_COUNT, ENVELOPE_OFFSET, EnvelopeCode, GP_MAGIC,
+    HEADER_CODE,
     HEADER_OFFSET, POINT_PREFIX)
 
 
@@ -95,13 +96,13 @@ class Envelope:
         same_x = self.min_x == other.min_x and self.max_x == other.max_x
         same_y = self.min_y == other.min_y and self.max_y == other.max_y
         same_xy = same_x and same_y
-        if not same_xy or code == 1:
+        if not same_xy or code == EnvelopeCode.xy:
             return same_xy
         same_z = self.min_z == other.min_z and self.max_z == other.max_z
-        if code == 2:
+        if code == EnvelopeCode.xyz:
             return same_z
         same_m = self.min_m == other.min_m and self.max_m == other.max_m
-        if code == 3:
+        if code == EnvelopeCode.xym:
             return same_m
         return same_m and same_z
     # End eq built-in
@@ -111,16 +112,17 @@ class Envelope:
         To WKB
         """
         code = self.code
-        if code not in {1, 2, 3, 4}:
-            return 0, EMPTY
+        if code not in {EnvelopeCode.xy, EnvelopeCode.xyz,
+                        EnvelopeCode.xym, EnvelopeCode.xyzm}:
+            return EnvelopeCode.empty, EMPTY
         values = self.min_x, self.max_x, self.min_y, self.max_y
-        if code == 1:
+        if code == EnvelopeCode.xy:
             pass
-        elif code == 2:
+        elif code == EnvelopeCode.xyz:
             values = *values, self.min_z, self.max_z
-        elif code == 3:
+        elif code == EnvelopeCode.xym:
             values = *values, self.min_m, self.max_m
-        elif code == 4:
+        elif code == EnvelopeCode.xyzm:
             values = *values, self.min_z, self.max_z, self.min_m, self.max_m
         return code, pack(f'<{ENVELOPE_COUNT[code]}d', *values)
     # End to_wkb method
@@ -207,8 +209,10 @@ def lazy_unpack(cls: Any, value: Union[bytes, bytearray],
     """
     Unpack just the header and envelope, adding data to class for later use.
     """
-    srs_id, env_code, offset, is_empty = unpack_header(bytes(value[:HEADER_OFFSET]))
+    (srs_id, env_code, offset,
+     is_empty) = unpack_header(bytes(value[:HEADER_OFFSET]))
     obj = cls([], srs_id=srs_id)
+    obj._is_empty = is_empty
     if is_empty:
         return obj
     view = memoryview(value)
@@ -255,7 +259,7 @@ def pack_coordinates(ary: bytearray, prefix: bytes, coordinates: ndarray,
     count = len(coordinates)
     ary.extend(prefix + pack(COUNT_CODE, count))
     data = coordinates.tobytes()
-    if not use_point_prefix:
+    if not use_point_prefix or not count:
         ary.extend(data)
         return ary
     length = len(data)
@@ -362,13 +366,13 @@ def unpack_envelope(code: int, view: memoryview) -> Envelope:
     except StructError:  # pragma: no cover
         return EMPTY_ENVELOPE
     min_x = max_x = min_y = max_y = min_z = max_z = min_m = max_m = nan
-    if code == 1:
+    if code == EnvelopeCode.xy:
         min_x, max_x, min_y, max_y = values
-    elif code == 2:
+    elif code == EnvelopeCode.xyz:
         min_x, max_x, min_y, max_y, min_z, max_z = values
-    elif code == 3:
+    elif code == EnvelopeCode.xym:
         min_x, max_x, min_y, max_y, min_m, max_m = values
-    elif code == 4:
+    elif code == EnvelopeCode.xyzm:
         min_x, max_x, min_y, max_y, min_z, max_z, min_m, max_m = values
     return Envelope(
         code=code, min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y,
@@ -496,7 +500,8 @@ def _envelope_xy(xs: ndarray, ys: ndarray) -> Envelope:
     """
     min_x, max_x = nanmin(xs), nanmax(xs)
     min_y, max_y = nanmin(ys), nanmax(ys)
-    return Envelope(code=1, min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y)
+    return Envelope(code=EnvelopeCode.xy,
+                    min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y)
 # End _envelope_xy function
 
 
@@ -507,8 +512,8 @@ def _envelope_xyz(xs: ndarray, ys: ndarray, zs: ndarray) -> Envelope:
     min_x, max_x = nanmin(xs), nanmax(xs)
     min_y, max_y = nanmin(ys), nanmax(ys)
     min_z, max_z = nanmin(zs), nanmax(zs)
-    return Envelope(code=2, min_x=min_x, max_x=max_x,
-                    min_y=min_y, max_y=max_y,
+    return Envelope(code=EnvelopeCode.xyz,
+                    min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y,
                     min_z=min_z, max_z=max_z)
 # End _envelope_xyz function
 
@@ -520,8 +525,8 @@ def _envelope_xym(xs: ndarray, ys: ndarray, ms: ndarray) -> Envelope:
     min_x, max_x = nanmin(xs), nanmax(xs)
     min_y, max_y = nanmin(ys), nanmax(ys)
     min_m, max_m = nanmin(ms), nanmax(ms)
-    return Envelope(code=3, min_x=min_x, max_x=max_x,
-                    min_y=min_y, max_y=max_y,
+    return Envelope(code=EnvelopeCode.xym,
+                    min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y,
                     min_m=min_m, max_m=max_m)
 # End _envelope_xym function
 
@@ -535,10 +540,28 @@ def _envelope_xyzm(xs: ndarray, ys: ndarray,
     min_y, max_y = nanmin(ys), nanmax(ys)
     min_z, max_z = nanmin(zs), nanmax(zs)
     min_m, max_m = nanmin(ms), nanmax(ms)
-    return Envelope(
-        code=4, min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y,
-        min_z=min_z, max_z=max_z, min_m=min_m, max_m=max_m)
+    return Envelope(code=EnvelopeCode.xyzm,
+                    min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y,
+                    min_z=min_z, max_z=max_z, min_m=min_m, max_m=max_m)
 # End _envelope_xyzm function
+
+
+ENV_GEOM: Dict[int, Callable] = {
+    EnvelopeCode.empty: lambda _: EMPTY_ENVELOPE,
+    EnvelopeCode.xy: envelope_from_geometries,
+    EnvelopeCode.xyz: envelope_from_geometries_z,
+    EnvelopeCode.xym: envelope_from_geometries_m,
+    EnvelopeCode.xyzm: envelope_from_geometries_zm,
+}
+
+
+ENV_COORD: Dict[int, Callable] = {
+    EnvelopeCode.empty: lambda _: EMPTY_ENVELOPE,
+    EnvelopeCode.xy: envelope_from_coordinates,
+    EnvelopeCode.xyz: envelope_from_coordinates_z,
+    EnvelopeCode.xym: envelope_from_coordinates_m,
+    EnvelopeCode.xyzm: envelope_from_coordinates_zm,
+}
 
 
 if __name__ == '__main__':  # pragma: no cover
