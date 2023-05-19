@@ -472,7 +472,9 @@ class BaseMultiPoint(AbstractGeometry):
         """
         Is Empty
         """
-        return self._is_empty or not len(self.coordinates)
+        if self._is_empty is not None:
+            return self._is_empty
+        return not len(self.coordinates)
     # End is_empty property
 
     @property

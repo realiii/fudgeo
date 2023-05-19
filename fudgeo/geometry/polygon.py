@@ -200,7 +200,9 @@ class BasePolygon(AbstractGeometry):
         """
         Is Empty
         """
-        return self._is_empty or not (bool(self._args) or bool(self.rings))
+        if self._is_empty is not None:
+            return self._is_empty
+        return not (bool(self._args) or bool(self.rings))
     # End is_empty property
 
     @property
@@ -343,7 +345,9 @@ class BaseMultiPolygon(AbstractGeometry):
         """
         Is Empty
         """
-        return self._is_empty or not (bool(self._args) or bool(self.polygons))
+        if self._is_empty is not None:
+            return self._is_empty
+        return not (bool(self._args) or bool(self.polygons))
     # End is_empty property
 
     @property

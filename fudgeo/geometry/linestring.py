@@ -72,7 +72,9 @@ class BaseLineString(AbstractGeometry):
         """
         Is Empty
         """
-        return self._is_empty or not len(self.coordinates)
+        if self._is_empty is not None:
+            return self._is_empty
+        return not len(self.coordinates)
     # End is_empty property
 
     @property
@@ -229,7 +231,9 @@ class BaseMultiLineString(AbstractGeometry):
         """
         Is Empty
         """
-        return self._is_empty or not (bool(self._args) or bool(self.lines))
+        if self._is_empty is not None:
+            return self._is_empty
+        return not (bool(self._args) or bool(self.lines))
     # End is_empty property
 
     def _to_wkb(self, ary: bytearray) -> bytearray:
