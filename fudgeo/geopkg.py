@@ -22,6 +22,7 @@ from fudgeo.geometry import (
     MultiLineString, MultiLineStringZ, MultiLineStringM, MultiLineStringZM,
     Polygon, PolygonZ, PolygonM, PolygonZM, MultiPolygon, MultiPolygonZ,
     MultiPolygonM, MultiPolygonZM)
+from fudgeo.geometry.base import AbstractGeometry
 from fudgeo.sql import (
     CHECK_SRS_EXISTS, CREATE_FEATURE_TABLE, CREATE_OGR_CONTENTS, CREATE_TABLE,
     DEFAULT_EPSG_RECS, DEFAULT_ESRI_RECS, DELETE_OGR_CONTENTS,
@@ -37,9 +38,9 @@ FIELDS = Union[Tuple['Field', ...], List['Field']]
 NAME_MATCHER: Callable = recompile(r'^[A-Z]\w*$', IGNORECASE).match
 
 
-COMMA_SPACE = ', '
-GPKG_EXT = '.gpkg'
-SHAPE = 'SHAPE'
+COMMA_SPACE: str = ', '
+GPKG_EXT: str = '.gpkg'
+SHAPE: str = 'SHAPE'
 
 
 def _escape_name(name: str) -> str:
@@ -60,7 +61,7 @@ def _now() -> str:
 # End _now method
 
 
-def _adapt_geometry(val) -> bytes:
+def _adapt_geometry(val: AbstractGeometry) -> bytes:
     """
     Adapt Geometry to Geopackage
     """
@@ -111,7 +112,7 @@ def _convert_datetime(val: bytes) -> datetime:
 # End _convert_datetime function
 
 
-def _register_geometry():
+def _register_geometry() -> None:
     """
     Register adapters and converters for geometry / geopackage
     """
