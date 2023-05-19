@@ -293,6 +293,17 @@ class BaseTable:
         self.name: str = name
     # End init built-in
 
+    @staticmethod
+    def _drop(conn: Connection, sql: str, name: str, escaped_name: str,
+              has_ogr_contents: bool) -> None:
+        """
+        Drop Table from Geopackage
+        """
+        conn.executescript(sql.format(name, escaped_name))
+        if has_ogr_contents:
+            conn.execute(DELETE_OGR_CONTENTS.format(name))
+    # End _drop method
+
     @property
     def escaped_name(self) -> str:
         """
@@ -360,9 +371,9 @@ class Table(BaseTable):
             escaped_name = _escape_name(name)
             has_ogr_contents = _has_ogr_contents(conn)
             if overwrite:
-                conn.executescript(REMOVE_TABLE.format(name, escaped_name))
-                if has_ogr_contents:
-                    conn.execute(DELETE_OGR_CONTENTS.format(name))
+                cls._drop(conn=conn, sql=REMOVE_TABLE,
+                          name=name, escaped_name=escaped_name,
+                          has_ogr_contents=has_ogr_contents)
             conn.execute(CREATE_TABLE.format(
                 name=escaped_name, other_fields=cols))
             conn.execute(INSERT_GPKG_CONTENTS_SHORT, (
@@ -377,10 +388,9 @@ class Table(BaseTable):
         Drop table from Geopackage
         """
         with self.geopackage.connection as conn:
-            conn.executescript(
-                REMOVE_TABLE.format(self.name, self.escaped_name))
-            if _has_ogr_contents(conn):
-                conn.execute(DELETE_OGR_CONTENTS.format(self.name))
+            self._drop(conn=conn, sql=REMOVE_TABLE,
+                       name=self.name, escaped_name=self.escaped_name,
+                       has_ogr_contents=_has_ogr_contents(conn))
     # End drop method
 # End Table class
 
@@ -411,10 +421,9 @@ class FeatureClass(BaseTable):
             escaped_name = _escape_name(name)
             has_ogr_contents = _has_ogr_contents(conn)
             if overwrite:
-                conn.executescript(
-                    REMOVE_FEATURE_CLASS.format(name, escaped_name))
-                if has_ogr_contents:
-                    conn.execute(DELETE_OGR_CONTENTS.format(name))
+                cls._drop(conn=conn, sql=REMOVE_FEATURE_CLASS,
+                          name=name, escaped_name=escaped_name,
+                          has_ogr_contents=has_ogr_contents)
             conn.execute(CREATE_FEATURE_TABLE.format(
                 name=escaped_name, feature_type=shape_type, other_fields=cols))
             if not geopackage.check_srs_exists(srs.srs_id):
@@ -434,10 +443,9 @@ class FeatureClass(BaseTable):
         Drop feature class from Geopackage
         """
         with self.geopackage.connection as conn:
-            conn.executescript(
-                REMOVE_FEATURE_CLASS.format(self.name, self.escaped_name))
-            if _has_ogr_contents(conn):
-                conn.execute(DELETE_OGR_CONTENTS.format(self.name))
+            self._drop(conn=conn, sql=REMOVE_FEATURE_CLASS,
+                       name=self.name, escaped_name=self.escaped_name,
+                       has_ogr_contents=_has_ogr_contents(conn))
     # End drop method
 
     @staticmethod
