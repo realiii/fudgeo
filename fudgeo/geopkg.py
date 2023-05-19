@@ -12,7 +12,8 @@ from re import IGNORECASE, compile as recompile
 from sqlite3 import (
     Connection, Cursor, DatabaseError, OperationalError, PARSE_COLNAMES,
     PARSE_DECLTYPES, connect, register_adapter, register_converter)
-from typing import Callable, Dict, List, Optional, Tuple, Type, Union
+from typing import (
+    Callable, Dict, List, Optional, TYPE_CHECKING, Tuple, Type, Union)
 
 from fudgeo.enumeration import (
     DataType, GPKGFlavors, GeometryType, SQLFieldType)
@@ -22,7 +23,6 @@ from fudgeo.geometry import (
     MultiLineString, MultiLineStringZ, MultiLineStringM, MultiLineStringZM,
     Polygon, PolygonZ, PolygonM, PolygonZM, MultiPolygon, MultiPolygonZ,
     MultiPolygonM, MultiPolygonZM)
-from fudgeo.geometry.base import AbstractGeometry
 from fudgeo.sql import (
     CHECK_SRS_EXISTS, CREATE_FEATURE_TABLE, CREATE_OGR_CONTENTS, CREATE_TABLE,
     DEFAULT_EPSG_RECS, DEFAULT_ESRI_RECS, DELETE_OGR_CONTENTS,
@@ -32,6 +32,10 @@ from fudgeo.sql import (
     REMOVE_TABLE, SELECT_EXTENT, SELECT_GEOMETRY_COLUMN, SELECT_GEOMETRY_TYPE,
     SELECT_HAS_ZM, SELECT_SRS, SELECT_TABLES_BY_TYPE, TABLE_EXISTS,
     UPDATE_EXTENT)
+
+
+if TYPE_CHECKING:
+    from fudgeo.geometry.base import AbstractGeometry
 
 
 FIELDS = Union[Tuple['Field', ...], List['Field']]
@@ -61,7 +65,7 @@ def _now() -> str:
 # End _now method
 
 
-def _adapt_geometry(val: AbstractGeometry) -> bytes:
+def _adapt_geometry(val: 'AbstractGeometry') -> bytes:
     """
     Adapt Geometry to Geopackage
     """
