@@ -173,7 +173,7 @@ class GeoPackage:
     @classmethod
     def create(cls, path: Union[PathLike, str],
                flavor: str = GPKGFlavors.esri,
-               ogr_contents: bool = True) -> 'GeoPackage':
+               ogr_contents: bool = False) -> 'GeoPackage':
         """
         Create a new GeoPackage
         """

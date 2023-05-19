@@ -80,12 +80,15 @@ def test_create_geopackage(tmp_path):
 # End test_create_geopackage function
 
 
-def test_create_table(tmp_path, fields):
+@mark.parametrize('ogr_contents, trigger_count', [
+    (True, 4), (False, 0)
+])
+def test_create_table(tmp_path, fields, ogr_contents, trigger_count):
     """
     Create Table
     """
     path = tmp_path / 'tbl'
-    geo = GeoPackage.create(path)
+    geo = GeoPackage.create(path, ogr_contents=ogr_contents)
     name = 'SELECT'
     table = geo.create_table(name, fields)
     field_names = ', '.join(f.escaped_name for f in fields)
@@ -129,7 +132,7 @@ def test_create_table(tmp_path, fields):
     cursor = conn.execute(
         """SELECT count(type) AS C FROM sqlite_master WHERE type = 'trigger'""")
     count, = cursor.fetchone()
-    assert count == 4
+    assert count == trigger_count
     conn.close()
     if path.exists():
         path.unlink()
@@ -171,12 +174,15 @@ def test_create_table_drop_table(tmp_path, fields, ogr_contents, has_table, trig
 # End test_create_table_drop_table function
 
 
-def test_create_feature_class(tmp_path, fields):
+@mark.parametrize('ogr_contents, trigger_count', [
+    (True, 4), (False, 0)
+])
+def test_create_feature_class(tmp_path, fields, ogr_contents, trigger_count):
     """
     Create Feature Class
     """
     path = tmp_path / 'fc'
-    geo = GeoPackage.create(path)
+    geo = GeoPackage.create(path, ogr_contents=ogr_contents)
     name = 'SELECT'
     srs = SpatialReferenceSystem(
         'WGS_1984_UTM_Zone_23N', 'EPSG', 32623, WGS_1984_UTM_Zone_23N)
@@ -194,7 +200,7 @@ def test_create_feature_class(tmp_path, fields):
     cursor = geo.connection.execute(
         """SELECT count(type) AS C FROM sqlite_master WHERE type = 'trigger'""")
     count, = cursor.fetchone()
-    assert count == 4
+    assert count == trigger_count
     geo.connection.close()
     if path.exists():
         path.unlink()
