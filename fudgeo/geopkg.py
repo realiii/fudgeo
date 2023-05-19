@@ -302,6 +302,22 @@ class BaseTable:
     # End escaped_name property
 
     @property
+    def primary_key_field(self) -> Optional['Field']:
+        """
+        Primary Key Field
+        """
+        cursor = self.geopackage.connection.execute(f"""
+            SELECT name, type
+            FROM pragma_table_info({self.escaped_name})
+            WHERE upper(type) = '{SQLFieldType.integer}' AND 
+                  "notnull" = 1 AND pk = 1""")
+        result = cursor.fetchone()
+        if not result:
+            return
+        return Field(*result)
+    # End primary_key_field property
+
+    @property
     def fields(self) -> List['Field']:
         """
         Fields

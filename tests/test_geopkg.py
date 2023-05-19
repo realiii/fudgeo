@@ -93,6 +93,7 @@ def test_create_table(tmp_path, fields, ogr_contents, trigger_count):
     table = geo.create_table(name, fields)
     field_names = ', '.join(f.escaped_name for f in fields)
     assert isinstance(table, Table)
+    assert table.primary_key_field.name == 'fid'
     with raises(ValueError):
         geo.create_table(name, fields)
     conn = geo.connection
@@ -187,6 +188,7 @@ def test_create_feature_class(tmp_path, fields, ogr_contents, trigger_count):
     srs = SpatialReferenceSystem(
         'WGS_1984_UTM_Zone_23N', 'EPSG', 32623, WGS_1984_UTM_Zone_23N)
     fc = geo.create_feature_class(name, srs=srs, fields=fields)
+    assert fc.primary_key_field.name == 'fid'
     assert isinstance(fc, FeatureClass)
     with raises(ValueError):
         geo.create_feature_class(name, srs=srs, fields=fields)
