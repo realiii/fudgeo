@@ -1,7 +1,7 @@
 # fudgeo
 
 `fudgeo` removes the *fear uncertainty doubt* from using GeoPackages with 
-Python. `fudgeo` is a simple package for creating OGC GeoPackages, Feature 
+Python. `fudgeo` is a lightweight package for creating OGC GeoPackages, Feature 
 Classes, Tables, and geometries (read and write).
 
 For details on OGC GeoPackages, please see the [OGC web page](http://www.geopackage.org/).
