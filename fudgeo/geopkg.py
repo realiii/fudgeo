@@ -77,7 +77,7 @@ def _convert_datetime(val: bytes) -> datetime:
     """
     colon = b':'
     dash = b'-'
-    # To split timestamps like that b'2022-09-06T13:50:33'
+    # NOTE To split timestamps like that b'2022-09-06T13:50:33'
     for separator in (b' ', b'T'):
         try:
             dt, tm = val.split(separator)
