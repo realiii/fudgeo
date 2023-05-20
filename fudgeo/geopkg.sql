@@ -11,6 +11,7 @@ CREATE TABLE gpkg_spatial_ref_sys (
     description              TEXT
 );
 
+
 CREATE TABLE gpkg_contents (
     table_name  TEXT     NOT NULL PRIMARY KEY,
     data_type   TEXT     NOT NULL,
@@ -56,6 +57,7 @@ CREATE TABLE gpkg_tile_matrix_set (
         REFERENCES gpkg_spatial_ref_sys(srs_id)
 );
 
+
 CREATE TABLE gpkg_tile_matrix (
     table_name    TEXT    NOT NULL,
     zoom_level    INTEGER NOT NULL,
@@ -69,6 +71,7 @@ CREATE TABLE gpkg_tile_matrix (
     CONSTRAINT fk_tmm_table_name FOREIGN KEY (table_name)
         REFERENCES gpkg_contents(table_name)
 );
+
 
 CREATE TABLE gpkg_extensions (
     table_name     TEXT,
