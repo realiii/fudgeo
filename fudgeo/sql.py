@@ -165,7 +165,7 @@ SELECT_GEOMETRY_COLUMN: str = """
 
 
 SELECT_GEOMETRY_TYPE: str = """
-    SELECT GEOM || Z || M
+    SELECT GEOM || Z || M AS GT
     FROM (SELECT CASE
                      WHEN geometry_type_name == 'POINT'
                          THEN 'Point'
