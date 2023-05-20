@@ -29,6 +29,9 @@ INSERT_ROWS = """
 """
 
 
+SELECT_ST_FUNCS = """SELECT ST_IsEmpty({0}), ST_MinX({0}), ST_MaxX({0}), ST_MinY({0}), ST_MaxY({0}) FROM {1}"""
+
+
 # noinspection SqlNoDataSourceInspection
 INSERT_SHAPE = """INSERT INTO {} (SHAPE) VALUES (?)"""
 # noinspection SqlNoDataSourceInspection
@@ -379,6 +382,9 @@ def test_insert_poly(setup_geopackage, rings):
     _, poly = result[0]
     assert isinstance(poly, Polygon)
     assert poly == geom
+    cursor = gpkg.connection.execute(
+        SELECT_ST_FUNCS.format(fc.geometry_column_name, fc.escaped_name))
+    assert cursor.fetchall() == [(0, 300000, 700000, 1, 4000000)]
 # End test_insert_poly function
 
 
@@ -399,6 +405,9 @@ def test_insert_multi_poly(setup_geopackage):
     _, poly = result[0]
     assert isinstance(poly, MultiPolygon)
     assert poly == geom
+    cursor = gpkg.connection.execute(
+        SELECT_ST_FUNCS.format(fc.geometry_column_name, fc.escaped_name))
+    assert cursor.fetchall() == [(0, 100000, 700000, 1, 4000000)]
 # End test_insert_multi_poly function
 
 
@@ -416,6 +425,9 @@ def test_insert_lines(setup_geopackage):
     _, line = result[0]
     assert isinstance(line, LineString)
     assert line == geom
+    cursor = gpkg.connection.execute(
+        SELECT_ST_FUNCS.format(fc.geometry_column_name, fc.escaped_name))
+    assert cursor.fetchall() == [(0, 300000, 700000, 1, 4000000)]
 # End test_insert_lines function
 
 
@@ -433,6 +445,9 @@ def test_insert_multi_point(setup_geopackage):
     _, line = result[0]
     assert isinstance(line, MultiPoint)
     assert line == geom
+    cursor = gpkg.connection.execute(
+        SELECT_ST_FUNCS.format(fc.geometry_column_name, fc.escaped_name))
+    assert cursor.fetchall() == [(0, 300000, 700000, 1, 4000000)]
 # End test_insert_multi_point function
 
 
@@ -452,6 +467,9 @@ def test_insert_lines_z(setup_geopackage):
     _, line = result[0]
     assert isinstance(line, LineStringZ)
     assert line == geom
+    cursor = gpkg.connection.execute(
+        SELECT_ST_FUNCS.format(fc.geometry_column_name, fc.escaped_name))
+    assert cursor.fetchall() == [(0, 300000, 700000, 1, 4000000)]
 # End test_insert_lines_z function
 
 
@@ -471,6 +489,9 @@ def test_insert_lines_m(setup_geopackage):
     _, line = result[0]
     assert isinstance(line, LineStringM)
     assert line == geom
+    cursor = gpkg.connection.execute(
+        SELECT_ST_FUNCS.format(fc.geometry_column_name, fc.escaped_name))
+    assert cursor.fetchall() == [(0, 300000, 700000, 1, 4000000)]
 # End test_insert_lines_m function
 
 
@@ -490,6 +511,9 @@ def test_insert_lines_zm(setup_geopackage):
     _, line = result[0]
     assert isinstance(line, LineStringZM)
     assert line == geom
+    cursor = gpkg.connection.execute(
+        SELECT_ST_FUNCS.format(fc.geometry_column_name, fc.escaped_name))
+    assert cursor.fetchall() == [(0, 300000, 700000, 1, 4000000)]
 # End test_insert_lines_zm function
 
 
@@ -511,6 +535,9 @@ def test_insert_multi_lines(setup_geopackage):
     _, line = result[0]
     assert isinstance(line, MultiLineString)
     assert line == geom
+    cursor = gpkg.connection.execute(
+        SELECT_ST_FUNCS.format(fc.geometry_column_name, fc.escaped_name))
+    assert cursor.fetchall() == [(0, 300000, 700000, 1, 4000000)]
 # End test_insert_multi_lines function
 
 
@@ -529,6 +556,9 @@ def test_insert_polygon_m(setup_geopackage):
     _, poly = result[0]
     assert isinstance(poly, PolygonM)
     assert poly == geom
+    cursor = gpkg.connection.execute(
+        SELECT_ST_FUNCS.format(fc.geometry_column_name, fc.escaped_name))
+    assert cursor.fetchall() == [(0, 0, 15, 0, 15)]
 # End test_insert_polygon_m function
 
 
@@ -611,6 +641,9 @@ def test_escaped_columns(setup_geopackage):
     assert len(records) == 2
     assert records[0] == (1, 'asdf', 'lmnop', ';;::;;;')
     assert records[1] == (2, 'qwerty', 'xyz', '!!!!!')
+    cursor = gpkg.connection.execute(
+        SELECT_ST_FUNCS.format(fc.geometry_column_name, fc.escaped_name))
+    assert cursor.fetchall() == [(0, 1.0, 1.0, 2.0, 2.0), (0, 3.0, 3.0, 4.0, 4.0)]
 # End test_escaped_columns function
 
 
@@ -644,6 +677,9 @@ def test_escaped_table(setup_geopackage):
     assert len(records) == 2
     assert records[0] == (1, 'asdf', 'lmnop')
     assert records[1] == (2, 'qwerty', 'xyz')
+    cursor = gpkg.connection.execute(
+        SELECT_ST_FUNCS.format(fc.geometry_column_name, fc.escaped_name))
+    assert cursor.fetchall() == [(0, 1, 1, 2, 2), (0, 3, 3, 4, 4)]
 # End test_escaped_table function
 
 
