@@ -25,6 +25,7 @@ dependencies = ["numpy", "Bottleneck"]
 requires-python = ">=3.7"
 
 [tool.setuptools]
+packages = ["fudgeo"]
 include-package-data = true
 
 [project.optional-dependencies]
