@@ -1,5 +1,5 @@
-PRAGMA application_id=0x47504b47;
-PRAGMA user_version=10300;
+PRAGMA application_id=0x47504B47;
+PRAGMA user_version=10301;
 
 
 CREATE TABLE gpkg_spatial_ref_sys (
