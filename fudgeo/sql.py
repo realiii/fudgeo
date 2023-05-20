@@ -235,5 +235,101 @@ DEFAULT_ESRI_RECS: Tuple[Tuple[str, int, str, int, str, str], ...] = (
         DEFAULT_SRS_RECS + (('GCS_WGS_1984', 4326, 'EPSG', 4326, ESRI_4326, ''),))
 
 
+# NOTE 0 - table name, 1 - geom column name, 2 - primary key column name
+SPATIAL_INDEX_CREATE_TABLE: str = """
+    CREATE VIRTUAL TABLE rtree_{0}_{1} 
+    USING rtree(id, minx, maxx, miny, maxy)
+"""
+
+
+# NOTE 0 - table name, 1 - geom column name, 2 - primary key column name
+SPATIAL_INDEX_INSERT: str = """
+    INSERT OR REPLACE INTO rtree_{0}_{1}
+        SELECT {2}, ST_MinX({1}), ST_MaxX({1}), ST_MinY({1}), ST_MaxY({1}) 
+        FROM {0} WHERE {1} NOT NULL AND NOT ST_IsEmpty({1});
+"""
+
+
+# NOTE 0 - table name, 1 - geom column name, 2 - primary key column name
+SPATIAL_INDEX_TRIGGERS: str = """
+    /* Conditions: Insertion of non-empty geometry
+       Actions   : Insert record into rtree */
+    CREATE TRIGGER rtree_{0}_{1}_insert AFTER INSERT ON {0}
+      WHEN (NEW.{1} NOT NULL AND NOT ST_IsEmpty(NEW.{1}))
+    BEGIN
+      INSERT OR REPLACE INTO rtree_{0}_{1} VALUES (
+        NEW.{2},
+        ST_MinX(NEW.{1}), ST_MaxX(NEW.{1}),
+        ST_MinY(NEW.{1}), ST_MaxY(NEW.{1})
+      );
+    END;
+    
+    /* Conditions: Update of geometry column to non-empty geometry
+                   No row ID change
+       Actions   : Update record in rtree */
+    CREATE TRIGGER rtree_{0}_{1}_update1 AFTER UPDATE OF {1} ON {0}
+      WHEN OLD.{2} = NEW.{2} AND
+           (NEW.{1} NOTNULL AND NOT ST_IsEmpty(NEW.{1}))
+    BEGIN
+      INSERT OR REPLACE INTO rtree_{0}_{1} VALUES (
+        NEW.{2},
+        ST_MinX(NEW.{1}), ST_MaxX(NEW.{1}),
+        ST_MinY(NEW.{1}), ST_MaxY(NEW.{1})
+      );
+    END;
+    
+    /* Conditions: Update of geometry column to empty geometry
+                   No row ID change
+       Actions   : Remove record from rtree */
+    CREATE TRIGGER rtree_{0}_{1}_update2 AFTER UPDATE OF {1} ON {0}
+      WHEN OLD.{2} = NEW.{2} AND
+           (NEW.{1} ISNULL OR ST_IsEmpty(NEW.{1}))
+    BEGIN
+      DELETE FROM rtree_{0}_{1} WHERE id = OLD.{2};
+    END;
+    
+    /* Conditions: Update of any column
+                   Row ID change
+                   Non-empty geometry
+       Actions   : Remove record from rtree for old identifier
+                   Insert record into rtree for new identifier */
+    CREATE TRIGGER rtree_{0}_{1}_update3 AFTER UPDATE ON {0}
+      WHEN OLD.{2} != NEW.{2} AND
+           (NEW.{1} NOTNULL AND NOT ST_IsEmpty(NEW.{1}))
+    BEGIN
+      DELETE FROM rtree_{0}_{1} WHERE id = OLD.{2};
+      INSERT OR REPLACE INTO rtree_{0}_{1} VALUES (
+        NEW.{2},
+        ST_MinX(NEW.{1}), ST_MaxX(NEW.{1}),
+        ST_MinY(NEW.{1}), ST_MaxY(NEW.{1})
+      );
+    END;
+    
+    /* Conditions: Update of any column
+                   Row ID change
+                   Empty geometry
+       Actions   : Remove record from rtree for old and new identifier */
+    CREATE TRIGGER rtree_{0}_{1}_update4 AFTER UPDATE ON {0}
+      WHEN OLD.{2} != NEW.{2} AND
+           (NEW.{1} ISNULL OR ST_IsEmpty(NEW.{1}))
+    BEGIN
+      DELETE FROM rtree_{0}_{1} WHERE id IN (OLD.{2}, NEW.{2});
+    END;
+    
+    /* Conditions: Row deleted
+       Actions   : Remove record from rtree for old identifier */
+    CREATE TRIGGER rtree_{0}_{1}_delete AFTER DELETE ON {0}
+      WHEN old.{1} NOT NULL
+    BEGIN
+      DELETE FROM rtree_{0}_{1} WHERE id = OLD.{2};
+    END;
+"""
+
+
+SPATIAL_INDEX_RECORD: Tuple[str, str, str] = (
+    'gpkg_rtree_index', 'https://www.geopackage.org/spec131/#extension_rtree',
+    'write-only')
+
+
 if __name__ == '__main__':
     pass
