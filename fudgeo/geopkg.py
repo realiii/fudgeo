@@ -299,6 +299,16 @@ class BaseTable:
     # End init built-in
 
     @staticmethod
+    def _column_names(fields: FIELDS) -> str:
+        """
+        Column Names
+        """
+        if not fields:
+            return ''
+        return f'{COMMA_SPACE}{COMMA_SPACE.join(repr(f) for f in fields)}'
+    # End _column_names method
+
+    @staticmethod
     def _drop(conn: Connection, sql: str, name: str, escaped_name: str,
               has_ogr_contents: bool) -> None:
         """
@@ -371,7 +381,7 @@ class Table(BaseTable):
         """
         Create a regular non-spatial table in the geopackage
         """
-        cols = f', {", ".join(repr(f) for f in fields)}' if fields else ''
+        cols = cls._column_names(fields)
         with geopackage.connection as conn:
             escaped_name = _escape_name(name)
             has_ogr_contents = _has_ogr_contents(conn)
@@ -421,7 +431,7 @@ class FeatureClass(BaseTable):
         """
         Create Feature Class
         """
-        cols = f', {", ".join(repr(f) for f in fields)}' if fields else ''
+        cols = cls._column_names(fields)
         with geopackage.connection as conn:
             escaped_name = _escape_name(name)
             has_ogr_contents = _has_ogr_contents(conn)
