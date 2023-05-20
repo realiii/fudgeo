@@ -426,7 +426,7 @@ def test_insert_multi_point(setup_geopackage):
     _, gpkg, srs, fields = setup_geopackage
     fc = gpkg.create_feature_class(
         'SELECT', srs, fields=fields, shape_type=GeometryType.multi_point)
-    multipoints = [(300000, 1), (300000, 4000000)]
+    multipoints = [(300000, 1), (700000, 4000000)]
     geom = MultiPoint(multipoints, srs_id=srs.srs_id)
     result = _insert_shape_and_fetch(gpkg, geom, fc.escaped_name)
     assert len(result) == 1
