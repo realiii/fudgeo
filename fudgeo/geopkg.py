@@ -23,6 +23,7 @@ from fudgeo.geometry import (
     MultiLineString, MultiLineStringZ, MultiLineStringM, MultiLineStringZM,
     Polygon, PolygonZ, PolygonM, PolygonZM, MultiPolygon, MultiPolygonZ,
     MultiPolygonM, MultiPolygonZM)
+from fudgeo.geometry.st import ST_FUNCS
 from fudgeo.sql import (
     CHECK_SRS_EXISTS, CREATE_FEATURE_TABLE, CREATE_OGR_CONTENTS, CREATE_TABLE,
     DEFAULT_EPSG_RECS, DEFAULT_ESRI_RECS, DELETE_OGR_CONTENTS,
@@ -132,6 +133,15 @@ def _register_geometry() -> None:
 # End _register_geometry function
 
 
+def _add_st_functions(conn: Connection) -> None:
+    """
+    Add ST Functions
+    """
+    for name, func in ST_FUNCS.items():
+        conn.create_function(name=name, narg=1, func=func)
+# End _add_st_functions function
+
+
 class GeoPackage:
     """
     GeoPackage
@@ -170,6 +180,7 @@ class GeoPackage:
                 str(self._path), isolation_level='EXCLUSIVE',
                 detect_types=PARSE_DECLTYPES | PARSE_COLNAMES)
             _register_geometry()
+            _add_st_functions(self._conn)
             register_converter('timestamp', _convert_datetime)
             register_converter('datetime', _convert_datetime)
         return self._conn
