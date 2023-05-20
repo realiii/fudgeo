@@ -211,8 +211,11 @@ SELECT_EXTENT: str = """
 """
 
 
-SELECT_TABLES_BY_TYPE: str = (
-    """SELECT table_name FROM gpkg_contents WHERE data_type = ?""")
+SELECT_TABLES_BY_TYPE: str = """
+    SELECT table_name 
+    FROM gpkg_contents 
+    WHERE data_type = ?
+"""
 
 
 DEFAULT_SRS_RECS: Tuple[Tuple[str, int, str, int, str, str], ...] = (
