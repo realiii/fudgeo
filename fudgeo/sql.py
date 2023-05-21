@@ -339,6 +339,12 @@ SPATIAL_INDEX_TRIGGERS: str = """
 """
 
 
+SPATIAL_INDEX_EXTENSION: str = """
+    INSERT INTO gpkg_extensions (table_name, column_name, extension_name, 
+                                 definition, scope) VALUES (?, ?, ?, ?, ?)
+"""
+
+
 SPATIAL_INDEX_RECORD: Tuple[str, str, str] = (
     'gpkg_rtree_index', 'https://www.geopackage.org/spec131/#extension_rtree',
     'write-only')
