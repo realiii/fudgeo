@@ -46,6 +46,7 @@ def test_st_is_empty(geom, expected):
 
 
 @mark.parametrize('geom, expected', [
+    (Point.from_gpkg(b'GP\x00\x01\t\x12\x00\x00\x01\x01\x00\x00\x00\xd0]#\x93\x9d\xa3\\\xc0X\x9bq\x1a\xa2sI@'), (-114.55649259999996, -114.55649259999996, 50.90338450000007, 50.90338450000007)),
     (Point(x=1, y=2, srs_id=WGS84), (1, 1, 2, 2)),
     (MultiPoint([(0, 1), (2, 3)], srs_id=WGS84), (0, 2, 1, 3)),
     (LineString([(0, 1), (2, 3)], srs_id=WGS84), (0, 2, 1, 3)),
