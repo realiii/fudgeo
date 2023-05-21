@@ -27,11 +27,10 @@ INSERT_ROWS = """
     INSERT INTO {} (SHAPE, "int.fld", text_fld, test_fld_size, test_bool) 
     VALUES (?, ?, ?, ?, ?)
 """
-
-
+# noinspection SqlNoDataSourceInspection
 SELECT_ST_FUNCS = """SELECT ST_IsEmpty({0}), ST_MinX({0}), ST_MaxX({0}), ST_MinY({0}), ST_MaxY({0}) FROM {1}"""
-
-
+# noinspection SqlNoDataSourceInspection,SqlResolve
+SELECT_RTREE = """SELECT * FROM rtree_{0}_{1} ORDER BY 1"""
 # noinspection SqlNoDataSourceInspection
 INSERT_SHAPE = """INSERT INTO {} (SHAPE) VALUES (?)"""
 # noinspection SqlNoDataSourceInspection
