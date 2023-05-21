@@ -100,10 +100,7 @@ def test_create_table(tmp_path, fields, ogr_contents, trigger_count):
     with raises(ValueError):
         geo.create_table(name, fields)
     conn = geo.connection
-    # noinspection SqlNoDataSourceInspection
-    cursor = conn.execute(f"""SELECT count(fid) AS C FROM {table.escaped_name}""")
-    count, = cursor.fetchone()
-    assert count == 0
+    assert table.count == 0
     now = datetime.now()
     eee_datetime = now + timedelta(days=1)
     fff_datetime = now + timedelta(days=2)
@@ -115,10 +112,7 @@ def test_create_table(tmp_path, fields, ogr_contents, trigger_count):
               VALUES (?, ?, ?, ?, ?, ?)"""
     conn.executemany(sql, records)
     conn.commit()
-    # noinspection SqlNoDataSourceInspection
-    cursor = conn.execute(f"""SELECT count(fid) AS C FROM {table.escaped_name}""")
-    count, = cursor.fetchone()
-    assert count == 2
+    assert table.count == 2
     *_, eee, select = fields
     # noinspection SqlNoDataSourceInspection
     cursor = conn.execute(f"""SELECT {eee.name} FROM {table.escaped_name}""")
@@ -158,10 +152,7 @@ def test_create_table_drop_table(tmp_path, fields, ogr_contents, has_table, trig
     table = geo.create_table(name, fields)
     assert isinstance(table, Table)
     tbl = geo.create_table(name, fields, overwrite=True)
-    # noinspection SqlNoDataSourceInspection
-    cursor = conn.execute(f"""SELECT count(fid) AS C FROM {table.escaped_name}""")
-    count, = cursor.fetchone()
-    assert count == 0
+    assert table.count == 0
     # noinspection SqlNoDataSourceInspection
     sql = """SELECT count(type) AS C FROM sqlite_master WHERE type = 'trigger'"""
     cursor = conn.execute(sql)
@@ -195,10 +186,7 @@ def test_create_feature_class(tmp_path, fields, ogr_contents, trigger_count):
     assert isinstance(fc, FeatureClass)
     with raises(ValueError):
         geo.create_feature_class(name, srs=srs, fields=fields)
-    # noinspection SqlNoDataSourceInspection
-    cursor = geo.connection.execute(f"""SELECT count(fid) AS C FROM {fc.escaped_name}""")
-    count, = cursor.fetchone()
-    assert count == 0
+    assert fc.count == 0
     fc = geo.create_feature_class('ANOTHER', srs=srs)
     assert isinstance(fc, FeatureClass)
     # noinspection SqlNoDataSourceInspection
@@ -229,10 +217,7 @@ def test_create_feature_drop_feature(tmp_path, fields, ogr_contents, has_table, 
     fc = geo.create_feature_class(name, srs=srs, fields=fields)
     assert isinstance(fc, FeatureClass)
     fc = geo.create_feature_class(name, srs=srs, fields=fields, overwrite=True)
-    # noinspection SqlNoDataSourceInspection
-    cursor = conn.execute(f"""SELECT count(fid) AS C FROM {fc.escaped_name}""")
-    count, = cursor.fetchone()
-    assert count == 0
+    assert fc.count == 0
     # noinspection SqlNoDataSourceInspection
     sql = """SELECT count(type) AS C FROM sqlite_master WHERE type = 'trigger'"""
     cursor = conn.execute(sql)
@@ -294,11 +279,7 @@ def test_create_feature_class_options(setup_geopackage, name, geom, has_z, has_m
         name, shape_type=geom, srs=srs, fields=fields,
         m_enabled=has_m, z_enabled=has_z)
     assert isinstance(fc, FeatureClass)
-    conn = gpkg.connection
-    # noinspection SqlNoDataSourceInspection
-    cursor = conn.execute(f"""SELECT count(fid) AS C FROM {name}""")
-    count, = cursor.fetchone()
-    assert count == 0
+    assert fc.count == 0
     assert fc.spatial_reference_system.srs_id == 32623
     assert fc.has_z is has_z
     assert fc.has_m is has_m
@@ -341,14 +322,11 @@ def test_insert_point_rows(setup_geopackage):
     rows = random_points_and_attrs(count, srs.srs_id)
     with gpkg.connection as conn:
         conn.executemany(INSERT_ROWS.format(fc.escaped_name), rows)
-        # noinspection SqlNoDataSourceInspection
-        cursor = conn.execute(f"""SELECT count(fid) AS C from {fc.escaped_name}""")
-        row_count, = cursor.fetchone()
-    assert row_count == count
-    with gpkg.connection as conn:
-        # noinspection SqlNoDataSourceInspection
-        cursor = conn.execute(f"""SELECT SHAPE FROM {fc.escaped_name} LIMIT 10""")
-        points = [rec[0] for rec in cursor.fetchall()]
+    assert fc.count == count
+    conn = gpkg.connection
+    # noinspection SqlNoDataSourceInspection
+    cursor = conn.execute(f"""SELECT SHAPE FROM {fc.escaped_name} LIMIT 10""")
+    points = [rec[0] for rec in cursor.fetchall()]
     assert all([isinstance(pt, Point) for pt in points])
     assert all(pt.srs_id == srs.srs_id for pt in points)
     assert all(isnan(v) for v in fc.extent)

@@ -332,6 +332,17 @@ class BaseTable:
     # End _drop method
 
     @property
+    def count(self) -> int:
+        """
+        Number of records
+        """
+        cursor = self.geopackage.connection.execute(
+            f"""SELECT COUNT(1) AS C FROM {self.escaped_name}""")
+        count, = cursor.fetchone()
+        return count
+    # End count property
+
+    @property
     def escaped_name(self) -> str:
         """
         Escaped Name
