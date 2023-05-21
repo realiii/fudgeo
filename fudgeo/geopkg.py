@@ -10,8 +10,8 @@ from os import PathLike
 from pathlib import Path
 from re import IGNORECASE, compile as recompile
 from sqlite3 import (
-    DatabaseError, OperationalError, PARSE_COLNAMES, PARSE_DECLTYPES, connect,
-    register_adapter, register_converter)
+    DatabaseError, IntegrityError, OperationalError, PARSE_COLNAMES,
+    PARSE_DECLTYPES, connect, register_adapter, register_converter)
 from typing import (
     Callable, Dict, List, Optional, TYPE_CHECKING, Tuple, Type, Union)
 
@@ -31,8 +31,9 @@ from fudgeo.sql import (
     HAS_OGR_CONTENTS, INSERT_GPKG_CONTENTS_SHORT, INSERT_GPKG_GEOM_COL,
     INSERT_GPKG_OGR_CONTENTS, INSERT_GPKG_SRS, KEYWORDS, REMOVE_FEATURE_CLASS,
     REMOVE_TABLE, SELECT_EXTENT, SELECT_GEOMETRY_COLUMN, SELECT_GEOMETRY_TYPE,
-    SELECT_HAS_ZM, SELECT_SRS, SELECT_TABLES_BY_TYPE, TABLE_EXISTS,
-    UPDATE_EXTENT)
+    SELECT_HAS_ZM, SELECT_SRS, SELECT_TABLES_BY_TYPE,
+    SPATIAL_INDEX_CREATE_TABLE, SPATIAL_INDEX_EXTENSION, SPATIAL_INDEX_INSERT,
+    SPATIAL_INDEX_RECORD, SPATIAL_INDEX_TRIGGERS, TABLE_EXISTS, UPDATE_EXTENT)
 
 
 if TYPE_CHECKING:
@@ -688,6 +689,27 @@ def _add_ogr_contents(conn: 'Connection', name: str, escaped_name: str) -> None:
     conn.execute(GPKG_OGR_CONTENTS_INSERT_TRIGGER.format(name, escaped_name))
     conn.execute(GPKG_OGR_CONTENTS_DELETE_TRIGGER.format(name, escaped_name))
 # End _add_ogr_contents function
+
+
+def _add_spatial_index(conn: 'Connection', feature_class: FeatureClass) -> None:
+    """
+    Add Spatial Index Table, Table Entry, and Triggers.  Load Spatial Index
+    Table if Feature Class has features.
+    """
+    name = feature_class.name
+    geom_name = feature_class.geometry_column_name
+    pk_name = feature_class.primary_key_field.escaped_name
+    record = name, geom_name, *SPATIAL_INDEX_RECORD
+    conn.execute(SPATIAL_INDEX_CREATE_TABLE.format(name, geom_name))
+    conn.executescript(SPATIAL_INDEX_TRIGGERS.format(name, geom_name, pk_name))
+    try:
+        conn.execute(SPATIAL_INDEX_EXTENSION, record)
+    except IntegrityError:
+        pass
+    if not feature_class.count:
+        return
+    conn.execute(SPATIAL_INDEX_INSERT.format(name, geom_name, pk_name))
+# End _add_spatial_index function
 
 
 if __name__ == '__main__':
