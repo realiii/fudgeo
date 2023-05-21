@@ -61,12 +61,22 @@ DELETE_OGR_CONTENTS: str = """
 """
 
 
+# NOTE 0 - table name, 1 - escaped name, 2 - geometry column name
 REMOVE_FEATURE_CLASS: str = """
     DELETE FROM gpkg_contents WHERE lower(table_name) = lower('{0}');
     DELETE FROM gpkg_geometry_columns WHERE lower(table_name) = lower('{0}');
-    DROP TRIGGER IF EXISTS trigger_insert_feature_count_{0};
-    DROP TRIGGER IF EXISTS trigger_delete_feature_count_{0};
+    DELETE FROM gpkg_extensions 
+    WHERE lower(table_name) = lower('{0}') AND 
+          lower(extension_name) = 'gpkg_rtree_index';
+    DROP TRIGGER IF EXISTS "trigger_insert_feature_count_{0}";
+    DROP TRIGGER IF EXISTS "trigger_delete_feature_count_{0}";
+    DROP TRIGGER IF EXISTS "rtree_{0}_{2}_insert";
+    DROP TRIGGER IF EXISTS "rtree_{0}_{2}_update1";
+    DROP TRIGGER IF EXISTS "rtree_{0}_{2}_update2";
+    DROP TRIGGER IF EXISTS "rtree_{0}_{2}_update3";
+    DROP TRIGGER IF EXISTS "rtree_{0}_{2}_update4";
     DROP TABLE IF EXISTS {1};
+    DROP TABLE IF EXISTS "rtree_{0}_{2}";
 """
 
 
