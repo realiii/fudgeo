@@ -10,8 +10,8 @@ from os import PathLike
 from pathlib import Path
 from re import IGNORECASE, compile as recompile
 from sqlite3 import (
-    Connection, Cursor, DatabaseError, OperationalError, PARSE_COLNAMES,
-    PARSE_DECLTYPES, connect, register_adapter, register_converter)
+    DatabaseError, OperationalError, PARSE_COLNAMES, PARSE_DECLTYPES, connect,
+    register_adapter, register_converter)
 from typing import (
     Callable, Dict, List, Optional, TYPE_CHECKING, Tuple, Type, Union)
 
@@ -36,6 +36,7 @@ from fudgeo.sql import (
 
 
 if TYPE_CHECKING:
+    from sqlite3 import Connection, Cursor
     from fudgeo.geometry.base import AbstractGeometry
 
 
@@ -133,7 +134,7 @@ def _register_geometry() -> None:
 # End _register_geometry function
 
 
-def _add_st_functions(conn: Connection) -> None:
+def _add_st_functions(conn: 'Connection') -> None:
     """
     Add ST Functions
     """
@@ -152,7 +153,7 @@ class GeoPackage:
         """
         super().__init__()
         self._path: Path = Path(path)
-        self._conn: Optional[Connection] = None
+        self._conn: Optional['Connection'] = None
     # End init built-in
 
     def __repr__(self) -> str:
@@ -171,7 +172,7 @@ class GeoPackage:
     # End path property
 
     @property
-    def connection(self) -> Connection:
+    def connection(self) -> 'Connection':
         """
         Connection
         """
@@ -320,7 +321,7 @@ class BaseTable:
     # End _column_names method
 
     @staticmethod
-    def _drop(conn: Connection, sql: str, name: str, escaped_name: str,
+    def _drop(conn: 'Connection', sql: str, name: str, escaped_name: str,
               has_ogr_contents: bool) -> None:
         """
         Drop Table from Geopackage
@@ -475,7 +476,7 @@ class FeatureClass(BaseTable):
     # End drop method
 
     @staticmethod
-    def _check_result(cursor: Cursor) -> Optional[str]:
+    def _check_result(cursor: 'Cursor') -> Optional[str]:
         """
         Check Result
         """
@@ -653,7 +654,7 @@ def _has_ogr_contents(conn: 'Connection') -> bool:
 # End _has_ogr_contents function
 
 
-def _add_ogr_contents(conn: Connection, name: str, escaped_name: str) -> None:
+def _add_ogr_contents(conn: 'Connection', name: str, escaped_name: str) -> None:
     """
     Add OGR Contents Table Entry and Triggers
     """
