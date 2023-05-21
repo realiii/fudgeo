@@ -248,14 +248,14 @@ DEFAULT_ESRI_RECS: Tuple[Tuple[str, int, str, int, str, str], ...] = (
         DEFAULT_SRS_RECS + (('GCS_WGS_1984', 4326, 'EPSG', 4326, ESRI_4326, ''),))
 
 
-# NOTE 0 - table name, 1 - geom column name, 2 - primary key column name
+# NOTE 0 - table name, 1 - geometry column name, 2 - primary key column name
 SPATIAL_INDEX_CREATE_TABLE: str = """
     CREATE VIRTUAL TABLE rtree_{0}_{1} 
     USING rtree(id, minx, maxx, miny, maxy)
 """
 
 
-# NOTE 0 - table name, 1 - geom column name, 2 - primary key column name
+# NOTE 0 - table name, 1 - geometry column name, 2 - primary key column name
 SPATIAL_INDEX_INSERT: str = """
     INSERT OR REPLACE INTO rtree_{0}_{1}
         SELECT {2}, ST_MinX({1}), ST_MaxX({1}), ST_MinY({1}), ST_MaxY({1}) 
@@ -263,7 +263,7 @@ SPATIAL_INDEX_INSERT: str = """
 """
 
 
-# NOTE 0 - table name, 1 - geom column name, 2 - primary key column name
+# NOTE 0 - table name, 1 - geometry column name, 2 - primary key column name
 SPATIAL_INDEX_TRIGGERS: str = """
     /* Conditions: Insertion of non-empty geometry
        Actions   : Insert record into rtree */
