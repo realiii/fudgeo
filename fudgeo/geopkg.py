@@ -557,6 +557,16 @@ class FeatureClass(BaseTable):
     # End has_m property
 
     @property
+    def has_spatial_index(self) -> bool:
+        """
+        Has Spatial Index
+        """
+        table_name = f'rtree_{self.name}_{self.geometry_column_name}'
+        cursor = self.geopackage.connection.execute(TABLE_EXISTS, (table_name,))
+        return bool(cursor.fetchall())
+    # End has_spatial_index property
+
+    @property
     def extent(self) -> Tuple[float, float, float, float]:
         """
         Extent property
