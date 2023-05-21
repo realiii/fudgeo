@@ -1,8 +1,9 @@
 # fudgeo
 
 `fudgeo` removes the *fear uncertainty doubt* from using GeoPackages with 
-Python. `fudgeo` is a lightweight package for creating OGC GeoPackages, Feature 
-Classes, Tables, and geometries (read and write).
+`Python`. `fudgeo` is a lightweight package for creating OGC GeoPackages, Feature 
+Classes, and Tables.  Easily read and write geometries and attributes to
+Feature Classes and Tables using regular `Python` objects and `SQLite` syntax.
 
 For details on OGC GeoPackages, please see the [OGC web page](http://www.geopackage.org/).
 
@@ -12,7 +13,7 @@ For details on OGC GeoPackages, please see the [OGC web page](http://www.geopack
 `fudgeo` is available from the [Python Package Index](https://pypi.org/project/fudgeo/).
 
 
-### Python Compatibility
+## Python Compatibility
 
 The `fudgeo` library is compatible with Python 3.7 to 3.11.
 
@@ -20,15 +21,16 @@ The `fudgeo` library is compatible with Python 3.7 to 3.11.
 ## Usage
 
 `fudgeo` can be used to: 
-* Create a new empty `GeoPackage`
-* Open an existing `GeoPackage`
+* Create a new empty `GeoPackage` or open an existing `GeoPackage`
 * Create new `FeatureClass` or `Table` with optional overwrite
 * Create `SpatialReferenceSystem` for a `FeatureClass`
-* Insert record (attributes) into a `Table`
-* Insert feature (geometry and attributes) into a `FeatureClass`
+* Build geometry objects from lists of coordinate values
 * Work with data in `Table` or `FeatureClass` in a normal `SQLite` manner (e.g. `SELECT`, `INSERT`, `UPDATE`, `DELETE`)
-* Drop `FeatureClass` or `Table`
 * Retrieve fields from a `FeatureClass` or `Table`
+* Access primary key field of `FeatureClass` or `Table` 
+* Access geometry column name and geometry type for `FeatureClass`
+* Add spatial index on `FeatureClass`
+* Drop `FeatureClass` or `Table`
 
 
 ### Create an Empty GeoPackage / Open GeoPackage
@@ -43,9 +45,9 @@ gpkg = GeoPackage.create(r'c:\data\example.gpkg')
 gpkg = GeoPackage(r'c:\data\example.gpkg')
 ```
 
-Geopackages are created with *three* default Spatial References defined
-automatically, a pair of Spatial References to handle undefined cases,
-and a WGS 84 entry. 
+`GeoPackage`s are created with *three* default Spatial References defined
+automatically, a pair of Spatial References to handle **undefined** cases,
+and a **WGS 84** entry. 
 
 The definition of the WGS84 entry is flexible - meaning that the 
 *WKT for WGS84* can be setup per the users liking. As an example, 
@@ -57,7 +59,6 @@ may provide a ``flavor`` parameter to the create method specifying EPSG.
 # Creates an empty geopackage
 gpkg = GeoPackage.create(r'c:\temp\test.gpkg', flavor='EPSG')
 ```
-
 
 ### Create a Feature Class
 
@@ -72,12 +73,12 @@ either of these options are enabled, the geometry inserted into the
 Feature Class **must** include a value for the option specified.
 
 ```python
-from fudgeo.geopkg import GeoPackage, SpatialReferenceSystem, Field
+from typing import Tuple
+
+from fudgeo.geopkg import FeatureClass, Field, GeoPackage, SpatialReferenceSystem
 from fudgeo.enumeration import GeometryType, SQLFieldType
 
-gpkg = GeoPackage.create(r'c:\temp\test.gpkg')
-
-srs_wkt = (
+SRS_WKT: str = (
     'PROJCS["WGS_1984_UTM_Zone_23N",'
     'GEOGCS["GCS_WGS_1984",'
     'DATUM["D_WGS_1984",'
@@ -92,20 +93,31 @@ srs_wkt = (
     'PARAMETER["Latitude_Of_Origin",0.0],'
     'UNIT["Meter",1.0]]')
 
-srs = SpatialReferenceSystem(
-    'WGS_1984_UTM_Zone_23N', 'EPSG', 32623, srs_wkt)
-fields = (
-    Field('heart_rate', SQLFieldType.integer),
-    Field('power', SQLFieldType.double),
-    Field('comment', SQLFieldType.text, 100),
-    Field('is_valid', SQLFieldType.boolean))
+SRS: SpatialReferenceSystem = SpatialReferenceSystem(
+    name='WGS_1984_UTM_Zone_23N', organization='EPSG',
+    org_coord_sys_id=32623, definition=SRS_WKT)
+fields: Tuple[Field, ...] = (
+    Field('road_id', SQLFieldType.integer),
+    Field('name', SQLFieldType.text, size=100),
+    Field('begin_easting', SQLFieldType.double),
+    Field('begin_northing', SQLFieldType.double),
+    Field('end_easting', SQLFieldType.double),
+    Field('end_northing', SQLFieldType.double),
+    Field('is_one_way', SQLFieldType.boolean))
 
-fc = gpkg.create_feature_class(
-    'test', srs, fields=fields, shape_type=GeometryType.point)
+gpkg: GeoPackage = GeoPackage.create(r'c:\temp\test.gpkg')
+fc: FeatureClass = gpkg.create_feature_class(
+    'road_l', srs=SRS, fields=fields, shape_type=GeometryType.linestring,
+    z_enabled=False, m_enabled=True, overwrite=True, spatial_index=True)
 ```
 
-Read more about spatial references in GeoPackages [here](https://github.com/realiii/pygeopkg/blob/master/README.md#about-spatial-references-for-geopackages)
+### About Spatial References For GeoPackages
 
+Spatial References in GeoPackages can use any definition from any 
+authority - be that `EPSG`, `ESRI`, or another authority. `fudgeo` imposes no 
+restriction and performs no checks on the definitions provided. Take care 
+to ensure that the definitions are compatible with the platform / software 
+you intend to utilize with the `GeoPackage`.
 
 ### Insert Features into a Feature Class (SQL)
 
@@ -118,27 +130,29 @@ portion of the code is omitted...
 ```python
 from random import choice, randint
 from string import ascii_uppercase, digits
-from fudgeo.geometry import Point
+from typing import List, Tuple
+
+from fudgeo.geometry import LineStringM
 from fudgeo.geopkg import GeoPackage
 
-# NOTE Builds from previous examples 
-gpkg = GeoPackage(r'c:\data\example.gpkg')
-
 # Generate some random points and attributes
-rows = []
+rows: List[Tuple[LineStringM, int, str, float, float, float, float, bool]] = []
 for i in range(10000):
-    rand_str = ''.join(choice(ascii_uppercase + digits) for _ in range(10))
-    rand_int = randint(0, 1000)
-    rand_x = randint(300000, 600000)
-    rand_y = randint(1, 100000)
-    rows.append((Point(x=rand_x, y=rand_y, srs_id=32623), rand_int, rand_str))
+    name = ''.join(choice(ascii_uppercase + digits) for _ in range(10))
+    road_id = randint(0, 1000)
+    eastings = [randint(300000, 600000) for _ in range(20)]
+    northings = [randint(1, 100000) for _ in range(20)]
+    road = LineStringM([(x, y, m) for m, (x, y) in enumerate(zip(eastings, northings))])
+    rows.append((road, road_id, name, eastings[0], northings[0], 
+                 eastings[-1], northings[-1], False))
 
+gpkg: GeoPackage = GeoPackage(r'c:\data\example.gpkg')  # NOTE Builds from previous examples 
 with gpkg.connection as conn:
-    conn.executemany(
-        """INSERT INTO test (SHAPE, heart_rate, comment) 
-           VALUES (?, ?, ?)""", rows)
+    conn.executemany("""
+        INSERT INTO road_l (SHAPE, road_id, name, begin_easting, begin_northing, 
+                            end_easting, end_northing, is_one_way) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""", rows)
 ```
-
 
 ### Geometry Examples
 
@@ -167,43 +181,40 @@ poly = Polygon(rings, srs_id=32623)
 ### Select Features from GeoPackage (SQL)
 
 When selecting features from a GeoPackage feature class use SQL.  For 
-the most part (mainly simple geometries) this can be done via a basic
-select statement like:
+the most part (mainly simple geometries e.g. those without *Z* or *M*) this 
+can be done via a basic `SELECT` statement like:
 
 ```python
-gpkg = GeoPackage(r'c:\data\example.gpkg')
-cursor = gpkg.connection.execute(
-    """SELECT SHAPE, heart_rate FROM test""")
+gpkg = GeoPackage(...)
+cursor = gpkg.connection.execute("""SELECT SHAPE, example_id FROM point_fc""")
 features = cursor.fetchall()
 ```
 
 This will return a list of tuples where each tuple contains a `Point`
-object and an integer (heart rate).
+object and an integer for `example_id` field.
 
 When working with extended geometry types (those with *Z* and/or *M*) 
-then the approach is to ensure SQLite knows how to convert the 
-geopackage stored geometry to a `fudgeo` geometry, this is done like
-so (pretending here that we created `test` table as a point geometry
-with z enabled):
+then the approach is to ensure `SQLite` knows how to convert the 
+geopackage stored geometry to a `fudgeo` geometry, this is done like so:
 
 ```python
 gpkg = GeoPackage(r'c:\data\example.gpkg')
 cursor = gpkg.connection.execute(
-    """SELECT SHAPE "[PointZ]", heart_rate FROM test""")
+    """SELECT SHAPE "[LineStringM]", road_id FROM test""")
 features = cursor.fetchall()
 ```
 
-or a little more general, accounting for extended geometry types and possibility of the 
-geometry column being something other tha SHAPE:
+or a little more general, accounting for extended geometry types and
+possibility of the geometry column being something other tha `SHAPE`:
 
 ```python
 from fudgeo.geopkg import FeatureClass
 
 gpkg = GeoPackage(r'c:\data\example.gpkg')
-fc = FeatureClass(geopackage=gpkg, name='test')
+fc = FeatureClass(geopackage=gpkg, name='road_l')
 cursor = gpkg.connection.execute(f"""
-    SELECT {fc.geometry_column_name} "[{fc.geometry_type}]", heart_rate 
-    FROM {fc.name}""")
+    SELECT {fc.geometry_column_name} "[{fc.geometry_type}]", road_id 
+    FROM {fc.escaped_name}""")
 features = cursor.fetchall()
 ```
 
