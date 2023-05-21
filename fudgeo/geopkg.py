@@ -245,7 +245,8 @@ class GeoPackage:
                              shape_type: str = GeometryType.point,
                              z_enabled: bool = False, m_enabled: bool = False,
                              fields: FIELDS = (), description: str = '',
-                             overwrite: bool = False) -> 'FeatureClass':
+                             overwrite: bool = False,
+                             spatial_index: bool = False) -> 'FeatureClass':
         """
         Creates a feature class in the GeoPackage per the options given.
         """
@@ -253,7 +254,8 @@ class GeoPackage:
         return FeatureClass.create(
             geopackage=self, name=name, shape_type=shape_type, srs=srs,
             z_enabled=z_enabled, m_enabled=m_enabled, fields=fields,
-            description=description, overwrite=overwrite)
+            description=description, overwrite=overwrite,
+            spatial_index=spatial_index)
     # End create_feature_class method
 
     def create_table(self, name: str, fields: FIELDS = (),
@@ -449,8 +451,8 @@ class FeatureClass(BaseTable):
     def create(cls, geopackage: GeoPackage, name: str, shape_type: str,
                srs: 'SpatialReferenceSystem', z_enabled: bool = False,
                m_enabled: bool = False, fields: FIELDS = (),
-               description: str = '',
-               overwrite: bool = False) -> 'FeatureClass':
+               description: str = '', overwrite: bool = False,
+               spatial_index: bool = False) -> 'FeatureClass':
         """
         Create Feature Class
         """
