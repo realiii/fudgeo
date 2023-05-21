@@ -502,7 +502,10 @@ class FeatureClass(BaseTable):
                 name, DataType.features, name, description, _now(), srs.srs_id))
             if has_ogr_contents:
                 _add_ogr_contents(conn, name=name, escaped_name=escaped_name)
-        return cls(geopackage=geopackage, name=name)
+            feature_class = cls(geopackage=geopackage, name=name)
+            if spatial_index:
+                _add_spatial_index(conn=conn, feature_class=feature_class)
+        return feature_class
     # End create method
 
     def drop(self) -> None:
