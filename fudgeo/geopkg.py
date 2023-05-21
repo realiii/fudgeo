@@ -448,6 +448,30 @@ class FeatureClass(BaseTable):
                 f'name={self.name!r})')
     # End repr built-in
 
+    @staticmethod
+    def _find_geometry_column_name(geopackage: 'GeoPackage', name: str) -> str:
+        """
+        Find Geometry Column Name for an Existing Feature Class
+        """
+        sans_case = {k.casefold(): v
+                     for k, v in geopackage.feature_classes.items()}
+        existing = sans_case.get(name.casefold())
+        if not existing:
+            return ''
+        return existing.geometry_column_name
+    # End _find_geometry_column_name method
+
+    def add_spatial_index(self) -> bool:
+        """
+        Add Spatial Index if does not already exist
+        """
+        if self.has_spatial_index:
+            return False
+        with self.geopackage.connection as conn:
+            _add_spatial_index(conn=conn, feature_class=self)
+        return True
+    # End add_spatial_index method
+
     @classmethod
     def create(cls, geopackage: GeoPackage, name: str, shape_type: str,
                srs: 'SpatialReferenceSystem', z_enabled: bool = False,
