@@ -226,6 +226,18 @@ features = cursor.fetchall()
 
 ## Release History
 
+### next release
+* change `ogr_contents` default value to `False` (breaking change)
+* add `spatial_index` option to `FeatureClass` creation, default to `False`
+* add `add_spatial_index` method to `FeatureClass` for adding spatial index post creation
+* add `has_spatial_index` property to `FeatureClass`
+* add `count` property to `Table` and `FeatureClass`
+* add `primary_key_field` property to `Table` and `FeatureClass`
+* small speed-up to `Point` unpacking
+* update `is_empty` to rely on internal attribute data type
+* improvements to SQL statements to handle names that must be escaped
+* bump `user_version` to reflect adopted version 1.3.1 of OGC GeoPackage
+
 ### v0.5.2
 * store empty state on the instance during geometry read
 * introduce base classes for common capability and parametrize via class attributes
