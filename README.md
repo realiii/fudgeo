@@ -142,11 +142,13 @@ for i in range(10000):
     road_id = randint(0, 1000)
     eastings = [randint(300000, 600000) for _ in range(20)]
     northings = [randint(1, 100000) for _ in range(20)]
-    road = LineStringM([(x, y, m) for m, (x, y) in enumerate(zip(eastings, northings))])
-    rows.append((road, road_id, name, eastings[0], northings[0], 
+    coords = [(x, y, m) for m, (x, y) in enumerate(zip(eastings, northings))]
+    road = LineStringM(coords, srs_id=32623)
+    rows.append((road, road_id, name, eastings[0], northings[0],
                  eastings[-1], northings[-1], False))
 
-gpkg: GeoPackage = GeoPackage(r'c:\data\example.gpkg')  # NOTE Builds from previous examples 
+# NOTE Builds from previous examples
+gpkg: GeoPackage = GeoPackage(r'c:\data\example.gpkg')   
 with gpkg.connection as conn:
     conn.executemany("""
         INSERT INTO road_l (SHAPE, road_id, name, begin_easting, begin_northing, 
