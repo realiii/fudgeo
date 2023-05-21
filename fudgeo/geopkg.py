@@ -357,7 +357,7 @@ class BaseTable:
         """
         cursor = self.geopackage.connection.execute(f"""
             SELECT name, type
-            FROM pragma_table_info({self.escaped_name})
+            FROM pragma_table_info('{self.name}')
             WHERE upper(type) = '{SQLFieldType.integer}' AND 
                   "notnull" = 1 AND pk = 1""")
         result = cursor.fetchone()
