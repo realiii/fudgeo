@@ -24,7 +24,7 @@ CREATE TABLE gpkg_contents (
     max_y       DOUBLE,
     srs_id      INTEGER,
     CONSTRAINT fk_gc_r_srs_id
-        FOREIGN KEY (srs_id) REFERENCES gpkg_spatial_ref_sys(srs_id)
+        FOREIGN KEY (srs_id) REFERENCES gpkg_spatial_ref_sys (srs_id)
 );
 
 
@@ -38,9 +38,9 @@ CREATE TABLE gpkg_geometry_columns (
     CONSTRAINT pk_geom_cols PRIMARY KEY (table_name, column_name),
     CONSTRAINT uk_gc_table_name UNIQUE (table_name),
     CONSTRAINT fk_gc_tn FOREIGN KEY (table_name)
-        REFERENCES gpkg_contents(table_name),
+        REFERENCES gpkg_contents (table_name),
     CONSTRAINT fk_gc_srs FOREIGN KEY (srs_id)
-        REFERENCES gpkg_spatial_ref_sys(srs_id)
+        REFERENCES gpkg_spatial_ref_sys (srs_id)
 );
 
 
@@ -52,9 +52,9 @@ CREATE TABLE gpkg_tile_matrix_set (
     max_x      DOUBLE  NOT NULL,
     max_y      DOUBLE  NOT NULL,
     CONSTRAINT fk_gtms_table_name FOREIGN KEY (table_name)
-        REFERENCES gpkg_contents(table_name),
+        REFERENCES gpkg_contents (table_name),
     CONSTRAINT fk_gtms_srs FOREIGN KEY (srs_id)
-        REFERENCES gpkg_spatial_ref_sys(srs_id)
+        REFERENCES gpkg_spatial_ref_sys (srs_id)
 );
 
 
@@ -69,7 +69,7 @@ CREATE TABLE gpkg_tile_matrix (
     pixel_y_size  DOUBLE  NOT NULL,
     CONSTRAINT pk_ttm PRIMARY KEY (table_name, zoom_level),
     CONSTRAINT fk_tmm_table_name FOREIGN KEY (table_name)
-        REFERENCES gpkg_contents(table_name)
+        REFERENCES gpkg_contents (table_name)
 );
 
 
