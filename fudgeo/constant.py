@@ -5,7 +5,7 @@ Constants
 
 
 from struct import pack
-from typing import ClassVar, Dict, List, Tuple, Union
+from typing import ClassVar, Dict, List, Set, Tuple, Union
 
 
 DOUBLE = Tuple[float, float]
@@ -64,12 +64,14 @@ WKB_MULTI_POLYGON_M_PRE: bytes = pack(BYTE_CODE, 1, 2006)
 WKB_MULTI_POLYGON_ZM_PRE: bytes = pack(BYTE_CODE, 1, 3006)
 
 
-POINT_PREFIX: Dict[Tuple[bool, bool], bytes] = {
+POINT_PREFIX_ZM: Dict[Tuple[bool, bool], bytes] = {
     (False, False): WKB_POINT_PRE,
     (True, False): WKB_POINT_Z_PRE,
     (False, True): WKB_POINT_M_PRE,
     (True, True): WKB_POINT_ZM_PRE,
 }
+POINT_PREFIXES: Set[bytes] = {
+    WKB_POINT_PRE, WKB_POINT_Z_PRE, WKB_POINT_M_PRE, WKB_POINT_ZM_PRE}
 
 
 class EnvelopeCode:

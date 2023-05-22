@@ -1,10 +1,11 @@
 [project]
 name = "fudgeo"
-version = "0.5.2"
+version = "0.6.0"
 description = """\
-    GeoPackage support from Python.  fudgeo is a simple package \
-    for creating OGC GeoPackages, Feature Classes, Tables, and \
-    geometries (read and write).\
+    GeoPackage support from Python.  fudgeo is a lightweight package \
+    for creating OGC GeoPackages, Feature Classes, and Tables.  Easily \
+    read and write geometries and attributes to Feature Classes \
+    and Tables using regular Python objects and SQLite syntax.\
     """
 readme = "README.md"
 authors = [{ name = "Integrated Informatics Inc.", email = "contact@integrated-informatics.com" }]
@@ -25,6 +26,7 @@ dependencies = ["numpy", "Bottleneck"]
 requires-python = ">=3.7"
 
 [tool.setuptools]
+packages = ["fudgeo"]
 include-package-data = true
 
 [project.optional-dependencies]

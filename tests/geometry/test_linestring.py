@@ -43,13 +43,13 @@ def test_empty_linestring_gpkg():
 # End test_empty_linestring_gpkg function
 
 
-@mark.parametrize('cls, wkb', [
-    (LineString, b'\x01\x02\x00\x00\x00\x00\x00\x00\x00'),
-    (LineStringZ, b'\x01\xea\x03\x00\x00\x00\x00\x00\x00'),
-    (LineStringM, b'\x01\xd2\x07\x00\x00\x00\x00\x00\x00'),
-    (LineStringZM, b'\x01\xba\x0b\x00\x00\x00\x00\x00\x00'),
+@mark.parametrize('cls, wkb, data', [
+    (LineString, b'\x01\x02\x00\x00\x00\x00\x00\x00\x00', b'GP\x00\x11\xe6\x10\x00\x00\x01\x02\x00\x00\x00\x00\x00\x00\x00'),
+    (LineStringZ, b'\x01\xea\x03\x00\x00\x00\x00\x00\x00', b'GP\x00\x11\xe6\x10\x00\x00\x01\xea\x03\x00\x00\x00\x00\x00\x00'),
+    (LineStringM, b'\x01\xd2\x07\x00\x00\x00\x00\x00\x00', b'GP\x00\x11\xe6\x10\x00\x00\x01\xd2\x07\x00\x00\x00\x00\x00\x00'),
+    (LineStringZM, b'\x01\xba\x0b\x00\x00\x00\x00\x00\x00', b'GP\x00\x11\xe6\x10\x00\x00\x01\xba\x0b\x00\x00\x00\x00\x00\x00'),
 ])
-def test_empty_line_string(cls, wkb):
+def test_empty_line_string(cls, wkb, data):
     """
     Test Empty LineString
     """
@@ -58,6 +58,12 @@ def test_empty_line_string(cls, wkb):
     assert geom._to_wkb(ary) == wkb
     assert isinstance(geom, cls)
     assert not len(geom.coordinates)
+    assert geom._is_empty is None
+    assert geom.is_empty is True
+    assert geom.to_gpkg() == data
+    geom = cls.from_gpkg(data)
+    assert geom._is_empty is True
+    assert geom.is_empty is True
 # End test_empty_line_string function
 
 

@@ -43,13 +43,13 @@ def test_empty_polygon_gpkg():
 # End test_empty_polygon_gpkg function
 
 
-@mark.parametrize('cls, wkb', [
-    (Polygon, b'\x01\x03\x00\x00\x00\x00\x00\x00\x00'),
-    (PolygonZ, b'\x01\xeb\x03\x00\x00\x00\x00\x00\x00'),
-    (PolygonM, b'\x01\xd3\x07\x00\x00\x00\x00\x00\x00'),
-    (PolygonZM, b'\x01\xbb\x0b\x00\x00\x00\x00\x00\x00')
+@mark.parametrize('cls, wkb, data', [
+    (Polygon, b'\x01\x03\x00\x00\x00\x00\x00\x00\x00', b'GP\x00\x11\xe6\x10\x00\x00\x01\x03\x00\x00\x00\x00\x00\x00\x00'),
+    (PolygonZ, b'\x01\xeb\x03\x00\x00\x00\x00\x00\x00', b'GP\x00\x11\xe6\x10\x00\x00\x01\xeb\x03\x00\x00\x00\x00\x00\x00'),
+    (PolygonM, b'\x01\xd3\x07\x00\x00\x00\x00\x00\x00', b'GP\x00\x11\xe6\x10\x00\x00\x01\xd3\x07\x00\x00\x00\x00\x00\x00'),
+    (PolygonZM, b'\x01\xbb\x0b\x00\x00\x00\x00\x00\x00', b'GP\x00\x11\xe6\x10\x00\x00\x01\xbb\x0b\x00\x00\x00\x00\x00\x00')
 ])
-def test_empty_polygon(cls, wkb):
+def test_empty_polygon(cls, wkb, data):
     """
     Test Empty Polygon
     """
@@ -58,6 +58,12 @@ def test_empty_polygon(cls, wkb):
     assert geom._to_wkb(ary) == wkb
     assert isinstance(geom, cls)
     assert geom.rings == []
+    assert geom._is_empty is None
+    assert geom.is_empty is True
+    assert geom.to_gpkg() == data
+    geom = cls.from_gpkg(data)
+    assert geom._is_empty is True
+    assert geom.is_empty is True
 # End test_empty_polygon function
 
 
