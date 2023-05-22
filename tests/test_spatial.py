@@ -11,7 +11,7 @@ from pytest import mark
 from fudgeo.constant import WGS84
 from fudgeo.geometry import (
     LineString, MultiLineString, MultiPoint, MultiPolygon, Point, Polygon)
-from fudgeo.geometry.st import (
+from fudgeo.spatial import (
     _st_is_empty, _st_max_x, _st_max_y, _st_min_x, _st_min_y)
 
 
