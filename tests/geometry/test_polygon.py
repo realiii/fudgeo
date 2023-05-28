@@ -141,6 +141,10 @@ def test_polygon(header, cls, values, env_code, wkb_func, env):
     assert from_gpkg == poly
     assert not poly.is_empty
     assert poly.envelope == env
+    geo = poly.__geo_interface__
+    assert geo['type'] == 'Polygon'
+    assert geo['coordinates'] == tuple(tuple(v) for v in values)
+    assert geo['bbox'] == env.bounding_box
 # End test_polygon function
 
 
@@ -158,19 +162,23 @@ def test_multi_polygon(header, cls, values, env_code, wkb_func, env):
     """
     Test multi polygon wkb
     """
-    poly = cls(values, srs_id=WGS84)
+    multi = cls(values, srs_id=WGS84)
     with raises(AttributeError):
         # noinspection PyDunderSlots,PyUnresolvedReferences
-        poly.attribute = 10
+        multi.attribute = 10
     ary = bytearray()
-    assert poly._to_wkb(ary) == wkb_func(values)
-    gpkg = poly.to_gpkg()
+    assert multi._to_wkb(ary) == wkb_func(values)
+    gpkg = multi.to_gpkg()
     assert gpkg.startswith(header(env_code))
     from_gpkg = cls.from_gpkg(gpkg)
     assert not from_gpkg.is_empty
-    assert from_gpkg == poly
-    assert not poly.is_empty
-    assert poly.envelope == env
+    assert from_gpkg == multi
+    assert not multi.is_empty
+    assert multi.envelope == env
+    geo = multi.__geo_interface__
+    assert geo['type'] == 'MultiPolygon'
+    assert geo['coordinates'] == tuple(tuple(tuple(v) for v in vs) for vs in values)
+    assert geo['bbox'] == env.bounding_box
 # End test_multi_polygon function
 
 

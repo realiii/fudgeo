@@ -118,6 +118,10 @@ def test_line_string(header, cls, values, env_code, wkb_func, gpkg_func, env):
     assert from_gpkg == line
     assert not line.is_empty
     assert line.envelope == env
+    geo = line.__geo_interface__
+    assert geo['type'] == 'LineString'
+    assert geo['coordinates'] == tuple(values)
+    assert geo['bbox'] == env.bounding_box
 # End test_line_string function
 
 
@@ -170,6 +174,10 @@ def test_multi_line_string(header, cls, values, env_code, wkb_func, env):
     assert gpkg.startswith(header(env_code))
     assert not multi.is_empty
     assert multi.envelope == env
+    geo = multi.__geo_interface__
+    assert geo['type'] == 'MultiLineString'
+    assert geo['coordinates'] == tuple(tuple(v) for v in values)
+    assert geo['bbox'] == env.bounding_box
 # End test_multi_line_string function
 
 
