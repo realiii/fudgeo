@@ -5,7 +5,7 @@ Polygons
 
 
 from struct import pack
-from typing import Any, ClassVar, List, TYPE_CHECKING
+from typing import Any, ClassVar, Dict, List, TYPE_CHECKING
 
 from fudgeo.constant import (
     COUNT_CODE, EMPTY, EnvelopeCode, FOUR_D, THREE_D, TWO_D,
@@ -173,6 +173,21 @@ class BasePolygon(AbstractGeometry):
         return self.rings == other.rings
     # End eq built-in
 
+    @property
+    def __geo_interface__(self) -> Dict:
+        """
+        Geo Interface
+        """
+        # NOTE return 4 values when ZM present even though GeoJSON spec
+        #  suggests no more than 3
+        #  https://stevage.github.io/geojson-spec/#section-3.1.1
+        return {'type': 'Polygon',
+                'bbox': self.envelope.bounding_box,
+                'coordinates': tuple(
+                    tuple(tuple(coords) for coords in ring.coordinates)
+                    for ring in self.rings)}
+    # End geo_interface property
+
     def _make_rings(self, coordinates: List[List]) -> List:
         """
         Make Rings
@@ -318,6 +333,21 @@ class BaseMultiPolygon(AbstractGeometry):
             return False
         return self.polygons == other.polygons
     # End eq built-in
+
+    @property
+    def __geo_interface__(self) -> Dict:
+        """
+        Geo Interface
+        """
+        # NOTE return 4 values when ZM present even though GeoJSON spec
+        #  suggests no more than 3
+        #  https://stevage.github.io/geojson-spec/#section-3.1.1
+        return {'type': 'MultiPolygon',
+                'bbox': self.envelope.bounding_box,
+                'coordinates': tuple(tuple(tuple(
+                    tuple(coords) for coords in ring.coordinates)
+                    for ring in poly.rings) for poly in self.polygons)}
+    # End geo_interface property
 
     def _make_polygons(self, coordinates: List[List[List]]) -> List:
         """

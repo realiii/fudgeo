@@ -106,6 +106,14 @@ class Envelope:
         return same_m and same_z
     # End eq built-in
 
+    @property
+    def bounding_box(self) -> Tuple[float, float, float, float]:
+        """
+        Bounding Box
+        """
+        return self.min_x, self.min_y, self.max_x, self.max_y
+    # End bounding_box property
+
     def to_wkb(self) -> Tuple[int, bytes]:
         """
         To WKB

@@ -113,6 +113,10 @@ def test_point(header, pt, values, wkb_func, gpkg_func):
     assert pt._to_wkb() == wkb_func(*values)
     assert pt.to_gpkg() == gpkg_func(header(0), *values)
     assert pt.__class__.from_gpkg(pt.to_gpkg()) == pt
+    assert pt.as_tuple() == values
+    geo = pt.__geo_interface__
+    assert geo['type'] == 'Point'
+    assert geo['coordinates'] == values
 # End test_point function
 
 
@@ -139,6 +143,10 @@ def test_multi_point(header, cls, values, wkb_func, env_code, env):
     assert not from_gpkg_pts.is_empty
     assert from_gpkg_pts == pts
     assert pts.envelope == env
+    geo = pts.__geo_interface__
+    assert geo['type'] == 'MultiPoint'
+    assert geo['coordinates'] == tuple(values)
+    assert geo['bbox'] == env.bounding_box
 # End test_multi_point function
 
 

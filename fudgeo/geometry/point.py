@@ -6,7 +6,7 @@ Points
 
 from math import isnan, nan
 from struct import pack, unpack
-from typing import Any, ClassVar, List, Optional, TYPE_CHECKING
+from typing import Any, ClassVar, Dict, List, Optional, TYPE_CHECKING, Union
 
 from fudgeo.constant import (
     DOUBLE, EMPTY, EnvelopeCode, FOUR_D, FOUR_D_PACK_CODE, FOUR_D_UNPACK_CODE,
@@ -46,8 +46,23 @@ class Point(AbstractGeometry):
             return NotImplemented
         if self.srs_id != other.srs_id:
             return False
-        return (self.x, self.y) == (other.x, other.y)
+        return self.as_tuple() == other.as_tuple()
     # End eq built-in
+
+    @property
+    def __geo_interface__(self) -> Dict[str, Union[str, DOUBLE]]:
+        """
+        Geo Interface
+        """
+        return {'type': 'Point', 'coordinates': self.as_tuple()}
+    # End geo_interface property
+
+    def as_tuple(self) -> DOUBLE:
+        """
+        As Tuple
+        """
+        return self.x, self.y
+    # End as_tuple method
 
     @property
     def is_empty(self) -> bool:
@@ -70,7 +85,7 @@ class Point(AbstractGeometry):
         """
         To WKB
         """
-        return WKB_POINT_PRE + pack(TWO_D_PACK_CODE, self.x, self.y)
+        return WKB_POINT_PRE + pack(TWO_D_PACK_CODE, *self.as_tuple())
     # End _to_wkb method
 
     @property
@@ -144,8 +159,24 @@ class PointZ(AbstractGeometry):
             return NotImplemented
         if self.srs_id != other.srs_id:
             return False
-        return (self.x, self.y, self.z) == (other.x, other.y, other.z)
+        return self.as_tuple() == other.as_tuple()
     # End eq built-in
+
+    @property
+    def __geo_interface__(self) -> Dict[str, Union[str, TRIPLE]]:
+        """
+        Geo Interface
+        """
+        return {'type': 'Point', 'coordinates': self.as_tuple()}
+
+    # End geo_interface property
+
+    def as_tuple(self) -> TRIPLE:
+        """
+        As Tuple
+        """
+        return self.x, self.y, self.z
+    # End as_tuple method
 
     @property
     def is_empty(self) -> bool:
@@ -168,7 +199,7 @@ class PointZ(AbstractGeometry):
         """
         To WKB
         """
-        return WKB_POINT_Z_PRE + pack(THREE_D_PACK_CODE, self.x, self.y, self.z)
+        return WKB_POINT_Z_PRE + pack(THREE_D_PACK_CODE, *self.as_tuple())
     # End _to_wkb method
 
     @property
@@ -242,8 +273,23 @@ class PointM(AbstractGeometry):
             return NotImplemented
         if self.srs_id != other.srs_id:
             return False
-        return (self.x, self.y, self.m) == (other.x, other.y, other.m)
+        return self.as_tuple() == other.as_tuple()
     # End eq built-in
+
+    @property
+    def __geo_interface__(self) -> Dict[str, Union[str, TRIPLE]]:
+        """
+        Geo Interface
+        """
+        return {'type': 'Point', 'coordinates': self.as_tuple()}
+    # End geo_interface property
+
+    def as_tuple(self) -> TRIPLE:
+        """
+        As Tuple
+        """
+        return self.x, self.y, self.m
+    # End as_tuple method
 
     @property
     def is_empty(self) -> bool:
@@ -266,7 +312,7 @@ class PointM(AbstractGeometry):
         """
         To WKB
         """
-        return WKB_POINT_M_PRE + pack(THREE_D_PACK_CODE, self.x, self.y, self.m)
+        return WKB_POINT_M_PRE + pack(THREE_D_PACK_CODE, *self.as_tuple())
     # End _to_wkb method
 
     @property
@@ -342,9 +388,26 @@ class PointZM(AbstractGeometry):
             return NotImplemented
         if self.srs_id != other.srs_id:
             return False
-        return (self.x, self.y, self.z, self.m) == (
-            other.x, other.y, other.z, other.m)
+        return self.as_tuple() == other.as_tuple()
     # End eq built-in
+
+    @property
+    def __geo_interface__(self) -> Dict[str, Union[str, QUADRUPLE]]:
+        """
+        Geo Interface
+        """
+        # NOTE return 4 values when ZM present even though GeoJSON spec
+        #  suggests no more than 3
+        #  https://stevage.github.io/geojson-spec/#section-3.1.1
+        return {'type': 'Point', 'coordinates': self.as_tuple()}
+    # End geo_interface property
+
+    def as_tuple(self) -> QUADRUPLE:
+        """
+        As Tuple
+        """
+        return self.x, self.y, self.z, self.m
+    # End as_tuple method
 
     @property
     def is_empty(self) -> bool:
@@ -368,8 +431,7 @@ class PointZM(AbstractGeometry):
         """
         To WKB
         """
-        return WKB_POINT_ZM_PRE + pack(
-            FOUR_D_PACK_CODE, self.x, self.y, self.z, self.m)
+        return WKB_POINT_ZM_PRE + pack(FOUR_D_PACK_CODE, *self.as_tuple())
     # End _to_wkb method
 
     @property
@@ -450,6 +512,20 @@ class BaseMultiPoint(AbstractGeometry):
             return False
         return self.points == other.points
     # End eq built-in
+
+    @property
+    def __geo_interface__(self) -> Dict:
+        """
+        Geo Interface
+        """
+        # NOTE return 4 values when ZM present even though GeoJSON spec
+        #  suggests no more than 3
+        #  https://stevage.github.io/geojson-spec/#section-3.1.1
+        return {'type': 'MultiPoint',
+                'bbox': self.envelope.bounding_box,
+                'coordinates': tuple(
+                    tuple(coords) for coords in self.coordinates)}
+    # End geo_interface property
 
     @property
     def coordinates(self) -> 'ndarray':
