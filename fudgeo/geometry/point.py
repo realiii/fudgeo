@@ -514,6 +514,20 @@ class BaseMultiPoint(AbstractGeometry):
     # End eq built-in
 
     @property
+    def __geo_interface__(self) -> Dict:
+        """
+        Geo Interface
+        """
+        # NOTE return 4 values when ZM present even though GeoJSON spec
+        #  suggests no more than 3
+        #  https://stevage.github.io/geojson-spec/#section-3.1.1
+        return {'type': 'MultiPoint',
+                'bbox': self.envelope.bounding_box,
+                'coordinates': tuple(
+                    tuple(coords) for coords in self.coordinates)}
+    # End geo_interface property
+
+    @property
     def coordinates(self) -> 'ndarray':
         """
         Coordinates
