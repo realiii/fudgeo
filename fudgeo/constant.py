@@ -5,8 +5,9 @@ Constants
 
 
 from struct import pack
-from typing import ClassVar, Dict, List, Set, Tuple, Union
+from typing import Dict, List, Set, Tuple, Union
 
+from fudgeo.enumeration import EnvelopeCode
 
 DOUBLE = Tuple[float, float]
 TRIPLE = Tuple[float, float, float]
@@ -72,18 +73,6 @@ POINT_PREFIX_ZM: Dict[Tuple[bool, bool], bytes] = {
 }
 POINT_PREFIXES: Set[bytes] = {
     WKB_POINT_PRE, WKB_POINT_Z_PRE, WKB_POINT_M_PRE, WKB_POINT_ZM_PRE}
-
-
-class EnvelopeCode:
-    """
-    Envelope Code
-    """
-    empty: ClassVar[int] = 0
-    xy: ClassVar[int] = 1
-    xyz: ClassVar[int] = 2
-    xym: ClassVar[int] = 3
-    xyzm: ClassVar[int] = 4
-# End EnvelopeCode class
 
 
 HEADER_OFFSET: int = 8

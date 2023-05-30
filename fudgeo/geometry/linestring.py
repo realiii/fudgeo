@@ -8,10 +8,11 @@ from struct import pack
 from typing import Any, ClassVar, Dict, List, TYPE_CHECKING
 
 from fudgeo.constant import (
-    COUNT_CODE, EMPTY, EnvelopeCode, FOUR_D, THREE_D, TWO_D,
-    WKB_LINESTRING_M_PRE, WKB_LINESTRING_PRE, WKB_LINESTRING_ZM_PRE,
-    WKB_LINESTRING_Z_PRE, WKB_MULTI_LINESTRING_M_PRE, WKB_MULTI_LINESTRING_PRE,
+    COUNT_CODE, EMPTY, FOUR_D, THREE_D, TWO_D, WKB_LINESTRING_M_PRE,
+    WKB_LINESTRING_PRE, WKB_LINESTRING_ZM_PRE, WKB_LINESTRING_Z_PRE,
+    WKB_MULTI_LINESTRING_M_PRE, WKB_MULTI_LINESTRING_PRE,
     WKB_MULTI_LINESTRING_ZM_PRE, WKB_MULTI_LINESTRING_Z_PRE)
+from fudgeo.enumeration import EnvelopeCode
 from fudgeo.geometry.base import AbstractGeometry
 from fudgeo.geometry.point import Point, PointM, PointZ, PointZM
 from fudgeo.geometry.util import (

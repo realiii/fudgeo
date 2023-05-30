@@ -4,6 +4,9 @@ Enums
 """
 
 
+from typing import ClassVar
+
+
 class GPKGFlavors:
     """
     Geopackage Flavors mostly meaning which default srs definitions to use.
@@ -55,6 +58,18 @@ class SQLFieldType(GeometryType):
     timestamp = 'TIMESTAMP'
     datetime = 'DATETIME'
 # End SQLFieldType class
+
+
+class EnvelopeCode:
+    """
+    Envelope Code
+    """
+    empty: ClassVar[int] = 0
+    xy: ClassVar[int] = 1
+    xyz: ClassVar[int] = 2
+    xym: ClassVar[int] = 3
+    xyzm: ClassVar[int] = 4
+# End EnvelopeCode class
 
 
 if __name__ == '__main__':

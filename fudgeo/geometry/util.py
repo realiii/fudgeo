@@ -14,9 +14,9 @@ from numpy import array, frombuffer, ndarray
 from bottleneck import nanmax, nanmin
 
 from fudgeo.constant import (
-    COUNT_CODE, EMPTY, ENVELOPE_COUNT, ENVELOPE_OFFSET, EnvelopeCode, GP_MAGIC,
-    HEADER_CODE, HEADER_OFFSET, POINT_PREFIX_ZM)
-
+    COUNT_CODE, EMPTY, ENVELOPE_COUNT, ENVELOPE_OFFSET, GP_MAGIC, HEADER_CODE,
+    HEADER_OFFSET, POINT_PREFIX_ZM)
+from fudgeo.enumeration import EnvelopeCode
 
 if TYPE_CHECKING:  # pragma: no cover
     # noinspection PyUnresolvedReferences
