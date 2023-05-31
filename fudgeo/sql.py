@@ -231,6 +231,16 @@ SELECT_TABLES_BY_TYPE: str = """
 """
 
 
+SELECT_COUNT: str = """SELECT COUNT(1) AS C FROM {}"""
+
+
+SELECT_PRIMARY_KEY: str = """
+    SELECT name, type
+    FROM pragma_table_info('{}')
+    WHERE upper(type) = '{}' AND "notnull" = 1 AND pk = 1
+"""
+
+
 DEFAULT_SRS_RECS: Tuple[Tuple[str, int, str, int, str, str], ...] = (
     ('Undefined Cartesian SRS', -1, 'NONE', -1, 'undefined',
      'undefined cartesian coordinate reference system'),

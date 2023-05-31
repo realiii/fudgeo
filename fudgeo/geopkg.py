@@ -30,10 +30,11 @@ from fudgeo.sql import (
     GPKG_OGR_CONTENTS_DELETE_TRIGGER, GPKG_OGR_CONTENTS_INSERT_TRIGGER,
     HAS_OGR_CONTENTS, INSERT_GPKG_CONTENTS_SHORT, INSERT_GPKG_GEOM_COL,
     INSERT_GPKG_OGR_CONTENTS, INSERT_GPKG_SRS, KEYWORDS, REMOVE_FEATURE_CLASS,
-    REMOVE_TABLE, SELECT_EXTENT, SELECT_GEOMETRY_COLUMN, SELECT_GEOMETRY_TYPE,
-    SELECT_HAS_ZM, SELECT_SRS, SELECT_TABLES_BY_TYPE,
-    SPATIAL_INDEX_CREATE_TABLE, SPATIAL_INDEX_EXTENSION, SPATIAL_INDEX_INSERT,
-    SPATIAL_INDEX_RECORD, SPATIAL_INDEX_TRIGGERS, TABLE_EXISTS, UPDATE_EXTENT)
+    REMOVE_TABLE, SELECT_COUNT, SELECT_EXTENT, SELECT_GEOMETRY_COLUMN,
+    SELECT_GEOMETRY_TYPE, SELECT_HAS_ZM, SELECT_PRIMARY_KEY, SELECT_SRS,
+    SELECT_TABLES_BY_TYPE, SPATIAL_INDEX_CREATE_TABLE, SPATIAL_INDEX_EXTENSION,
+    SPATIAL_INDEX_INSERT, SPATIAL_INDEX_RECORD, SPATIAL_INDEX_TRIGGERS,
+    TABLE_EXISTS, UPDATE_EXTENT)
 
 
 if TYPE_CHECKING:
@@ -340,7 +341,7 @@ class BaseTable:
         Number of records
         """
         cursor = self.geopackage.connection.execute(
-            f"""SELECT COUNT(1) AS C FROM {self.escaped_name}""")
+            SELECT_COUNT.format(self.escaped_name))
         count, = cursor.fetchone()
         return count
     # End count property
@@ -358,11 +359,8 @@ class BaseTable:
         """
         Primary Key Field
         """
-        cursor = self.geopackage.connection.execute(f"""
-            SELECT name, type
-            FROM pragma_table_info('{self.name}')
-            WHERE upper(type) = '{SQLFieldType.integer}' AND 
-                  "notnull" = 1 AND pk = 1""")
+        cursor = self.geopackage.connection.execute(
+            SELECT_PRIMARY_KEY.format(self.name, SQLFieldType.integer))
         result = cursor.fetchone()
         if not result:
             return
