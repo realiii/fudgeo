@@ -30,7 +30,7 @@ from fudgeo.geometry.polygon import (
     Polygon, PolygonZ, PolygonM, PolygonZM,
     MultiPolygon, MultiPolygonZ, MultiPolygonM, MultiPolygonZM)
 from fudgeo.sql import (
-    SPATIAL_INDEX_CREATE_TABLE, SPATIAL_INDEX_EXTENSION, SPATIAL_INDEX_INSERT,
+    SPATIAL_INDEX_CREATE_TABLE, INSERT_EXTENSION, SPATIAL_INDEX_INSERT,
     SPATIAL_INDEX_RECORD, SPATIAL_INDEX_TRIGGERS)
 
 
@@ -55,7 +55,7 @@ def add_spatial_index(conn: 'Connection', feature_class: 'FeatureClass') -> None
     conn.execute(SPATIAL_INDEX_CREATE_TABLE.format(name, geom_name))
     conn.executescript(SPATIAL_INDEX_TRIGGERS.format(name, geom_name, pk_name))
     try:
-        conn.execute(SPATIAL_INDEX_EXTENSION, record)
+        conn.execute(INSERT_EXTENSION, record)
     except IntegrityError:
         pass
     if not feature_class.count:

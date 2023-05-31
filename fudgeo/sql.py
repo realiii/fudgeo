@@ -349,7 +349,7 @@ SPATIAL_INDEX_TRIGGERS: str = """
 """
 
 
-SPATIAL_INDEX_EXTENSION: str = """
+INSERT_EXTENSION: str = """
     INSERT INTO gpkg_extensions (table_name, column_name, extension_name, 
                                  definition, scope) VALUES (?, ?, ?, ?, ?)
 """
