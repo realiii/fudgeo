@@ -5,6 +5,7 @@ Spatial Type Functions
 
 
 from functools import lru_cache
+from sqlite3 import IntegrityError
 # noinspection PyPep8Naming
 from struct import error as StructError, unpack
 from typing import Callable, Dict, Optional, TYPE_CHECKING, Tuple, Type, Union
@@ -28,13 +29,39 @@ from fudgeo.geometry.point import (
 from fudgeo.geometry.polygon import (
     Polygon, PolygonZ, PolygonM, PolygonZM,
     MultiPolygon, MultiPolygonZ, MultiPolygonM, MultiPolygonZM)
+from fudgeo.sql import (
+    SPATIAL_INDEX_CREATE_TABLE, SPATIAL_INDEX_EXTENSION, SPATIAL_INDEX_INSERT,
+    SPATIAL_INDEX_RECORD, SPATIAL_INDEX_TRIGGERS)
 
 
 if TYPE_CHECKING:
+    from sqlite3 import Connection
     from fudgeo.geometry.base import AbstractGeometry
+    from fudgeo.geopkg import FeatureClass
 
 
 NONES = Tuple[None, None, None, None]
+
+
+def add_spatial_index(conn: 'Connection', feature_class: 'FeatureClass') -> None:
+    """
+    Add Spatial Index Table, Table Entry, and Triggers.  Load Spatial Index
+    Table if Feature Class has features.
+    """
+    name = feature_class.name
+    geom_name = feature_class.geometry_column_name
+    pk_name = feature_class.primary_key_field.escaped_name
+    record = name, geom_name, *SPATIAL_INDEX_RECORD
+    conn.execute(SPATIAL_INDEX_CREATE_TABLE.format(name, geom_name))
+    conn.executescript(SPATIAL_INDEX_TRIGGERS.format(name, geom_name, pk_name))
+    try:
+        conn.execute(SPATIAL_INDEX_EXTENSION, record)
+    except IntegrityError:
+        pass
+    if not feature_class.count:
+        return
+    conn.execute(SPATIAL_INDEX_INSERT.format(name, geom_name, pk_name))
+# End add_spatial_index function
 
 
 @lru_cache()
