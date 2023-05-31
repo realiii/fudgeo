@@ -18,7 +18,8 @@ from fudgeo.geometry import (
     MultiPoint, MultiPolygon, Point, Polygon, PolygonM)
 from fudgeo.geopkg import (
     FeatureClass, Field, GeoPackage, SHAPE, SpatialReferenceSystem, Table,
-    _convert_datetime, _has_ogr_contents)
+    _convert_datetime)
+from fudgeo.extension.ogr import has_ogr_contents
 from fudgeo.sql import SELECT_SRS
 from tests.crs import WGS_1984_UTM_Zone_23N
 
@@ -155,7 +156,7 @@ def test_create_table_drop_table(tmp_path, fields, name, ogr_contents, has_table
     path = tmp_path / 'tbl_drop'
     geo = GeoPackage.create(path, ogr_contents=ogr_contents)
     conn = geo.connection
-    assert _has_ogr_contents(conn) is has_table
+    assert has_ogr_contents(conn) is has_table
     table = geo.create_table(name, fields)
     assert isinstance(table, Table)
     tbl = geo.create_table(name, fields, overwrite=True)
@@ -247,7 +248,7 @@ def test_create_feature_drop_feature(tmp_path, fields, name, ogr_contents, has_t
     path = tmp_path / 'fc_drop'
     geo = GeoPackage.create(path, ogr_contents=ogr_contents)
     conn = geo.connection
-    assert _has_ogr_contents(conn) is has_table
+    assert has_ogr_contents(conn) is has_table
     srs = SpatialReferenceSystem(
         'WGS_1984_UTM_Zone_23N', 'EPSG', 32623, WGS_1984_UTM_Zone_23N)
     fc = geo.create_feature_class(name, srs=srs, fields=fields, spatial_index=add_index)
