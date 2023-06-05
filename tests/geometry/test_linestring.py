@@ -12,10 +12,10 @@ from fudgeo.geometry import (
 from fudgeo.geometry.util import (
     EMPTY_ENVELOPE, Envelope, make_header,
     unpack_header)
-from tests.conversion.geo import (
+from tests.geo import (
     points_m_to_gpkg_line_string_m, points_to_gpkg_line_string,
     points_z_to_gpkg_line_string_z, points_zm_to_gpkg_line_string_zm)
-from tests.conversion.wkb import (
+from tests.wkb import (
     point_lists_m_to_multi_line_string_m, point_lists_to_multi_line_string,
     point_lists_z_to_multi_line_string_z,
     point_lists_zm_to_multi_line_string_zm, points_m_to_wkb_line_string_m,

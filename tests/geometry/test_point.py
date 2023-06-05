@@ -15,10 +15,10 @@ from fudgeo.geometry import (
 from fudgeo.geometry.util import (
     EMPTY_ENVELOPE, Envelope, make_header,
     unpack_header)
-from tests.conversion.geo import (
+from tests.geo import (
     point_m_to_gpkg_point_m, point_to_gpkg_point, point_z_to_gpkg_point_z,
     point_zm_to_gpkg_point_zm)
-from tests.conversion.wkb import (
+from tests.wkb import (
     multipoint_m_to_wkb_multipoint_m, multipoint_to_wkb_multipoint,
     multipoint_z_to_wkb_multipoint_z, multipoint_zm_to_wkb_multipoint_zm,
     point_m_to_wkb_point_m, point_to_wkb_point, point_z_to_wkb_point_z,

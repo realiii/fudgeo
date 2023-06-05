@@ -7,7 +7,7 @@ Convert to Geopackage Geometry Blobs
 from struct import pack
 
 from fudgeo.constant import GP_MAGIC
-from tests.conversion.wkb import (
+from tests.wkb import (
     point_to_wkb_point, point_z_to_wkb_point_z, point_m_to_wkb_point_m,
     point_zm_to_wkb_point_zm, points_to_wkb_line_string,
     points_z_to_wkb_line_string_z, points_m_to_wkb_line_string_m,

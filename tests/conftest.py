@@ -10,7 +10,7 @@ from pytest import fixture
 
 from fudgeo.enumeration import SQLFieldType
 from fudgeo.geopkg import Field, GeoPackage, SpatialReferenceSystem
-from tests.conversion.geo import make_gpkg_geom_header
+from tests.geo import make_gpkg_geom_header
 from tests.crs import WGS_1984_UTM_Zone_23N
 
 
