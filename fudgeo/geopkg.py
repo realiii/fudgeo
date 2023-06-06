@@ -263,6 +263,16 @@ class GeoPackage:
             SELECT_TABLES_BY_TYPE, (data_type,))
         return {name: cls(self, name) for name, in cursor.fetchall()}
     # End _get_table_objects method
+
+    @property
+    def metadata(self) -> Optional[Metadata]:
+        """
+        Metadata for the Geopackage, None if Metadata extension not enabled.
+        """
+        if not self.is_metadata_enabled:
+            return
+        return Metadata(geopackage=self)
+    # End metadata property
 # End GeoPackage class
 
 
