@@ -283,7 +283,7 @@ class BaseTable:
         """
         Escaped Name
         """
-        return _escape_name(self.name)
+        return escape_name(self.name)
     # End escaped_name property
 
     @property
@@ -339,7 +339,7 @@ class Table(BaseTable):
         """
         cols = cls._column_names(fields)
         with geopackage.connection as conn:
-            escaped_name = _escape_name(name)
+            escaped_name = escape_name(name)
             has_contents = has_ogr_contents(conn)
             if overwrite:
                 cls._drop(conn=conn, sql=REMOVE_TABLE, geom_name='',
@@ -348,7 +348,7 @@ class Table(BaseTable):
             conn.execute(CREATE_TABLE.format(
                 name=escaped_name, other_fields=cols))
             conn.execute(INSERT_GPKG_CONTENTS_SHORT, (
-                name, DataType.attributes, name, description, _now(), None))
+                name, DataType.attributes, name, description, now(), None))
             if has_contents:
                 add_ogr_contents(conn, name=name, escaped_name=escaped_name)
         return cls(geopackage=geopackage, name=name)
@@ -413,7 +413,7 @@ class FeatureClass(BaseTable):
         """
         cols = cls._column_names(fields)
         with geopackage.connection as conn:
-            escaped_name = _escape_name(name)
+            escaped_name = escape_name(name)
             has_contents = has_ogr_contents(conn)
             if overwrite:
                 geom_name = cls._find_geometry_column_name(geopackage, name)
@@ -611,7 +611,7 @@ class Field:
         """
         Escaped Name, only adds quotes if needed
         """
-        return _escape_name(self.name)
+        return escape_name(self.name)
     # End escaped_name property
 
     def __repr__(self) -> str:
