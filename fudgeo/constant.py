@@ -14,6 +14,9 @@ TRIPLE = Tuple[float, float, float]
 QUADRUPLE = Tuple[float, float, float, float]
 COORDINATES = Union[List[DOUBLE], List[TRIPLE], List[QUADRUPLE]]
 
+COMMA_SPACE: str = ', '
+GPKG_EXT: str = '.gpkg'
+SHAPE: str = 'SHAPE'
 
 WGS84: int = 4326
 

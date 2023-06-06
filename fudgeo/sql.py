@@ -57,7 +57,14 @@ HAS_OGR_CONTENTS: str = """
 
 
 DELETE_OGR_CONTENTS: str = """
-    DELETE FROM gpkg_ogr_contents WHERE lower(table_name) = lower('{0}');
+    DELETE FROM gpkg_ogr_contents 
+    WHERE lower(table_name) = lower('{0}');
+"""
+
+
+DELETE_METADATA_REFERENCE: str = """
+    DELETE FROM gpkg_metadata_reference 
+    WHERE lower(table_name) = lower('{0}');
 """
 
 

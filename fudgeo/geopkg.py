@@ -27,12 +27,13 @@ from fudgeo.geometry import (
 from fudgeo.extension.spatial import ST_FUNCS, add_spatial_index
 from fudgeo.sql import (
     CHECK_SRS_EXISTS, CREATE_FEATURE_TABLE, CREATE_OGR_CONTENTS, CREATE_TABLE,
-    DEFAULT_EPSG_RECS, DEFAULT_ESRI_RECS, DELETE_OGR_CONTENTS,
-    INSERT_GPKG_CONTENTS_SHORT, INSERT_GPKG_GEOM_COL,
-    INSERT_GPKG_SRS, KEYWORDS, REMOVE_FEATURE_CLASS,
-    REMOVE_TABLE, SELECT_COUNT, SELECT_EXTENT, SELECT_GEOMETRY_COLUMN,
-    SELECT_GEOMETRY_TYPE, SELECT_HAS_ZM, SELECT_PRIMARY_KEY, SELECT_SRS,
-    SELECT_TABLES_BY_TYPE, TABLE_EXISTS, UPDATE_EXTENT)
+    DEFAULT_EPSG_RECS, DEFAULT_ESRI_RECS, DELETE_METADATA_REFERENCE,
+    DELETE_OGR_CONTENTS, INSERT_GPKG_CONTENTS_SHORT, INSERT_GPKG_GEOM_COL,
+    INSERT_GPKG_SRS, REMOVE_FEATURE_CLASS, REMOVE_TABLE, SELECT_COUNT,
+    SELECT_EXTENT, SELECT_GEOMETRY_COLUMN, SELECT_GEOMETRY_TYPE, SELECT_HAS_ZM,
+    SELECT_PRIMARY_KEY, SELECT_SRS, SELECT_TABLES_BY_TYPE, TABLE_EXISTS,
+    UPDATE_EXTENT)
+from fudgeo.util import convert_datetime, escape_name, now
 
 
 if TYPE_CHECKING:
@@ -41,30 +42,6 @@ if TYPE_CHECKING:
 
 
 FIELDS = Union[Tuple['Field', ...], List['Field']]
-NAME_MATCHER: Callable = recompile(r'^[A-Z]\w*$', IGNORECASE).match
-
-
-COMMA_SPACE: str = ', '
-GPKG_EXT: str = '.gpkg'
-SHAPE: str = 'SHAPE'
-
-
-def _escape_name(name: str) -> str:
-    """
-    Escape Name
-    """
-    if name.upper() in KEYWORDS or not NAME_MATCHER(name):
-        name = f'"{name}"'
-    return name
-# End _escape_name function
-
-
-def _now() -> str:
-    """
-    Formatted Now
-    """
-    return datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%fZ')
-# End _now method
 
 
 def _adapt_geometry(val: 'AbstractGeometry') -> bytes:
@@ -73,49 +50,6 @@ def _adapt_geometry(val: 'AbstractGeometry') -> bytes:
     """
     return val.to_gpkg()
 # End _adapt_geometry function
-
-
-def _convert_datetime(val: bytes) -> datetime:
-    """
-    Heavily Influenced by convert_timestamp from ../sqlite3/dbapi2.py,
-    Added in support for timezone handling although the practice should
-    be to resolve to UTC.
-    """
-    colon = b':'
-    dash = b'-'
-    # NOTE To split timestamps like that b'2022-09-06T13:50:33'
-    for separator in (b' ', b'T'):
-        try:
-            dt, tm = val.split(separator)
-            break
-        except ValueError:
-            pass
-    else:
-        raise Exception(f"Could not split datetime: '{val}'")
-    year, month, day = map(int, dt.split(dash))
-    tm, *micro = tm.split(b'.')
-    tz = []
-    factor = 0
-    for token, scale in zip((b'+', dash), (1, -1)):
-        if token in tm:
-            tm, *tz = tm.split(token)
-            factor = scale
-            break
-    hours, minutes, seconds = map(int, tm.split(colon))
-    try:
-        micro = int('{:0<6.6}'.format(micro[0].decode())) if micro else 0
-    except (ValueError, TypeError):
-        micro = 0
-    if tz:
-        tz_hr, *tz_min = map(int, tz[0].split(colon))
-        tz_min = tz_min[0] if tz_min else 0
-        tzinfo = timezone(timedelta(
-            hours=factor * tz_hr, minutes=factor * tz_min))
-    else:
-        tzinfo = None
-    return datetime(year, month, day, hours, minutes, seconds,
-                    micro, tzinfo=tzinfo)
-# End _convert_datetime function
 
 
 def _register_geometry() -> None:
