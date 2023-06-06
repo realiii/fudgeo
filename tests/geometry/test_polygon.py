@@ -14,7 +14,7 @@ from fudgeo.geometry.polygon import (
 from fudgeo.geometry.util import (
     EMPTY_ENVELOPE, Envelope, make_header,
     unpack_header)
-from tests.conversion.wkb import (
+from tests.wkb import (
     _linear_ring_m_to_wkb, _linear_ring_to_wkb, _linear_ring_z_to_wkb,
     _linear_ring_zm_to_wkb, point_lists_m_to_wkb_multipolygon_m,
     point_lists_m_to_wkb_polygon_m, point_lists_to_wkb_multipolygon,

@@ -72,5 +72,44 @@ class EnvelopeCode:
 # End EnvelopeCode class
 
 
+class MetadataScope:
+    """
+    Metadata Scope
+    """
+    undefined: ClassVar[str] = 'undefined'
+    field_session: ClassVar[str] = 'fieldSession'
+    collection_session: ClassVar[str] = 'collectionSession'
+    series: ClassVar[str] = 'series'
+    dataset: ClassVar[str] = 'dataset'
+    feature_type: ClassVar[str] = 'featureType'
+    feature: ClassVar[str] = 'feature'
+    attribute_type: ClassVar[str] = 'attributeType'
+    attribute: ClassVar[str] = 'attribute'
+    tile: ClassVar[str] = 'tile'
+    model: ClassVar[str] = 'model'
+    catalog: ClassVar[str] = 'catalog'
+    schema: ClassVar[str] = 'schema'
+    taxonomy: ClassVar[str] = 'taxonomy'
+    software: ClassVar[str] = 'software'
+    service: ClassVar[str] = 'service'
+    collection_hardware: ClassVar[str] = 'collectionHardware'
+    non_geographic_dataset: ClassVar[str] = 'nonGeographicDataset'
+    dimension_group: ClassVar[str] = 'dimensionGroup'
+    style: ClassVar[str] = 'style'
+# End MetadataScope class
+
+
+class MetadataReferenceScope:
+    """
+    Metadata Reference Scope
+    """
+    geopackage: ClassVar[str] = 'geopackage'
+    table: ClassVar[str] = 'table'
+    column: ClassVar[str] = 'column'
+    row: ClassVar[str] = 'row'
+    row_col: ClassVar[str] = 'row/col'
+# End MetadataReferenceScope class
+
+
 if __name__ == '__main__':
     pass

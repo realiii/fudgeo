@@ -17,8 +17,9 @@ from fudgeo.geometry import (
     LineString, LineStringM, LineStringZ, LineStringZM, MultiLineString,
     MultiPoint, MultiPolygon, Point, Polygon, PolygonM)
 from fudgeo.geopkg import (
-    FeatureClass, Field, GeoPackage, SHAPE, SpatialReferenceSystem, Table,
-    _convert_datetime, _has_ogr_contents)
+    FeatureClass, Field, GeoPackage, SpatialReferenceSystem, Table)
+from fudgeo.constant import SHAPE
+from fudgeo.extension.ogr import has_ogr_contents
 from fudgeo.sql import SELECT_SRS
 from tests.crs import WGS_1984_UTM_Zone_23N
 
@@ -155,7 +156,7 @@ def test_create_table_drop_table(tmp_path, fields, name, ogr_contents, has_table
     path = tmp_path / 'tbl_drop'
     geo = GeoPackage.create(path, ogr_contents=ogr_contents)
     conn = geo.connection
-    assert _has_ogr_contents(conn) is has_table
+    assert has_ogr_contents(conn) is has_table
     table = geo.create_table(name, fields)
     assert isinstance(table, Table)
     tbl = geo.create_table(name, fields, overwrite=True)
@@ -247,7 +248,7 @@ def test_create_feature_drop_feature(tmp_path, fields, name, ogr_contents, has_t
     path = tmp_path / 'fc_drop'
     geo = GeoPackage.create(path, ogr_contents=ogr_contents)
     conn = geo.connection
-    assert _has_ogr_contents(conn) is has_table
+    assert has_ogr_contents(conn) is has_table
     srs = SpatialReferenceSystem(
         'WGS_1984_UTM_Zone_23N', 'EPSG', 32623, WGS_1984_UTM_Zone_23N)
     fc = geo.create_feature_class(name, srs=srs, fields=fields, spatial_index=add_index)
@@ -673,27 +674,6 @@ def test_insert_polygon_m(setup_geopackage, add_index):
             fc.name, fc.geometry_column_name))
         assert cursor.fetchall() == [(1, 0, 15, 0, 15)]
 # End test_insert_polygon_m function
-
-
-@mark.parametrize('val, expected', [
-    (b'1977-06-15 03:18:54', datetime(1977, 6, 15, 3, 18, 54, 0)),
-    (b'1977-06-15 03:18:54.123456', datetime(1977, 6, 15, 3, 18, 54, 123456)),
-    (b'2000-06-06 11:43:37+00:00', datetime(2000, 6, 6, 11, 43, 37, 0, tzinfo=timezone.utc)),
-    (b'2000-06-06 11:43:37+01:00', datetime(2000, 6, 6, 11, 43, 37, 0, tzinfo=timezone(timedelta(hours=1)))),
-    (b'2000-06-06 11:43:37+02:30', datetime(2000, 6, 6, 11, 43, 37, 0, tzinfo=timezone(timedelta(hours=2, minutes=30)))),
-    (b'2000-06-06 11:43:37-05:15', datetime(2000, 6, 6, 11, 43, 37, 0, tzinfo=timezone(timedelta(seconds=-18900)))),
-    (b'2000-06-06 11:43:37-05:15', datetime(2000, 6, 6, 11, 43, 37, 0, tzinfo=timezone(timedelta(seconds=-18900)))),
-    (b'1977-06-15T03:18:54', datetime(1977, 6, 15, 3, 18, 54, 0)),
-    (b'1977-06-15T03:18:54.123456', datetime(1977, 6, 15, 3, 18, 54, 123456)),
-    (b'2000-06-06T11:43:37+00:00', datetime(2000, 6, 6, 11, 43, 37, 0, tzinfo=timezone.utc)),
-    (b'2022-02-14T08:37:41.0Z', datetime(2022, 2, 14, 8, 37, 41, 0)),
-])
-def test_convert_datetime(val, expected):
-    """
-    Test the datetime converter
-    """
-    assert _convert_datetime(val) == expected
-# End test_convert_datetime function
 
 
 def test_custom_spatial_reference(tmp_path, fields):

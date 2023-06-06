@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Package Initialization
+Geopackage Extension
 """
 
 

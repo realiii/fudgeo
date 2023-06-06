@@ -30,6 +30,10 @@ KEYWORDS: Set[str] = {
     'WHEN', 'WHERE', 'WINDOW', 'WITH', 'WITHOUT'
 }
 
+
+ROOT: str = 'https://www.geopackage.org/spec131/'
+
+
 INSERT_GPKG_CONTENTS_SHORT: str = """
     INSERT INTO gpkg_contents (
         table_name, data_type, identifier, description, last_change, srs_id) 
@@ -57,14 +61,21 @@ HAS_OGR_CONTENTS: str = """
 
 
 DELETE_OGR_CONTENTS: str = """
-    DELETE FROM gpkg_ogr_contents WHERE lower(table_name) = lower('{0}');
+    DELETE FROM gpkg_ogr_contents 
+    WHERE lower(table_name) = lower('{0}');
+"""
+
+
+DELETE_METADATA_REFERENCE: str = """
+    DELETE FROM gpkg_metadata_reference 
+    WHERE lower(table_name) = lower('{0}');
 """
 
 
 # NOTE 0 - table name, 1 - escaped name, 2 - geometry column name
 REMOVE_FEATURE_CLASS: str = """
-    DELETE FROM gpkg_contents WHERE lower(table_name) = lower('{0}');
     DELETE FROM gpkg_geometry_columns WHERE lower(table_name) = lower('{0}');
+    DELETE FROM gpkg_contents WHERE lower(table_name) = lower('{0}');
     DELETE FROM gpkg_extensions 
     WHERE lower(table_name) = lower('{0}') AND 
           lower(extension_name) = 'gpkg_rtree_index';
@@ -116,15 +127,14 @@ INSERT_GPKG_GEOM_COL: str = """
 
 CREATE_FEATURE_TABLE: str = """
     CREATE TABLE {name} (
-        fid INTEGER not null primary key autoincrement, 
+        fid INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, 
         SHAPE {feature_type}{other_fields})
 """
 
 
 CREATE_TABLE: str = """
     CREATE TABLE {name} (
-        fid INTEGER not null 
-        primary key autoincrement  
+        fid INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT  
         {other_fields})
 """
 
@@ -228,6 +238,16 @@ SELECT_TABLES_BY_TYPE: str = """
     SELECT table_name 
     FROM gpkg_contents 
     WHERE data_type = ?
+"""
+
+
+SELECT_COUNT: str = """SELECT COUNT(1) AS C FROM {}"""
+
+
+SELECT_PRIMARY_KEY: str = """
+    SELECT name, type
+    FROM pragma_table_info('{}')
+    WHERE upper(type) = '{}' AND "notnull" = 1 AND pk = 1
 """
 
 
@@ -339,15 +359,68 @@ SPATIAL_INDEX_TRIGGERS: str = """
 """
 
 
-SPATIAL_INDEX_EXTENSION: str = """
+INSERT_EXTENSION: str = """
     INSERT INTO gpkg_extensions (table_name, column_name, extension_name, 
                                  definition, scope) VALUES (?, ?, ?, ?, ?)
 """
 
 
 SPATIAL_INDEX_RECORD: Tuple[str, str, str] = (
-    'gpkg_rtree_index', 'https://www.geopackage.org/spec131/#extension_rtree',
-    'write-only')
+    'gpkg_rtree_index', f'{ROOT}#extension_rtree', 'write-only')
+
+
+CREATE_METADATA: str = """
+    CREATE TABLE gpkg_metadata (
+        id              INTEGER PRIMARY KEY AUTOINCREMENT,
+        md_scope        TEXT NOT NULL DEFAULT 'dataset',
+        md_standard_uri TEXT NOT NULL,
+        mime_type       TEXT NOT NULL DEFAULT 'text/xml',
+        metadata        TEXT NOT NULL DEFAULT ''
+    );
+"""
+
+
+CREATE_METADATA_REFERENCE: str = """
+    CREATE TABLE gpkg_metadata_reference (
+        reference_scope TEXT     NOT NULL,
+        table_name      TEXT,
+        column_name     TEXT,
+        row_id_value    INTEGER,
+        timestamp       DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%S.%fZ', 'now')),
+        md_file_id      INTEGER  NOT NULL,
+        md_parent_id    INTEGER,
+        CONSTRAINT crmr_mfi_fk FOREIGN KEY (md_file_id) REFERENCES gpkg_metadata (id),
+        CONSTRAINT crmr_mpi_fk FOREIGN KEY (md_parent_id) REFERENCES gpkg_metadata (id)
+    );
+"""
+
+
+HAS_METADATA: str = """
+    SELECT name FROM sqlite_master 
+    WHERE type = 'table' AND 
+          name IN ('gpkg_metadata', 'gpkg_metadata_reference')
+"""
+
+
+INSERT_METADATA: str = """
+    INSERT INTO gpkg_metadata(md_scope, md_standard_uri, mime_type, metadata) 
+    VALUES (?, ?, ?, ?)
+"""
+
+
+INSERT_METADATA_REFERENCE: str = """
+    INSERT INTO gpkg_metadata_reference (reference_scope, table_name, 
+            column_name, row_id_value, timestamp, md_file_id, md_parent_id) 
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+"""
+
+
+METADATA_RECORDS: Tuple[Tuple[str, None, str, str, str], ...] = (
+    ('gpkg_metadata', None, 'gpkg_metadata',
+     f'{ROOT}#extension_metadata', 'read-write'),
+    ('gpkg_metadata_reference', None, 'gpkg_metadata',
+     f'{ROOT}#extension_metadata', 'read-write'),
+)
 
 
 if __name__ == '__main__':
