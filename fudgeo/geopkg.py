@@ -113,6 +113,7 @@ class GeoPackage:
             self._conn = connect(
                 str(self._path), isolation_level='EXCLUSIVE',
                 detect_types=PARSE_DECLTYPES | PARSE_COLNAMES)
+            self._conn.execute("""PRAGMA foreign_keys = true""")
             _register_geometry()
             _add_st_functions(self._conn)
             register_converter('timestamp', convert_datetime)
@@ -424,11 +425,11 @@ class FeatureClass(BaseTable):
                 name=escaped_name, feature_type=shape_type, other_fields=cols))
             if not geopackage.check_srs_exists(srs.srs_id):
                 conn.execute(INSERT_GPKG_SRS, srs.as_record())
+            conn.execute(INSERT_GPKG_CONTENTS_SHORT, (
+                name, DataType.features, name, description, now(), srs.srs_id))
             conn.execute(INSERT_GPKG_GEOM_COL,
                          (name, SHAPE, shape_type, srs.srs_id,
                           int(z_enabled), int(m_enabled)))
-            conn.execute(INSERT_GPKG_CONTENTS_SHORT, (
-                name, DataType.features, name, description, _now(), srs.srs_id))
             if has_contents:
                 add_ogr_contents(conn, name=name, escaped_name=escaped_name)
             feature_class = cls(geopackage=geopackage, name=name)

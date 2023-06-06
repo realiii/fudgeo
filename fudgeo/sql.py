@@ -74,8 +74,8 @@ DELETE_METADATA_REFERENCE: str = """
 
 # NOTE 0 - table name, 1 - escaped name, 2 - geometry column name
 REMOVE_FEATURE_CLASS: str = """
-    DELETE FROM gpkg_contents WHERE lower(table_name) = lower('{0}');
     DELETE FROM gpkg_geometry_columns WHERE lower(table_name) = lower('{0}');
+    DELETE FROM gpkg_contents WHERE lower(table_name) = lower('{0}');
     DELETE FROM gpkg_extensions 
     WHERE lower(table_name) = lower('{0}') AND 
           lower(extension_name) = 'gpkg_rtree_index';
