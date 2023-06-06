@@ -11,10 +11,10 @@ from typing import List, Optional, TYPE_CHECKING, Tuple, Union
 
 from fudgeo.enumeration import MetadataReferenceScope, MetadataScope
 from fudgeo.sql import (
-    CREATE_METADATA, CREATE_METADATA_REFERENCE, HAS_METADATA,
-    INSERT_EXTENSION, INSERT_METADATA, INSERT_METADATA_REFERENCE,
-    METADATA_RECORDS)
+    CREATE_METADATA, CREATE_METADATA_REFERENCE, HAS_METADATA, INSERT_EXTENSION,
+    INSERT_METADATA, INSERT_METADATA_REFERENCE, METADATA_RECORDS)
 from fudgeo.util import now
+
 
 if TYPE_CHECKING:
     from sqlite3 import Connection
