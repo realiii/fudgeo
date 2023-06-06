@@ -146,6 +146,16 @@ class GeoPackage:
         return cls(path)
     # End create method
 
+    def add_spatial_reference(self, srs: 'SpatialReferenceSystem') -> None:
+        """
+        Add Spatial Reference
+        """
+        if self.check_srs_exists(srs.srs_id):
+            return
+        with self.connection as conn:
+            conn.execute(INSERT_GPKG_SRS, srs.as_record())
+    # End add_spatial_reference method
+
     def check_srs_exists(self, srs_id: int) -> bool:
         """
         Check if a SpatialReferenceSystem already exists in the table.
