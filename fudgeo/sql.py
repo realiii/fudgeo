@@ -30,6 +30,10 @@ KEYWORDS: Set[str] = {
     'WHEN', 'WHERE', 'WINDOW', 'WITH', 'WITHOUT'
 }
 
+
+ROOT: str = 'https://www.geopackage.org/spec131/'
+
+
 INSERT_GPKG_CONTENTS_SHORT: str = """
     INSERT INTO gpkg_contents (
         table_name, data_type, identifier, description, last_change, srs_id) 
@@ -363,8 +367,61 @@ INSERT_EXTENSION: str = """
 
 
 SPATIAL_INDEX_RECORD: Tuple[str, str, str] = (
-    'gpkg_rtree_index', 'https://www.geopackage.org/spec131/#extension_rtree',
-    'write-only')
+    'gpkg_rtree_index', f'{ROOT}#extension_rtree', 'write-only')
+
+
+CREATE_METADATA: str = """
+    CREATE TABLE gpkg_metadata (
+        id              INTEGER PRIMARY KEY AUTOINCREMENT,
+        md_scope        TEXT NOT NULL DEFAULT 'dataset',
+        md_standard_uri TEXT NOT NULL,
+        mime_type       TEXT NOT NULL DEFAULT 'text/xml',
+        metadata        TEXT NOT NULL DEFAULT ''
+    );
+"""
+
+
+CREATE_METADATA_REFERENCE: str = """
+    CREATE TABLE gpkg_metadata_reference (
+        reference_scope TEXT     NOT NULL,
+        table_name      TEXT,
+        column_name     TEXT,
+        row_id_value    INTEGER,
+        timestamp       DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%S.%fZ', 'now')),
+        md_file_id      INTEGER  NOT NULL,
+        md_parent_id    INTEGER,
+        CONSTRAINT crmr_mfi_fk FOREIGN KEY (md_file_id) REFERENCES gpkg_metadata (id),
+        CONSTRAINT crmr_mpi_fk FOREIGN KEY (md_parent_id) REFERENCES gpkg_metadata (id)
+    );
+"""
+
+
+HAS_METADATA: str = """
+    SELECT name FROM sqlite_master 
+    WHERE type = 'table' AND 
+          name IN ('gpkg_metadata', 'gpkg_metadata_reference')
+"""
+
+
+INSERT_METADATA: str = """
+    INSERT INTO gpkg_metadata(md_scope, md_standard_uri, mime_type, metadata) 
+    VALUES (?, ?, ?, ?)
+"""
+
+
+INSERT_METADATA_REFERENCE: str = """
+    INSERT INTO gpkg_metadata_reference (reference_scope, table_name, 
+            column_name, row_id_value, timestamp, md_file_id, md_parent_id) 
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+"""
+
+
+METADATA_RECORDS: Tuple[Tuple[str, None, str, str, str], ...] = (
+    ('gpkg_metadata', None, 'gpkg_metadata',
+     f'{ROOT}#extension_metadata', 'read-write'),
+    ('gpkg_metadata_reference', None, 'gpkg_metadata',
+     f'{ROOT}#extension_metadata', 'read-write'),
+)
 
 
 if __name__ == '__main__':
