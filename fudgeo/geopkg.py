@@ -162,7 +162,7 @@ class GeoPackage:
     def check_srs_exists(self, srs_id: int) -> bool:
         """
         Check if a SpatialReferenceSystem already exists in the table.
-        This is done purely by srs id because that is all ESRI looks at.
+        Done purely by srs id here but could be done via wkt on definition.
         """
         cursor = self.connection.execute(CHECK_SRS_EXISTS, (srs_id,))
         return bool(cursor.fetchall())
