@@ -39,10 +39,10 @@ The `fudgeo` library is compatible with Python 3.7 to 3.11.
 from fudgeo.geopkg import GeoPackage
 
 # Creates an empty geopackage
-gpkg = GeoPackage.create(r'c:\data\example.gpkg')
+gpkg: GeoPackage = GeoPackage.create(r'c:\data\example.gpkg')
 
 # Opens an existing Geopackage (no validation)
-gpkg = GeoPackage(r'c:\data\example.gpkg')
+gpkg: GeoPackage = GeoPackage(r'c:\data\example.gpkg')
 ```
 
 `GeoPackage`s are created with *three* default Spatial References defined
@@ -57,7 +57,7 @@ may provide a ``flavor`` parameter to the create method specifying EPSG.
 
 ```python
 # Creates an empty geopackage
-gpkg = GeoPackage.create(r'c:\temp\test.gpkg', flavor='EPSG')
+gpkg: GeoPackage = GeoPackage.create(r'c:\temp\test.gpkg', flavor='EPSG')
 ```
 
 ### Create a Feature Class
@@ -164,20 +164,22 @@ of this package.
 
 
 ```python
-from fudgeo.geometry import Point, LineStringZM, Polygon
+from typing import List, Tuple
+from fudgeo.geometry import LineStringZM, Point, Polygon
 
 # Point in WGS 84
-pt = Point(x=-119, y=34)
+pt: Point = Point(x=-119, y=34)
 
 # Line with ZM Values for use with UTM Zone 23N (WGS 84)
-coords = [(300000, 1, 10, 0), (300000, 4000000, 20, 1000),
-          (700000, 4000000, 30, 2000), (700000, 1, 40, 3000)]
-line = LineStringZM(coords, srs_id=32623)
+coords: List[Tuple[float, float, float, float]] = [
+    (300000, 1, 10, 0), (300000, 4000000, 20, 1000),
+    (700000, 4000000, 30, 2000), (700000, 1, 40, 3000)]
+line: LineStringZM = LineStringZM(coords, srs_id=32623)
 
 # list of rings where a ring is simply the list of points it contains.
-rings = [[(300000, 1), (300000, 4000000), (700000, 4000000),
-          (700000, 1), (300000, 1)]]
-poly = Polygon(rings, srs_id=32623)
+rings: List[List[Tuple[float, float]]] = [
+    [(300000, 1), (300000, 4000000), (700000, 4000000), (700000, 1), (300000, 1)]]
+poly: Polygon = Polygon(rings, srs_id=32623)
 ```
 
 ### Select Features from GeoPackage (SQL)
@@ -225,6 +227,18 @@ features = cursor.fetchall()
 [MIT](https://choosealicense.com/licenses/mit/)
 
 ## Release History
+
+### next release
+* add support for **schema** extension
+* add support for **metadata** extension
+* add `__geo_interface__` to geometry classes
+* introduce `bounding_box` property on `Envelope` class
+* introduce `as_tuple` method on `Point` classes
+* add `extension` sub-package, move `spatial` module into `extension`
+* reorganize code to handle OGR contents like an extension
+* move protected functions from `geopkg` module into `util` module and rename
+* add type hinting to `enumerations` module
+* move `EnvelopeCode` into `enumerations`
 
 ### v0.6.0
 * change `ogr_contents` default value to `False` (breaking change)
