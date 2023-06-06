@@ -4,27 +4,26 @@ Geopackage
 """
 
 
-from datetime import datetime, timedelta, timezone
 from math import nan
 from os import PathLike
 from pathlib import Path
-from re import IGNORECASE, compile as recompile
 from sqlite3 import (
-    PARSE_COLNAMES, PARSE_DECLTYPES, connect,
-    register_adapter, register_converter)
-from typing import (
-    Callable, Dict, List, Optional, TYPE_CHECKING, Tuple, Type, Union)
+    PARSE_COLNAMES, PARSE_DECLTYPES, connect, register_adapter,
+    register_converter)
+from typing import Dict, List, Optional, TYPE_CHECKING, Tuple, Type, Union
 
-from fudgeo.enumeration import (
-    DataType, GPKGFlavors, GeometryType, SQLFieldType)
+from fudgeo.constant import COMMA_SPACE, GPKG_EXT, SHAPE
+from fudgeo.enumeration import DataType, GPKGFlavors, GeometryType, SQLFieldType
+from fudgeo.extension.metadata import (
+    Metadata, add_metadata_extension, has_metadata_extension)
 from fudgeo.extension.ogr import add_ogr_contents, has_ogr_contents
-from fudgeo.geometry import (
-    Point, PointZ, PointM, PointZM, MultiPoint, MultiPointZ, MultiPointM,
-    MultiPointZM, LineString, LineStringZ, LineStringM, LineStringZM,
-    MultiLineString, MultiLineStringZ, MultiLineStringM, MultiLineStringZM,
-    Polygon, PolygonZ, PolygonM, PolygonZM, MultiPolygon, MultiPolygonZ,
-    MultiPolygonM, MultiPolygonZM)
 from fudgeo.extension.spatial import ST_FUNCS, add_spatial_index
+from fudgeo.geometry import (
+    LineString, LineStringM, LineStringZ, LineStringZM, MultiLineString,
+    MultiLineStringM, MultiLineStringZ, MultiLineStringZM, MultiPoint,
+    MultiPointM, MultiPointZ, MultiPointZM, MultiPolygon, MultiPolygonM,
+    MultiPolygonZ, MultiPolygonZM, Point, PointM, PointZ, PointZM, Polygon,
+    PolygonM, PolygonZ, PolygonZM)
 from fudgeo.sql import (
     CHECK_SRS_EXISTS, CREATE_FEATURE_TABLE, CREATE_OGR_CONTENTS, CREATE_TABLE,
     DEFAULT_EPSG_RECS, DEFAULT_ESRI_RECS, DELETE_METADATA_REFERENCE,
@@ -116,8 +115,8 @@ class GeoPackage:
                 detect_types=PARSE_DECLTYPES | PARSE_COLNAMES)
             _register_geometry()
             _add_st_functions(self._conn)
-            register_converter('timestamp', _convert_datetime)
-            register_converter('datetime', _convert_datetime)
+            register_converter('timestamp', convert_datetime)
+            register_converter('datetime', convert_datetime)
         return self._conn
     # End connection property
 
