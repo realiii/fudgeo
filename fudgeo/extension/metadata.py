@@ -93,11 +93,12 @@ class AbstractTableReference(AbstractReference):
         """
         Validate Table Name
         """
-        name = self._table_name
+        table_name = self._table_name
         table = geopackage.feature_classes.get(
-            name, geopackage.tables.get(name))
+            table_name, geopackage.tables.get(table_name))
         if not table:
-            raise ValueError(f'table name "{name}" not found in {geopackage!r}')
+            raise ValueError(
+                f'table name "{table_name}" not found in {geopackage!r}')
         return table
     # End _validate_table_name method
 
