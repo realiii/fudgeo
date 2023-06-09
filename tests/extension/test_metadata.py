@@ -9,8 +9,8 @@ from pytest import fixture, mark, raises
 from crs import WGS_1984_UTM_Zone_23N
 from fudgeo.enumeration import GeometryType, MetadataScope, SQLFieldType
 from fudgeo.extension.metadata import (
-    ColumnReference, Metadata, RowColumnReference, RowReference,
-    TableReference)
+    ColumnReference, GeopackageReference, Metadata, RowColumnReference,
+    RowReference, TableReference)
 from fudgeo.geometry import LineString, Point
 from fudgeo.geopkg import Field, GeoPackage, SpatialReferenceSystem
 
@@ -173,6 +173,7 @@ def test_add_metadata_hierarchical_example2(example2):
     assert [i for i, in cursor.fetchall()] == list(range(1, 20))
     table_name = 'poi'
     references = [
+        GeopackageReference(file_id=1),
         TableReference(table_name=table_name, file_id=1),
         TableReference(table_name=table_name, file_id=10, parent_id=1),
         RowReference(table_name=table_name, row_id=1, file_id=11, parent_id=1),
@@ -189,13 +190,13 @@ def test_add_metadata_hierarchical_example2(example2):
     cursor = connection.execute(
         """SELECT COUNT(1) AS C FROM gpkg_metadata_reference""")
     count, = cursor.fetchone()
-    assert count == 11
+    assert count == 12
     table = pkg.feature_classes[table_name]
     table.drop()
     cursor = connection.execute(
         """SELECT COUNT(1) AS C FROM gpkg_metadata_reference""")
     count, = cursor.fetchone()
-    assert count == 0
+    assert count == 1
 # End test_add_metadata_hierarchical_example2 function
 
 
