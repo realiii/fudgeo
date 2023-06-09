@@ -17,6 +17,8 @@ from fudgeo.enumeration import DataType, GPKGFlavors, GeometryType, SQLFieldType
 from fudgeo.extension.metadata import (
     Metadata, add_metadata_extension, has_metadata_extension)
 from fudgeo.extension.ogr import add_ogr_contents, has_ogr_contents
+from fudgeo.extension.schema import (
+    Schema, add_schema_extension, has_schema_extension)
 from fudgeo.extension.spatial import ST_FUNCS, add_spatial_index
 from fudgeo.geometry import (
     LineString, LineStringM, LineStringZ, LineStringZM, MultiLineString,
@@ -26,12 +28,12 @@ from fudgeo.geometry import (
     PolygonM, PolygonZ, PolygonZM)
 from fudgeo.sql import (
     CHECK_SRS_EXISTS, CREATE_FEATURE_TABLE, CREATE_OGR_CONTENTS, CREATE_TABLE,
-    DEFAULT_EPSG_RECS, DEFAULT_ESRI_RECS, DELETE_METADATA_REFERENCE,
-    DELETE_OGR_CONTENTS, INSERT_GPKG_CONTENTS_SHORT, INSERT_GPKG_GEOM_COL,
-    INSERT_GPKG_SRS, REMOVE_FEATURE_CLASS, REMOVE_TABLE, SELECT_COUNT,
-    SELECT_EXTENT, SELECT_GEOMETRY_COLUMN, SELECT_GEOMETRY_TYPE, SELECT_HAS_ZM,
-    SELECT_PRIMARY_KEY, SELECT_SRS, SELECT_TABLES_BY_TYPE, TABLE_EXISTS,
-    UPDATE_EXTENT)
+    DEFAULT_EPSG_RECS, DEFAULT_ESRI_RECS, DELETE_DATA_COLUMNS,
+    DELETE_METADATA_REFERENCE, DELETE_OGR_CONTENTS, INSERT_GPKG_CONTENTS_SHORT,
+    INSERT_GPKG_GEOM_COL, INSERT_GPKG_SRS, REMOVE_FEATURE_CLASS, REMOVE_TABLE,
+    SELECT_COUNT, SELECT_EXTENT, SELECT_GEOMETRY_COLUMN, SELECT_GEOMETRY_TYPE,
+    SELECT_HAS_ZM, SELECT_PRIMARY_KEY, SELECT_SRS, SELECT_TABLES_BY_TYPE,
+    TABLE_EXISTS, UPDATE_EXTENT)
 from fudgeo.util import convert_datetime, escape_name, now
 
 
@@ -122,10 +124,9 @@ class GeoPackage:
     # End connection property
 
     @classmethod
-    def create(cls, path: Union[PathLike, str],
-               flavor: str = GPKGFlavors.esri,
-               ogr_contents: bool = False,
-               enable_metadata: bool = False) -> 'GeoPackage':
+    def create(cls, path: Union[PathLike, str], flavor: str = GPKGFlavors.esri,
+               ogr_contents: bool = False, enable_metadata: bool = False,
+               enable_schema: bool = False) -> 'GeoPackage':
         """
         Create a new GeoPackage
         """
@@ -146,6 +147,8 @@ class GeoPackage:
                 conn.execute(CREATE_OGR_CONTENTS)
             if enable_metadata:
                 add_metadata_extension(conn)
+            if enable_schema:
+                add_schema_extension(conn)
         return cls(path)
     # End create method
 
@@ -180,6 +183,18 @@ class GeoPackage:
         return True
     # End enable_metadata_extension method
 
+    def enable_schema_extension(self) -> bool:
+        """
+        Enable Schema Extension in the Geopackage.  Short circuit if
+        already enabled.
+        """
+        if self.is_schema_enabled:
+            return True
+        with self.connection as conn:
+            add_schema_extension(conn=conn)
+        return True
+    # End enable_schema_extension method
+
     @property
     def is_metadata_enabled(self) -> bool:
         """
@@ -187,6 +202,14 @@ class GeoPackage:
         """
         return has_metadata_extension(self.connection)
     # End is_metadata_enabled property
+
+    @property
+    def is_schema_enabled(self) -> bool:
+        """
+        Is Schema Extension Enabled
+        """
+        return has_schema_extension(self.connection)
+    # End is_schema_enabled property
 
     def _check_table_exists(self, table_name: str) -> bool:
         """
@@ -273,6 +296,16 @@ class GeoPackage:
             return
         return Metadata(geopackage=self)
     # End metadata property
+
+    @property
+    def schema(self) -> Optional[Schema]:
+        """
+        Schema for the Geopackage, None if Schema extension not enabled.
+        """
+        if not self.is_schema_enabled:
+            return
+        return Schema(geopackage=self)
+    # End schema property
 # End GeoPackage class
 
 
@@ -302,7 +335,7 @@ class BaseTable:
     @staticmethod
     def _drop(conn: 'Connection', sql: str, name: str, escaped_name: str,
               geom_name: str, delete_ogr_contents: bool,
-              delete_metadata: bool) -> None:
+              delete_metadata: bool, delete_schema: bool) -> None:
         """
         Drop Table from Geopackage
         """
@@ -311,6 +344,8 @@ class BaseTable:
             conn.execute(DELETE_OGR_CONTENTS.format(name))
         if delete_metadata:
             conn.execute(DELETE_METADATA_REFERENCE.format(name))
+        if delete_schema:
+            conn.execute(DELETE_DATA_COLUMNS.format(name))
     # End _drop method
 
     @property
@@ -391,7 +426,8 @@ class Table(BaseTable):
                 cls._drop(conn=conn, sql=REMOVE_TABLE, geom_name='',
                           name=name, escaped_name=escaped_name,
                           delete_ogr_contents=has_contents,
-                          delete_metadata=geopackage.is_metadata_enabled)
+                          delete_metadata=geopackage.is_metadata_enabled,
+                          delete_schema=geopackage.is_schema_enabled)
             conn.execute(CREATE_TABLE.format(
                 name=escaped_name, other_fields=cols))
             conn.execute(INSERT_GPKG_CONTENTS_SHORT, (
@@ -409,7 +445,8 @@ class Table(BaseTable):
             self._drop(conn=conn, sql=REMOVE_TABLE, geom_name='',
                        name=self.name, escaped_name=self.escaped_name,
                        delete_ogr_contents=has_ogr_contents(conn),
-                       delete_metadata=self.geopackage.is_metadata_enabled)
+                       delete_metadata=self.geopackage.is_metadata_enabled,
+                       delete_schema=self.geopackage.is_schema_enabled)
     # End drop method
 # End Table class
 
@@ -468,7 +505,8 @@ class FeatureClass(BaseTable):
                 cls._drop(conn=conn, sql=REMOVE_FEATURE_CLASS,
                           name=name, escaped_name=escaped_name,
                           geom_name=geom_name, delete_ogr_contents=has_contents,
-                          delete_metadata=geopackage.is_metadata_enabled)
+                          delete_metadata=geopackage.is_metadata_enabled,
+                          delete_schema=geopackage.is_schema_enabled)
             conn.execute(CREATE_FEATURE_TABLE.format(
                 name=escaped_name, feature_type=shape_type, other_fields=cols))
             if not geopackage.check_srs_exists(srs.srs_id):
@@ -495,7 +533,8 @@ class FeatureClass(BaseTable):
                        geom_name=self.geometry_column_name,
                        name=self.name, escaped_name=self.escaped_name,
                        delete_ogr_contents=has_ogr_contents(conn),
-                       delete_metadata=self.geopackage.is_metadata_enabled)
+                       delete_metadata=self.geopackage.is_metadata_enabled,
+                       delete_schema=self.geopackage.is_schema_enabled)
     # End drop method
 
     @staticmethod
