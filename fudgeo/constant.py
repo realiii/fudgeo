@@ -86,5 +86,5 @@ ENVELOPE_COUNT: Dict[int, int] = {k: v // 8 for k, v in ENVELOPE_LENGTH.items()}
 ENVELOPE_OFFSET = {k: v + HEADER_OFFSET for k, v in ENVELOPE_LENGTH.items()}
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # pragma: no cover
     pass

@@ -121,5 +121,5 @@ class ConstraintType:
 # End ConstraintType class
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # pragma: no cover
     pass

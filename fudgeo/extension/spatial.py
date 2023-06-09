@@ -34,7 +34,7 @@ from fudgeo.sql import (
     SPATIAL_INDEX_RECORD, SPATIAL_INDEX_TRIGGERS)
 
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from sqlite3 import Connection
     from fudgeo.geometry.base import AbstractGeometry
     from fudgeo.geopkg import FeatureClass
@@ -56,7 +56,7 @@ def add_spatial_index(conn: 'Connection', feature_class: 'FeatureClass') -> None
     conn.executescript(SPATIAL_INDEX_TRIGGERS.format(name, geom_name, pk_name))
     try:
         conn.execute(INSERT_EXTENSION, record)
-    except IntegrityError:
+    except IntegrityError:  # pragma: no cover
         pass
     if not feature_class.count:
         return
@@ -75,20 +75,20 @@ def _find_bounds(geometry: bytes) -> Union[QUADRUPLE, NONES]:
     code = (flags & (0x07 << 1)) >> 1
     try:
         offset = ENVELOPE_OFFSET[code]
-    except KeyError:
+    except KeyError:  # pragma: no cover
         return None, None, None, None
     if code:
         try:
             # noinspection PyTypeChecker
             return unpack(
                 f'<{ENVELOPE_COUNT[code]}d', view[HEADER_OFFSET:offset])[:4]
-        except (StructError, IndexError):
+        except (StructError, IndexError):  # pragma: no cover
             pass
     prefix = view[offset: offset + 5]
     try:
         # noinspection PyTypeChecker
         geom_type = PREFIX_GEOM_TYPE[prefix]
-    except KeyError:
+    except KeyError:  # pragma: no cover
         return None, None, None, None
     if prefix in POINT_PREFIXES:
         # noinspection PyProtectedMember

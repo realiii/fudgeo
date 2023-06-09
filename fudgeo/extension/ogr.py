@@ -12,7 +12,7 @@ from fudgeo.sql import (
     HAS_OGR_CONTENTS, INSERT_GPKG_OGR_CONTENTS)
 
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from sqlite3 import Connection
 
 

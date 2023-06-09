@@ -16,7 +16,7 @@ from fudgeo.sql import (
 from fudgeo.util import now
 
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from sqlite3 import Connection
     # noinspection PyUnresolvedReferences
     from fudgeo.geopkg import FeatureClass, GeoPackage, Table
@@ -56,7 +56,7 @@ class AbstractReference:
     # End as_tuple method
 
     @abstractmethod
-    def validate(self, geopackage: 'GeoPackage') -> None:
+    def validate(self, geopackage: 'GeoPackage') -> None:  # pragma: no cover
         """
         Validate
         """
