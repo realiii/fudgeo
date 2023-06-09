@@ -111,5 +111,15 @@ class MetadataReferenceScope:
 # End MetadataReferenceScope class
 
 
-if __name__ == '__main__':
+class ConstraintType:
+    """
+    Constraint Type
+    """
+    enum: ClassVar[str] = 'enum'
+    glob: ClassVar[str] = 'glob'
+    range_: ClassVar[str] = 'range'
+# End ConstraintType class
+
+
+if __name__ == '__main__':  # pragma: no cover
     pass

@@ -11,12 +11,12 @@ from typing import List, Optional, TYPE_CHECKING, Tuple, Union
 
 from fudgeo.enumeration import MetadataReferenceScope, MetadataScope
 from fudgeo.sql import (
-    CREATE_METADATA, CREATE_METADATA_REFERENCE, HAS_METADATA,
-    INSERT_EXTENSION, INSERT_METADATA, INSERT_METADATA_REFERENCE,
-    METADATA_RECORDS)
+    CREATE_METADATA, CREATE_METADATA_REFERENCE, HAS_METADATA, INSERT_EXTENSION,
+    INSERT_METADATA, INSERT_METADATA_REFERENCE, METADATA_RECORDS)
 from fudgeo.util import now
 
-if TYPE_CHECKING:
+
+if TYPE_CHECKING:  # pragma: no cover
     from sqlite3 import Connection
     # noinspection PyUnresolvedReferences
     from fudgeo.geopkg import FeatureClass, GeoPackage, Table
@@ -48,15 +48,15 @@ class AbstractReference:
     # End init built-in
 
     @abstractmethod
-    def as_tuple(self) -> REFERENCE_RECORD:
+    def as_record(self) -> REFERENCE_RECORD:  # pragma: no cover
         """
-        As Tuple
+        As Record
         """
         pass
-    # End as_tuple method
+    # End as_record method
 
     @abstractmethod
-    def validate(self, geopackage: 'GeoPackage') -> None:
+    def validate(self, geopackage: 'GeoPackage') -> None:  # pragma: no cover
         """
         Validate
         """
@@ -82,22 +82,23 @@ class AbstractTableReference(AbstractReference):
     # End init built-in
 
     @abstractmethod
-    def as_tuple(self) -> REFERENCE_RECORD:
+    def as_record(self) -> REFERENCE_RECORD:  # pragma: no cover
         """
-        As Tuple
+        As Record
         """
         pass
-    # End as_tuple method
+    # End as_record method
 
     def _validate_table_name(self, geopackage: 'GeoPackage') -> TABLE:
         """
         Validate Table Name
         """
-        name = self._table_name
+        table_name = self._table_name
         table = geopackage.feature_classes.get(
-            name, geopackage.tables.get(name))
+            table_name, geopackage.tables.get(table_name))
         if not table:
-            raise ValueError(f'table name "{name}" not found in {geopackage!r}')
+            raise ValueError(
+                f'table name "{table_name}" not found in {geopackage!r}')
         return table
     # End _validate_table_name method
 
@@ -153,12 +154,12 @@ class AbstractColumnReference(AbstractTableReference):
     # End init built-in
 
     @abstractmethod
-    def as_tuple(self) -> REFERENCE_RECORD:
+    def as_record(self) -> REFERENCE_RECORD:  # pragma: no cover
         """
-        As Tuple
+        As Record
         """
         pass
-    # End as_tuple method
+    # End as_record method
 
     def validate(self, geopackage: 'GeoPackage') -> None:
         """
@@ -185,13 +186,13 @@ class GeopackageReference(AbstractReference):
             parent_id=parent_id, timestamp=timestamp)
     # End init built-in
 
-    def as_tuple(self) -> REFERENCE_RECORD:
+    def as_record(self) -> REFERENCE_RECORD:
         """
-        As Tuple
+        As Record
         """
         return (self._scope, None, None, None, self._timestamp,
                 self._file_id, self._parent_id)
-    # End as_tuple method
+    # End as_record method
 
     def validate(self, geopackage: 'GeoPackage') -> None:
         """
@@ -217,13 +218,13 @@ class TableReference(AbstractTableReference):
             file_id=file_id, parent_id=parent_id, timestamp=timestamp)
     # End init built-in
 
-    def as_tuple(self) -> REFERENCE_RECORD:
+    def as_record(self) -> REFERENCE_RECORD:
         """
-        As Tuple
+        As Record
         """
         return (self._scope, self._table_name, None, None, self._timestamp,
                 self._file_id, self._parent_id)
-    # End as_tuple method
+    # End as_record method
 # End TableReference class
 
 
@@ -243,13 +244,13 @@ class ColumnReference(AbstractColumnReference):
             timestamp=timestamp)
     # End init built-in
 
-    def as_tuple(self) -> REFERENCE_RECORD:
+    def as_record(self) -> REFERENCE_RECORD:
         """
-        As Tuple
+        As Record
         """
         return (self._scope, self._table_name, self._column_name, None,
                 self._timestamp, self._file_id, self._parent_id)
-    # End as_tuple method
+    # End as_record method
 # End ColumnReference class
 
 
@@ -269,13 +270,13 @@ class RowReference(AbstractTableReference):
         self._row_id: int = row_id
     # End init built-in
 
-    def as_tuple(self) -> REFERENCE_RECORD:
+    def as_record(self) -> REFERENCE_RECORD:
         """
-        As Tuple
+        As Record
         """
         return (self._scope, self._table_name, None, self._row_id,
                 self._timestamp, self._file_id, self._parent_id)
-    # End as_tuple method
+    # End as_record method
 
     def validate(self, geopackage: 'GeoPackage') -> None:
         """
@@ -304,13 +305,13 @@ class RowColumnReference(AbstractColumnReference):
         self._row_id: int = row_id
     # End init built-in
 
-    def as_tuple(self) -> REFERENCE_RECORD:
+    def as_record(self) -> REFERENCE_RECORD:
         """
-        As Tuple
+        As Record
         """
         return (self._scope, self._table_name, self._column_name, self._row_id,
                 self._timestamp, self._file_id, self._parent_id)
-    # End as_tuple method
+    # End as_record method
 
     def validate(self, geopackage: 'GeoPackage') -> None:
         """
@@ -332,7 +333,7 @@ class Metadata:
         Initialize the Metadata class
         """
         super().__init__()
-        self.geopackage: 'GeoPackage' = geopackage
+        self._geopackage: 'GeoPackage' = geopackage
     # End init built-in
 
     def add_metadata(self, uri: str, scope: str = MetadataScope.dataset,
@@ -340,9 +341,9 @@ class Metadata:
         """
         Add Metadata to the Geopackage if the metadata extension enabled.
         """
-        if not self.geopackage.is_metadata_enabled:
+        if not self._geopackage.is_metadata_enabled:
             return
-        with self.geopackage.connection as conn:
+        with self._geopackage.connection as conn:
             conn.execute(INSERT_METADATA, (scope, uri, mime_type, metadata))
     # End add_metadata method
 
@@ -350,15 +351,15 @@ class Metadata:
         """
         Add Metadata References if metadata extension enabled.
         """
-        if not self.geopackage.is_metadata_enabled:
+        if not self._geopackage.is_metadata_enabled:
             return
         if isinstance(references, AbstractReference):
             references = references,
         records = []
         for reference in references:
-            reference.validate(self.geopackage)
-            records.append(reference.as_tuple())
-        with self.geopackage.connection as conn:
+            reference.validate(self._geopackage)
+            records.append(reference.as_record())
+        with self._geopackage.connection as conn:
             conn.executemany(INSERT_METADATA_REFERENCE, records)
     # End add_references method
 # End Metadata class

@@ -72,6 +72,12 @@ DELETE_METADATA_REFERENCE: str = """
 """
 
 
+DELETE_DATA_COLUMNS: str = """
+    DELETE FROM gpkg_data_columns 
+    WHERE lower(table_name) = lower('{0}');
+"""
+
+
 # NOTE 0 - table name, 1 - escaped name, 2 - geometry column name
 REMOVE_FEATURE_CLASS: str = """
     DELETE FROM gpkg_geometry_columns WHERE lower(table_name) = lower('{0}');
@@ -403,7 +409,7 @@ HAS_METADATA: str = """
 
 
 INSERT_METADATA: str = """
-    INSERT INTO gpkg_metadata(md_scope, md_standard_uri, mime_type, metadata) 
+    INSERT INTO gpkg_metadata (md_scope, md_standard_uri, mime_type, metadata) 
     VALUES (?, ?, ?, ?)
 """
 
@@ -423,5 +429,71 @@ METADATA_RECORDS: Tuple[Tuple[str, None, str, str, str], ...] = (
 )
 
 
-if __name__ == '__main__':
+CREATE_DATA_COLUMNS: str = """
+    CREATE TABLE gpkg_data_columns (
+        table_name      TEXT NOT NULL,
+        column_name     TEXT NOT NULL,
+        name            TEXT,
+        title           TEXT,
+        description     TEXT,
+        mime_type       TEXT,
+        constraint_name TEXT,
+        CONSTRAINT pk_gdc PRIMARY KEY (table_name, column_name),
+        CONSTRAINT gdc_tn UNIQUE (table_name, name)
+    );
+"""
+
+
+CREATE_DATA_COLUMN_CONSTRAINTS: str = """
+    CREATE TABLE gpkg_data_column_constraints (
+        constraint_name  TEXT NOT NULL,
+        constraint_type  TEXT NOT NULL, -- 'range' | 'enum' | 'glob'
+        value            TEXT,
+        min              NUMERIC,
+        min_is_inclusive BOOLEAN,       -- 0 = false, 1 = true
+        max              NUMERIC,
+        max_is_inclusive BOOLEAN,       -- 0 = false, 1 = true
+        description      TEXT,
+        CONSTRAINT gdcc_ntv UNIQUE (constraint_name, constraint_type, value)
+    );
+"""
+
+
+HAS_SCHEMA: str = """
+    SELECT name FROM sqlite_master 
+    WHERE type = 'table' AND 
+          name IN ('gpkg_data_columns', 'gpkg_data_column_constraints')
+"""
+
+
+INSERT_COLUMN_DEFINITION: str = """
+    INSERT INTO gpkg_data_columns (table_name, column_name, name, title, 
+            description, mime_type, constraint_name)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+"""
+
+
+INSERT_COLUMN_CONSTRAINTS: str = """
+    INSERT INTO gpkg_data_column_constraints (constraint_type, constraint_name,
+        value, min, min_is_inclusive, max, max_is_inclusive, description) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+"""
+
+
+SELECT_CONSTRAINT_NAME: str = """
+    SELECT constraint_name 
+    FROM gpkg_data_column_constraints 
+    WHERE constraint_name = ?
+"""
+
+
+SCHEMA_RECORDS: Tuple[Tuple[str, None, str, str, str], ...] = (
+    ('gpkg_data_columns', None, 'gpkg_schema',
+     f'{ROOT}#extension_schema', 'read-write'),
+    ('gpkg_data_column_constraints', None, 'gpkg_schema',
+     f'{ROOT}#extension_schema', 'read-write'),
+)
+
+
+if __name__ == '__main__':  # pragma: no cover
     pass
