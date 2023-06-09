@@ -133,7 +133,7 @@ def test_add_metadata_hierarchical_example1(example1):
     """
     pkg = example1
     metadata = pkg.metadata
-    connection = metadata.geopackage.connection
+    connection = metadata._geopackage.connection
     cursor = connection.execute("""SELECT COUNT(1) AS C FROM gpkg_metadata""")
     count, = cursor.fetchone()
     assert count == 9
@@ -165,7 +165,7 @@ def test_add_metadata_hierarchical_example2(example2):
     """
     pkg = example2
     metadata = pkg.metadata
-    connection = metadata.geopackage.connection
+    connection = metadata._geopackage.connection
     cursor = connection.execute("""SELECT COUNT(1) AS C FROM gpkg_metadata""")
     count, = cursor.fetchone()
     assert count == 19

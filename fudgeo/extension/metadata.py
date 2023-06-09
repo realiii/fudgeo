@@ -333,7 +333,7 @@ class Metadata:
         Initialize the Metadata class
         """
         super().__init__()
-        self.geopackage: 'GeoPackage' = geopackage
+        self._geopackage: 'GeoPackage' = geopackage
     # End init built-in
 
     def add_metadata(self, uri: str, scope: str = MetadataScope.dataset,
@@ -341,9 +341,9 @@ class Metadata:
         """
         Add Metadata to the Geopackage if the metadata extension enabled.
         """
-        if not self.geopackage.is_metadata_enabled:
+        if not self._geopackage.is_metadata_enabled:
             return
-        with self.geopackage.connection as conn:
+        with self._geopackage.connection as conn:
             conn.execute(INSERT_METADATA, (scope, uri, mime_type, metadata))
     # End add_metadata method
 
@@ -351,15 +351,15 @@ class Metadata:
         """
         Add Metadata References if metadata extension enabled.
         """
-        if not self.geopackage.is_metadata_enabled:
+        if not self._geopackage.is_metadata_enabled:
             return
         if isinstance(references, AbstractReference):
             references = references,
         records = []
         for reference in references:
-            reference.validate(self.geopackage)
-            records.append(reference.as_tuple())
-        with self.geopackage.connection as conn:
+            reference.validate(self._geopackage)
+            records.append(reference.as_record())
+        with self._geopackage.connection as conn:
             conn.executemany(INSERT_METADATA_REFERENCE, records)
     # End add_references method
 # End Metadata class
