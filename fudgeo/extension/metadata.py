@@ -48,12 +48,12 @@ class AbstractReference:
     # End init built-in
 
     @abstractmethod
-    def as_tuple(self) -> REFERENCE_RECORD:
+    def as_record(self) -> REFERENCE_RECORD:  # pragma: no cover
         """
-        As Tuple
+        As Record
         """
         pass
-    # End as_tuple method
+    # End as_record method
 
     @abstractmethod
     def validate(self, geopackage: 'GeoPackage') -> None:  # pragma: no cover
@@ -82,12 +82,12 @@ class AbstractTableReference(AbstractReference):
     # End init built-in
 
     @abstractmethod
-    def as_tuple(self) -> REFERENCE_RECORD:
+    def as_record(self) -> REFERENCE_RECORD:  # pragma: no cover
         """
-        As Tuple
+        As Record
         """
         pass
-    # End as_tuple method
+    # End as_record method
 
     def _validate_table_name(self, geopackage: 'GeoPackage') -> TABLE:
         """
@@ -153,12 +153,12 @@ class AbstractColumnReference(AbstractTableReference):
     # End init built-in
 
     @abstractmethod
-    def as_tuple(self) -> REFERENCE_RECORD:
+    def as_record(self) -> REFERENCE_RECORD:  # pragma: no cover
         """
-        As Tuple
+        As Record
         """
         pass
-    # End as_tuple method
+    # End as_record method
 
     def validate(self, geopackage: 'GeoPackage') -> None:
         """
@@ -185,13 +185,13 @@ class GeopackageReference(AbstractReference):
             parent_id=parent_id, timestamp=timestamp)
     # End init built-in
 
-    def as_tuple(self) -> REFERENCE_RECORD:
+    def as_record(self) -> REFERENCE_RECORD:
         """
-        As Tuple
+        As Record
         """
         return (self._scope, None, None, None, self._timestamp,
                 self._file_id, self._parent_id)
-    # End as_tuple method
+    # End as_record method
 
     def validate(self, geopackage: 'GeoPackage') -> None:
         """
@@ -217,13 +217,13 @@ class TableReference(AbstractTableReference):
             file_id=file_id, parent_id=parent_id, timestamp=timestamp)
     # End init built-in
 
-    def as_tuple(self) -> REFERENCE_RECORD:
+    def as_record(self) -> REFERENCE_RECORD:
         """
-        As Tuple
+        As Record
         """
         return (self._scope, self._table_name, None, None, self._timestamp,
                 self._file_id, self._parent_id)
-    # End as_tuple method
+    # End as_record method
 # End TableReference class
 
 
@@ -243,13 +243,13 @@ class ColumnReference(AbstractColumnReference):
             timestamp=timestamp)
     # End init built-in
 
-    def as_tuple(self) -> REFERENCE_RECORD:
+    def as_record(self) -> REFERENCE_RECORD:
         """
-        As Tuple
+        As Record
         """
         return (self._scope, self._table_name, self._column_name, None,
                 self._timestamp, self._file_id, self._parent_id)
-    # End as_tuple method
+    # End as_record method
 # End ColumnReference class
 
 
@@ -269,13 +269,13 @@ class RowReference(AbstractTableReference):
         self._row_id: int = row_id
     # End init built-in
 
-    def as_tuple(self) -> REFERENCE_RECORD:
+    def as_record(self) -> REFERENCE_RECORD:
         """
-        As Tuple
+        As Record
         """
         return (self._scope, self._table_name, None, self._row_id,
                 self._timestamp, self._file_id, self._parent_id)
-    # End as_tuple method
+    # End as_record method
 
     def validate(self, geopackage: 'GeoPackage') -> None:
         """
@@ -304,13 +304,13 @@ class RowColumnReference(AbstractColumnReference):
         self._row_id: int = row_id
     # End init built-in
 
-    def as_tuple(self) -> REFERENCE_RECORD:
+    def as_record(self) -> REFERENCE_RECORD:
         """
-        As Tuple
+        As Record
         """
         return (self._scope, self._table_name, self._column_name, self._row_id,
                 self._timestamp, self._file_id, self._parent_id)
-    # End as_tuple method
+    # End as_record method
 
     def validate(self, geopackage: 'GeoPackage') -> None:
         """
