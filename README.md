@@ -241,7 +241,7 @@ added at create time or added on an existing feature class.
 
 ```python
 from typing import Tuple
-from fudgeo.enumeration import GeometryType, SQLFieldType
+from fudgeo.enumeration import SQLFieldType
 from fudgeo.geopkg import FeatureClass, Field, GeoPackage, SpatialReferenceSystem
 
 
@@ -268,14 +268,13 @@ fields: Tuple[Field, ...] = (
 
 gpkg: GeoPackage = GeoPackage.create('../temp/spatial_index.gpkg')
 # add spatial index at create time
-roads: FeatureClass = gpkg.create_feature_class(
-    'road_l', srs=SRS, fields=fields, shape_type=GeometryType.linestring,
-    m_enabled=True, overwrite=True, spatial_index=True)
-assert roads.has_spatial_index is True
+event: FeatureClass = gpkg.create_feature_class(
+    'event_p', srs=SRS, fields=fields, spatial_index=True)
+assert event.has_spatial_index is True
 
 # add spatial index on an existing feature class / post create
 signs: FeatureClass = gpkg.create_feature_class(
-    'signs_p', srs=SRS, fields=fields, overwrite=True)
+    'signs_p', srs=SRS, fields=fields)
 # no spatial index
 assert signs.has_spatial_index is False
 signs.add_spatial_index()
