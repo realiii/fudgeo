@@ -26,7 +26,7 @@ if TYPE_CHECKING:  # pragma: no cover
 TABLE = Union['Table', 'FeatureClass']
 REFERENCE_RECORD = Tuple[str, Optional[str], Optional[str], Optional[int],
                          datetime, int, Optional[int]]
-REFERENCE = Union['GeopackageReference', 'TableReference', 'ColumnReference',
+REFERENCE = Union['GeoPackageReference', 'TableReference', 'ColumnReference',
                   'RowReference', 'RowColumnReference']
 REFERENCES = Union[REFERENCE, Tuple[REFERENCE, ...], List[REFERENCE]]
 
@@ -172,15 +172,15 @@ class AbstractColumnReference(AbstractTableReference):
 # End AbstractColumnReference class
 
 
-class GeopackageReference(AbstractReference):
+class GeoPackageReference(AbstractReference):
     """
-    Geopackage Reference
+    GeoPackage Reference
     """
     def __init__(self, file_id: int,
                  parent_id: Optional[int] = None,
                  timestamp: Optional[datetime] = None) -> None:
         """
-        Initialize the GeopackageReference class
+        Initialize the GeoPackageReference class
         """
         super().__init__(
             scope=MetadataReferenceScope.geopackage, file_id=file_id,
@@ -201,7 +201,7 @@ class GeopackageReference(AbstractReference):
         """
         pass
     # End validate method
-# End GeopackageReference class
+# End GeoPackageReference class
 
 
 class TableReference(AbstractTableReference):

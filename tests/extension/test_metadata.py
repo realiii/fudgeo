@@ -9,7 +9,7 @@ from pytest import fixture, mark, raises
 from crs import WGS_1984_UTM_Zone_23N
 from fudgeo.enumeration import GeometryType, MetadataScope, SQLFieldType
 from fudgeo.extension.metadata import (
-    ColumnReference, GeopackageReference, Metadata, RowColumnReference,
+    ColumnReference, GeoPackageReference, Metadata, RowColumnReference,
     RowReference, TableReference)
 from fudgeo.geometry import LineString, Point
 from fudgeo.geopkg import Field, GeoPackage, SpatialReferenceSystem
@@ -173,7 +173,7 @@ def test_add_metadata_hierarchical_example2(example2):
     assert [i for i, in cursor.fetchall()] == list(range(1, 20))
     table_name = 'poi'
     references = [
-        GeopackageReference(file_id=1),
+        GeoPackageReference(file_id=1),
         TableReference(table_name=table_name, file_id=1),
         TableReference(table_name=table_name, file_id=10, parent_id=1),
         RowReference(table_name=table_name, row_id=1, file_id=11, parent_id=1),
