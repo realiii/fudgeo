@@ -414,6 +414,12 @@ INSERT_METADATA: str = """
 """
 
 
+SELECT_METADATA_ID: str = """
+    SELECT MAX(ID) AS MAX_ID 
+    FROM gpkg_metadata
+"""
+
+
 INSERT_METADATA_REFERENCE: str = """
     INSERT INTO gpkg_metadata_reference (reference_scope, table_name, 
             column_name, row_id_value, timestamp, md_file_id, md_parent_id) 

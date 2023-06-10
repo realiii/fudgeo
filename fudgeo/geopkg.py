@@ -603,12 +603,30 @@ class FeatureClass(BaseTable):
     # End has_m property
 
     @property
+    def spatial_index_name(self) -> Optional[str]:
+        """
+        Spatial Index Name (escaped) if present, None otherwise
+        """
+        if not self.has_spatial_index:
+            return
+        return escape_name(self._spatial_index_name)
+    # End spatial_index_name property
+
+    @property
+    def _spatial_index_name(self) -> str:
+        """
+        Spatial Index Name
+        """
+        return f'rtree_{self.name}_{self.geometry_column_name}'
+    # End _spatial_index_name property
+
+    @property
     def has_spatial_index(self) -> bool:
         """
         Has Spatial Index
         """
-        table_name = f'rtree_{self.name}_{self.geometry_column_name}'
-        cursor = self.geopackage.connection.execute(TABLE_EXISTS, (table_name,))
+        cursor = self.geopackage.connection.execute(
+            TABLE_EXISTS, (self._spatial_index_name,))
         return bool(cursor.fetchall())
     # End has_spatial_index property
 

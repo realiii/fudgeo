@@ -52,7 +52,7 @@ def test_add_constraints(tmp_path):
     constraint = RangeConstraint(name='sampleRange', min_value=1, max_value=10)
     constraints = [
         EnumerationConstraint(name='sampleEnum', values=[1, 3, 5, 7, 9]),
-        GlobConstraint(name='sampleEnum', pattern='[1-2][0-9][0-9][0-9]'),
+        GlobConstraint(name='sampleGlob', pattern='[1-2][0-9][0-9][0-9]'),
     ]
     pkg.schema.add_constraints(constraint)
     pkg.schema.add_constraints(constraints)

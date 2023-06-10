@@ -15,7 +15,8 @@ For details on OGC GeoPackages, please see the [OGC web page](http://www.geopack
 
 ## Python Compatibility
 
-The `fudgeo` library is compatible with Python 3.7 to 3.11.
+The `fudgeo` library is compatible with Python 3.7 to 3.11.  Developed and 
+tested on **macOS** and **Windows**, should be fine on **Linux** too.
 
 
 ## Usage
@@ -39,10 +40,10 @@ The `fudgeo` library is compatible with Python 3.7 to 3.11.
 from fudgeo.geopkg import GeoPackage
 
 # Creates an empty geopackage
-gpkg: GeoPackage = GeoPackage.create(r'c:\data\example.gpkg')
+gpkg: GeoPackage = GeoPackage.create('../data/example.gpkg')
 
 # Opens an existing Geopackage (no validation)
-gpkg: GeoPackage = GeoPackage(r'c:\data\example.gpkg')
+gpkg: GeoPackage = GeoPackage('../data/example.gpkg')
 ```
 
 `GeoPackage`s are created with *three* default Spatial References defined
@@ -56,8 +57,10 @@ default the *ESRI WKT* is used - However, if *EPSG WKT* is desired, you
 may provide a ``flavor`` parameter to the create method specifying EPSG.
 
 ```python
-# Creates an empty geopackage
-gpkg: GeoPackage = GeoPackage.create(r'c:\temp\test.gpkg', flavor='EPSG')
+from fudgeo.geopkg import GeoPackage
+
+# Creates an empty geopackage using EPSG definitions
+gpkg: GeoPackage = GeoPackage.create('../temp/test.gpkg', flavor='EPSG')
 ```
 
 ### Create a Feature Class
@@ -74,9 +77,8 @@ Feature Class **must** include a value for the option specified.
 
 ```python
 from typing import Tuple
-
-from fudgeo.geopkg import FeatureClass, Field, GeoPackage, SpatialReferenceSystem
 from fudgeo.enumeration import GeometryType, SQLFieldType
+from fudgeo.geopkg import FeatureClass, Field, GeoPackage, SpatialReferenceSystem
 
 SRS_WKT: str = (
     'PROJCS["WGS_1984_UTM_Zone_23N",'
@@ -103,12 +105,16 @@ fields: Tuple[Field, ...] = (
     Field('begin_northing', SQLFieldType.double),
     Field('end_easting', SQLFieldType.double),
     Field('end_northing', SQLFieldType.double),
+    Field('begin_longitude', SQLFieldType.double),
+    Field('begin_latitude', SQLFieldType.double),
+    Field('end_longitude', SQLFieldType.double),
+    Field('end_latitude', SQLFieldType.double),
     Field('is_one_way', SQLFieldType.boolean))
 
-gpkg: GeoPackage = GeoPackage.create(r'c:\temp\test.gpkg')
+gpkg: GeoPackage = GeoPackage.create('../temp/test.gpkg')
 fc: FeatureClass = gpkg.create_feature_class(
     'road_l', srs=SRS, fields=fields, shape_type=GeometryType.linestring,
-    z_enabled=False, m_enabled=True, overwrite=True, spatial_index=True)
+    m_enabled=True, overwrite=True, spatial_index=True)
 ```
 
 ### About Spatial References For GeoPackages
@@ -148,7 +154,7 @@ for i in range(10000):
                  eastings[-1], northings[-1], False))
 
 # NOTE Builds from previous examples
-gpkg: GeoPackage = GeoPackage(r'c:\data\example.gpkg')   
+gpkg: GeoPackage = GeoPackage('../data/example.gpkg')   
 with gpkg.connection as conn:
     conn.executemany("""
         INSERT INTO road_l (SHAPE, road_id, name, begin_easting, begin_northing, 
@@ -202,25 +208,212 @@ then the approach is to ensure `SQLite` knows how to convert the
 geopackage stored geometry to a `fudgeo` geometry, this is done like so:
 
 ```python
-gpkg = GeoPackage(r'c:\data\example.gpkg')
+from typing import List, Tuple
+from fudgeo.geometry import LineStringM
+from fudgeo.geopkg import GeoPackage
+
+gpkg: GeoPackage = GeoPackage('../data/example.gpkg')
 cursor = gpkg.connection.execute(
     """SELECT SHAPE "[LineStringM]", road_id FROM test""")
-features = cursor.fetchall()
+features: List[Tuple[LineStringM, int]] = cursor.fetchall()
 ```
 
 or a little more general, accounting for extended geometry types and
 possibility of the geometry column being something other tha `SHAPE`:
 
 ```python
-from fudgeo.geopkg import FeatureClass
+from typing import List, Tuple
+from fudgeo.geometry import LineStringM
+from fudgeo.geopkg import FeatureClass, GeoPackage
 
-gpkg = GeoPackage(r'c:\data\example.gpkg')
-fc = FeatureClass(geopackage=gpkg, name='road_l')
+gpkg: GeoPackage = GeoPackage('../data/example.gpkg')
+fc: FeatureClass = FeatureClass(geopackage=gpkg, name='road_l')
 cursor = gpkg.connection.execute(f"""
     SELECT {fc.geometry_column_name} "[{fc.geometry_type}]", road_id 
     FROM {fc.escaped_name}""")
-features = cursor.fetchall()
+features: List[Tuple[LineStringM, int]] = cursor.fetchall()
 ```
+
+
+## Extensions
+### Spatial Index Extension
+Spatial Index Extension implementation based on section [F.3. RTree Spatial Indexes](http://www.geopackage.org/spec131/index.html#extension_rtree)
+of the **GeoPackage Encoding Standard**.
+
+Spatial Indexes apply to individual feature classes.  A spatial index can be
+added at create time or added on an existing feature class.
+
+```python
+from typing import Tuple
+from fudgeo.enumeration import SQLFieldType
+from fudgeo.geopkg import FeatureClass, Field, GeoPackage, SpatialReferenceSystem
+
+
+SRS_WKT: str = (
+    'PROJCS["WGS_1984_UTM_Zone_23N",'
+    'GEOGCS["GCS_WGS_1984",'
+    'DATUM["D_WGS_1984",'
+    'SPHEROID["WGS_1984",6378137.0,298.257223563]],'
+    'PRIMEM["Greenwich",0.0],'
+    'UNIT["Degree",0.0174532925199433]],'
+    'PROJECTION["Transverse_Mercator"],'
+    'PARAMETER["False_Easting",500000.0],'
+    'PARAMETER["False_Northing",0.0],'
+    'PARAMETER["Central_Meridian",-45.0],'
+    'PARAMETER["Scale_Factor",0.9996],'
+    'PARAMETER["Latitude_Of_Origin",0.0],'
+    'UNIT["Meter",1.0]]')
+SRS: SpatialReferenceSystem = SpatialReferenceSystem(
+    name='WGS_1984_UTM_Zone_23N', organization='EPSG',
+    org_coord_sys_id=32623, definition=SRS_WKT)
+fields: Tuple[Field, ...] = (
+    Field('id', SQLFieldType.integer),
+    Field('name', SQLFieldType.text, size=100))
+
+gpkg: GeoPackage = GeoPackage.create('../temp/spatial_index.gpkg')
+# add spatial index at create time
+event: FeatureClass = gpkg.create_feature_class(
+    'event_p', srs=SRS, fields=fields, spatial_index=True)
+assert event.has_spatial_index is True
+
+# add spatial index on an existing feature class / post create
+signs: FeatureClass = gpkg.create_feature_class(
+    'signs_p', srs=SRS, fields=fields)
+# no spatial index
+assert signs.has_spatial_index is False
+signs.add_spatial_index()
+# spatial index now present
+assert signs.has_spatial_index is True
+```
+
+Refer to **SQLite** [documentation](https://www.sqlite.org/rtree.html#using_r_trees_effectively) 
+on how to use these indexes for faster filtering / querying.  Also note
+how to handle [round off error](https://www.sqlite.org/rtree.html#roundoff_error) 
+when querying.
+
+
+### Metadata Extension
+Metadata Extension implementation based on [F.8. Metadata](http://www.geopackage.org/spec131/index.html#extension_metadata)
+of the **GeoPackage Encoding Standard**.
+
+The metadata extension is enabled at the GeoPackage level applying to all
+tables and feature classes.  That said, not every table and feature class is 
+required to have metadata.  
+
+Metadata extension can be enabled at create time for a GeoPackage or 
+can be enabled on an existing GeoPackage.
+
+```python
+from fudgeo.geopkg import GeoPackage
+
+# enable metadata at create time
+gpkg: GeoPackage = GeoPackage.create('../data/metadata.gpkg', enable_metadata=True)
+assert gpkg.is_metadata_enabled is True
+
+# enable metadata on an existing GeoPackage
+gpkg: GeoPackage = GeoPackage('../data/example.gpkg')
+assert gpkg.is_metadata_enabled is False
+gpkg.enable_metadata_extension()
+assert gpkg.is_metadata_enabled is True
+```
+
+```python
+from fudgeo.enumeration import MetadataScope
+from fudgeo.extension.metadata import TableReference
+from fudgeo.geopkg import GeoPackage
+
+# open GeoPackage with metadata extension enabled
+gpkg: GeoPackage = GeoPackage('../data/example.gpkg')
+
+# open a metadata xml file and add it to the GeoPackage
+with open(...) as fin:
+    id_ = gpkg.metadata.add_metadata(
+        uri='https://www.isotc211.org/2005/gmd',
+        scope=MetadataScope.dataset, metadata=fin.read()
+    )
+# apply the metadata to a feature class
+reference = TableReference(table_name='road_l', file_id=id_)
+gpkg.metadata.add_references(reference)
+```
+
+Support provided for the following reference types:
+* `GeoPackageReference` -- used for `GeoPackage` level metadata
+* `TableReference` -- used for `Table` and `FeatureClass` level metadata
+* `ColumnReference` -- used for a **column** in a `Table` or `FeatureClass`
+* `RowReference` -- used for a **row** in a `Table` or `FeatureClass`
+* `RowColumnReference` -- used for **row / column** combination in a `Table` or `FeatureClass`
+
+
+### Schema Extension
+Schema Extension implementation based on [F.9. Schema](http://www.geopackage.org/spec131/index.html#extension_schema)
+of the **GeoPackage Encoding Standard**.
+
+The schema extension is enabled at the GeoPackage level and allows for extended
+definitions on column names (e.g. name, title, description) and for constraints
+to be defined for columns.  Constraints definitions are intended for 
+applications usage and, while similar, are not the same as database constraints.
+
+Schema extension can be enabled at create time for a GeoPackage or 
+can be enabled on an existing GeoPackage.
+
+
+```python
+from fudgeo.geopkg import GeoPackage
+
+# enable schema at create time
+gpkg: GeoPackage = GeoPackage.create('../data/schema.gpkg', enable_schema=True)
+assert gpkg.is_schema_enabled is True
+
+# enable schema on an existing GeoPackage
+gpkg: GeoPackage = GeoPackage('../data/example.gpkg')
+assert gpkg.is_schema_enabled is False
+gpkg.enable_schema_extension()
+assert gpkg.is_schema_enabled is True
+```
+
+```python
+from fudgeo.extension.schema import (
+    EnumerationConstraint, GlobConstraint, RangeConstraint)
+from fudgeo.geopkg import GeoPackage
+
+# open GeoPackage with schema extension enabled
+gpkg: GeoPackage = GeoPackage('../data/example.gpkg')
+
+# add constraints for use with column definitions
+constraints = [
+    EnumerationConstraint(name='odds', values=[1, 3, 5, 7, 9]),
+    EnumerationConstraint(name='colors', values=['red', 'yellow', 'blue']),
+    GlobConstraint(name='pin', pattern='[0-9][0-9][0-9][0-9]'),
+    RangeConstraint(name='exertion', min_value=6, max_value=20),
+    RangeConstraint(name='longitude', min_value=-180, max_value=180),
+    RangeConstraint(name='latitude', min_value=90, max_value=90),
+]
+gpkg.schema.add_constraints(constraints)
+
+# use constrains and set some additional details for column name
+gpkg.schema.add_column_definition(
+    table_name='road_l', column_name='begin_longitude', 
+    name='Beginning Longitude for Road', title='Begin Longitude', 
+    constraint_name='longitude')
+gpkg.schema.add_column_definition(
+    table_name='road_l', column_name='begin_latitude', 
+    name='Beginning Latitude for Road', title='Begin Latitude', 
+    constraint_name='latitude')
+gpkg.schema.add_column_definition(
+    table_name='road_l', column_name='end_longitude', 
+    name='Ending Longitude for Road', title='End Longitude', 
+    constraint_name='longitude')
+gpkg.schema.add_column_definition(
+    table_name='road_l', column_name='end_latitude', 
+    name='Ending Latitude for Road', title='End Latitude', 
+    constraint_name='latitude')
+```
+
+Support provided for the following constraint types:
+* `EnumerationConstraint` -- restrict to one or more values
+* `GlobConstraint` -- pattern match based constraint
+* `RangeConstraint` -- value constrained within a range, optionally including the bounds
+
 
 ## License
 
@@ -228,13 +421,15 @@ features = cursor.fetchall()
 
 ## Release History
 
-### next release
+### v0.7.0
 * add support for **schema** extension
 * add support for **metadata** extension
 * add `__geo_interface__` to geometry classes
 * introduce `bounding_box` property on `Envelope` class
 * introduce `as_tuple` method on `Point` classes
 * add `extension` sub-package, move `spatial` module into `extension`
+* add `spatial_index_name` property on `FeatureClass`, returns the index table name
+* enable enforcement of foreign key constraints
 * reorganize code to handle OGR contents like an extension
 * move protected functions from `geopkg` module into `util` module and rename
 * add type hinting to `enumerations` module
