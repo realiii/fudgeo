@@ -344,6 +344,77 @@ Support provided for the following reference types:
 * `RowColumnReference` -- used for **row / column** combination in a `Table` or `FeatureClass`
 
 
+### Schema Extension
+Schema Extension implementation based on [F.9. Schema](http://www.geopackage.org/spec131/index.html#extension_schema)
+of the **GeoPackage Encoding Standard**.
+
+The schema extension is enabled at the GeoPackage level and allows for extended
+definitions on column names (e.g. name, title, description) and for constraints
+to be defined for columns.  Constraints definitions are intended for 
+applications usage and, while similar, are not the same as database constraints.
+
+Schema extension can be enabled at create time for a GeoPackage or 
+can be enabled on an existing GeoPackage.
+
+
+```python
+from fudgeo.geopkg import GeoPackage
+
+# enable schema at create time
+gpkg: GeoPackage = GeoPackage.create('../data/schema.gpkg', enable_schema=True)
+assert gpkg.is_schema_enabled is True
+
+# enable schema on an existing GeoPackage
+gpkg: GeoPackage = GeoPackage('../data/example.gpkg')
+assert gpkg.is_schema_enabled is False
+gpkg.enable_schema_extension()
+assert gpkg.is_schema_enabled is True
+```
+
+```python
+from fudgeo.extension.schema import (
+    EnumerationConstraint, GlobConstraint, RangeConstraint)
+from fudgeo.geopkg import GeoPackage
+
+# open GeoPackage with schema extension enabled
+gpkg: GeoPackage = GeoPackage('../data/example.gpkg')
+
+# add constraints for use with column definitions
+constraints = [
+    EnumerationConstraint(name='odds', values=[1, 3, 5, 7, 9]),
+    EnumerationConstraint(name='colors', values=['red', 'yellow', 'blue']),
+    GlobConstraint(name='pin', pattern='[0-9][0-9][0-9][0-9]'),
+    RangeConstraint(name='exertion', min_value=6, max_value=20),
+    RangeConstraint(name='longitude', min_value=-180, max_value=180),
+    RangeConstraint(name='latitude', min_value=90, max_value=90),
+]
+gpkg.schema.add_constraints(constraints)
+
+# use constrains and set some additional details for column name
+gpkg.schema.add_column_definition(
+    table_name='road_l', column_name='begin_longitude', 
+    name='Beginning Longitude for Road', title='Begin Longitude', 
+    constraint_name='longitude')
+gpkg.schema.add_column_definition(
+    table_name='road_l', column_name='begin_latitude', 
+    name='Beginning Latitude for Road', title='Begin Latitude', 
+    constraint_name='latitude')
+gpkg.schema.add_column_definition(
+    table_name='road_l', column_name='end_longitude', 
+    name='Ending Longitude for Road', title='End Longitude', 
+    constraint_name='longitude')
+gpkg.schema.add_column_definition(
+    table_name='road_l', column_name='end_latitude', 
+    name='Ending Latitude for Road', title='End Latitude', 
+    constraint_name='latitude')
+```
+
+Support provided for the following constraint types:
+* `EnumerationConstraint` -- restrict to one or more values
+* `GlobConstraint` -- pattern match based constraint
+* `RangeConstraint` -- value constrained within a range, optionally including the bounds
+
+
 ## License
 
 [MIT](https://choosealicense.com/licenses/mit/)
