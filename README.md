@@ -236,13 +236,14 @@ features: List[Tuple[LineStringM, int]] = cursor.fetchall()
 
 ## Release History
 
-### next release
+### v0.7.0
 * add support for **schema** extension
 * add support for **metadata** extension
 * add `__geo_interface__` to geometry classes
 * introduce `bounding_box` property on `Envelope` class
 * introduce `as_tuple` method on `Point` classes
 * add `extension` sub-package, move `spatial` module into `extension`
+* add `spatial_index_name` property on `FeatureClass`, returns the index table name
 * reorganize code to handle OGR contents like an extension
 * move protected functions from `geopkg` module into `util` module and rename
 * add type hinting to `enumerations` module
