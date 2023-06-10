@@ -289,6 +289,58 @@ how to handle [round off error](https://www.sqlite.org/rtree.html#roundoff_error
 when querying.
 
 
+### Metadata Extension
+Metadata Extension implementation based on [F.8. Metadata](http://www.geopackage.org/spec131/index.html#extension_metadata)
+of the **GeoPackage Encoding Standard**.
+
+The metadata extension is enabled at the GeoPackage level applying to all
+tables and feature classes.  That said, not every table and feature class is 
+required to have metadata.  
+
+Metadata extension can be enabled at create time for a GeoPackage or 
+can be enabled on an existing GeoPackage.
+
+```python
+from fudgeo.geopkg import GeoPackage
+
+# enable metadata at create time
+gpkg: GeoPackage = GeoPackage.create('../data/metadata.gpkg', enable_metadata=True)
+assert gpkg.is_metadata_enabled is True
+
+# enable metadata on an existing GeoPackage
+gpkg: GeoPackage = GeoPackage('../data/example.gpkg')
+assert gpkg.is_metadata_enabled is False
+gpkg.enable_metadata_extension()
+assert gpkg.is_metadata_enabled is True
+```
+
+```python
+from fudgeo.enumeration import MetadataScope
+from fudgeo.extension.metadata import TableReference
+from fudgeo.geopkg import GeoPackage
+
+# open GeoPackage with metadata extension enabled
+gpkg: GeoPackage = GeoPackage('../data/example.gpkg')
+
+# open a metadata xml file and add it to the GeoPackage
+with open(...) as fin:
+    id_ = gpkg.metadata.add_metadata(
+        uri='https://www.isotc211.org/2005/gmd',
+        scope=MetadataScope.dataset, metadata=fin.read()
+    )
+# apply the metadata to a feature class
+reference = TableReference(table_name='road_l', file_id=id_)
+gpkg.metadata.add_references(reference)
+```
+
+Support provided for the following reference types:
+* `GeoPackageReference` -- used for `GeoPackage` level metadata
+* `TableReference` -- used for `Table` and `FeatureClass` level metadata
+* `ColumnReference` -- used for a **column** in a `Table` or `FeatureClass`
+* `RowReference` -- used for a **row** in a `Table` or `FeatureClass`
+* `RowColumnReference` -- used for **row / column** combination in a `Table` or `FeatureClass`
+
+
 ## License
 
 [MIT](https://choosealicense.com/licenses/mit/)
