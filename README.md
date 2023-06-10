@@ -358,6 +358,7 @@ Support provided for the following reference types:
 * introduce `as_tuple` method on `Point` classes
 * add `extension` sub-package, move `spatial` module into `extension`
 * add `spatial_index_name` property on `FeatureClass`, returns the index table name
+* enable enforcement of foreign key constraints
 * reorganize code to handle OGR contents like an extension
 * move protected functions from `geopkg` module into `util` module and rename
 * add type hinting to `enumerations` module
