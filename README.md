@@ -230,6 +230,65 @@ cursor = gpkg.connection.execute(f"""
 features: List[Tuple[LineStringM, int]] = cursor.fetchall()
 ```
 
+
+## Extensions
+### Spatial Index Extension
+Spatial Index Extension implementation based on section [F.3. RTree Spatial Indexes](http://www.geopackage.org/spec131/index.html#extension_rtree)
+of the **GeoPackage Encoding Standard**.
+
+Spatial Indexes apply to individual feature classes.  A spatial index can be
+added at create time or added on an existing feature class.
+
+```python
+from typing import Tuple
+from fudgeo.enumeration import GeometryType, SQLFieldType
+from fudgeo.geopkg import FeatureClass, Field, GeoPackage, SpatialReferenceSystem
+
+
+SRS_WKT: str = (
+    'PROJCS["WGS_1984_UTM_Zone_23N",'
+    'GEOGCS["GCS_WGS_1984",'
+    'DATUM["D_WGS_1984",'
+    'SPHEROID["WGS_1984",6378137.0,298.257223563]],'
+    'PRIMEM["Greenwich",0.0],'
+    'UNIT["Degree",0.0174532925199433]],'
+    'PROJECTION["Transverse_Mercator"],'
+    'PARAMETER["False_Easting",500000.0],'
+    'PARAMETER["False_Northing",0.0],'
+    'PARAMETER["Central_Meridian",-45.0],'
+    'PARAMETER["Scale_Factor",0.9996],'
+    'PARAMETER["Latitude_Of_Origin",0.0],'
+    'UNIT["Meter",1.0]]')
+SRS: SpatialReferenceSystem = SpatialReferenceSystem(
+    name='WGS_1984_UTM_Zone_23N', organization='EPSG',
+    org_coord_sys_id=32623, definition=SRS_WKT)
+fields: Tuple[Field, ...] = (
+    Field('id', SQLFieldType.integer),
+    Field('name', SQLFieldType.text, size=100))
+
+gpkg: GeoPackage = GeoPackage.create('../temp/spatial_index.gpkg')
+# add spatial index at create time
+roads: FeatureClass = gpkg.create_feature_class(
+    'road_l', srs=SRS, fields=fields, shape_type=GeometryType.linestring,
+    m_enabled=True, overwrite=True, spatial_index=True)
+assert roads.has_spatial_index is True
+
+# add spatial index on an existing feature class / post create
+signs: FeatureClass = gpkg.create_feature_class(
+    'signs_p', srs=SRS, fields=fields, overwrite=True)
+# no spatial index
+assert signs.has_spatial_index is False
+signs.add_spatial_index()
+# spatial index now present
+assert signs.has_spatial_index is True
+```
+
+Refer to **SQLite** [documentation](https://www.sqlite.org/rtree.html#using_r_trees_effectively) 
+on how to use these indexes for faster filtering / querying.  Also note
+how to handle [round off error](https://www.sqlite.org/rtree.html#roundoff_error) 
+when querying.
+
+
 ## License
 
 [MIT](https://choosealicense.com/licenses/mit/)
