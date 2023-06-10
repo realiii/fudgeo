@@ -5,13 +5,13 @@ Polygons
 
 
 from struct import pack
-from typing import Any, ClassVar, List, TYPE_CHECKING
+from typing import Any, ClassVar, Dict, List, TYPE_CHECKING
 
 from fudgeo.constant import (
-    COUNT_CODE, EMPTY, EnvelopeCode, FOUR_D, THREE_D, TWO_D,
-    WKB_MULTI_POLYGON_M_PRE, WKB_MULTI_POLYGON_PRE, WKB_MULTI_POLYGON_ZM_PRE,
-    WKB_MULTI_POLYGON_Z_PRE, WKB_POLYGON_M_PRE, WKB_POLYGON_PRE,
-    WKB_POLYGON_ZM_PRE, WKB_POLYGON_Z_PRE)
+    COUNT_CODE, EMPTY, FOUR_D, THREE_D, TWO_D, WKB_MULTI_POLYGON_M_PRE,
+    WKB_MULTI_POLYGON_PRE, WKB_MULTI_POLYGON_ZM_PRE, WKB_MULTI_POLYGON_Z_PRE,
+    WKB_POLYGON_M_PRE, WKB_POLYGON_PRE, WKB_POLYGON_ZM_PRE, WKB_POLYGON_Z_PRE)
+from fudgeo.enumeration import EnvelopeCode
 from fudgeo.geometry.base import AbstractGeometry
 from fudgeo.geometry.point import Point, PointM, PointZ, PointZM
 from fudgeo.geometry.util import (
@@ -173,6 +173,21 @@ class BasePolygon(AbstractGeometry):
         return self.rings == other.rings
     # End eq built-in
 
+    @property
+    def __geo_interface__(self) -> Dict:
+        """
+        Geo Interface
+        """
+        # NOTE return 4 values when ZM present even though GeoJSON spec
+        #  suggests no more than 3
+        #  https://stevage.github.io/geojson-spec/#section-3.1.1
+        return {'type': 'Polygon',
+                'bbox': self.envelope.bounding_box,
+                'coordinates': tuple(
+                    tuple(tuple(coords) for coords in ring.coordinates)
+                    for ring in self.rings)}
+    # End geo_interface property
+
     def _make_rings(self, coordinates: List[List]) -> List:
         """
         Make Rings
@@ -200,7 +215,9 @@ class BasePolygon(AbstractGeometry):
         """
         Is Empty
         """
-        return self._is_empty or not (bool(self._args) or bool(self.rings))
+        if self._is_empty is not None:
+            return self._is_empty
+        return not (bool(self._args) or bool(self.rings))
     # End is_empty property
 
     @property
@@ -317,6 +334,21 @@ class BaseMultiPolygon(AbstractGeometry):
         return self.polygons == other.polygons
     # End eq built-in
 
+    @property
+    def __geo_interface__(self) -> Dict:
+        """
+        Geo Interface
+        """
+        # NOTE return 4 values when ZM present even though GeoJSON spec
+        #  suggests no more than 3
+        #  https://stevage.github.io/geojson-spec/#section-3.1.1
+        return {'type': 'MultiPolygon',
+                'bbox': self.envelope.bounding_box,
+                'coordinates': tuple(tuple(tuple(
+                    tuple(coords) for coords in ring.coordinates)
+                    for ring in poly.rings) for poly in self.polygons)}
+    # End geo_interface property
+
     def _make_polygons(self, coordinates: List[List[List]]) -> List:
         """
         Make Polygons
@@ -343,7 +375,9 @@ class BaseMultiPolygon(AbstractGeometry):
         """
         Is Empty
         """
-        return self._is_empty or not (bool(self._args) or bool(self.polygons))
+        if self._is_empty is not None:
+            return self._is_empty
+        return not (bool(self._args) or bool(self.polygons))
     # End is_empty property
 
     @property

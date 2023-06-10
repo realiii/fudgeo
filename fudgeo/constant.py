@@ -5,14 +5,18 @@ Constants
 
 
 from struct import pack
-from typing import ClassVar, Dict, List, Tuple, Union
+from typing import Dict, List, Set, Tuple, Union
 
+from fudgeo.enumeration import EnvelopeCode
 
 DOUBLE = Tuple[float, float]
 TRIPLE = Tuple[float, float, float]
 QUADRUPLE = Tuple[float, float, float, float]
 COORDINATES = Union[List[DOUBLE], List[TRIPLE], List[QUADRUPLE]]
 
+COMMA_SPACE: str = ', '
+GPKG_EXT: str = '.gpkg'
+SHAPE: str = 'SHAPE'
 
 WGS84: int = 4326
 
@@ -64,24 +68,14 @@ WKB_MULTI_POLYGON_M_PRE: bytes = pack(BYTE_CODE, 1, 2006)
 WKB_MULTI_POLYGON_ZM_PRE: bytes = pack(BYTE_CODE, 1, 3006)
 
 
-POINT_PREFIX: Dict[Tuple[bool, bool], bytes] = {
+POINT_PREFIX_ZM: Dict[Tuple[bool, bool], bytes] = {
     (False, False): WKB_POINT_PRE,
     (True, False): WKB_POINT_Z_PRE,
     (False, True): WKB_POINT_M_PRE,
     (True, True): WKB_POINT_ZM_PRE,
 }
-
-
-class EnvelopeCode:
-    """
-    Envelope Code
-    """
-    empty: ClassVar[int] = 0
-    xy: ClassVar[int] = 1
-    xyz: ClassVar[int] = 2
-    xym: ClassVar[int] = 3
-    xyzm: ClassVar[int] = 4
-# End EnvelopeCode class
+POINT_PREFIXES: Set[bytes] = {
+    WKB_POINT_PRE, WKB_POINT_Z_PRE, WKB_POINT_M_PRE, WKB_POINT_ZM_PRE}
 
 
 HEADER_OFFSET: int = 8
@@ -92,5 +86,5 @@ ENVELOPE_COUNT: Dict[int, int] = {k: v // 8 for k, v in ENVELOPE_LENGTH.items()}
 ENVELOPE_OFFSET = {k: v + HEADER_OFFSET for k, v in ENVELOPE_LENGTH.items()}
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # pragma: no cover
     pass

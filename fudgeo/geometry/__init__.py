@@ -25,5 +25,5 @@ __all__ = ['Point', 'PointZ', 'PointM', 'PointZM',
            'MultiPolygonM', 'MultiPolygonZM']
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # pragma: no cover
     pass

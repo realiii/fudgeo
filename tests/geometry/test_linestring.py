@@ -12,10 +12,10 @@ from fudgeo.geometry import (
 from fudgeo.geometry.util import (
     EMPTY_ENVELOPE, Envelope, make_header,
     unpack_header)
-from tests.conversion.geo import (
+from tests.geo import (
     points_m_to_gpkg_line_string_m, points_to_gpkg_line_string,
     points_z_to_gpkg_line_string_z, points_zm_to_gpkg_line_string_zm)
-from tests.conversion.wkb import (
+from tests.wkb import (
     point_lists_m_to_multi_line_string_m, point_lists_to_multi_line_string,
     point_lists_z_to_multi_line_string_z,
     point_lists_zm_to_multi_line_string_zm, points_m_to_wkb_line_string_m,
@@ -43,13 +43,13 @@ def test_empty_linestring_gpkg():
 # End test_empty_linestring_gpkg function
 
 
-@mark.parametrize('cls, wkb', [
-    (LineString, b'\x01\x02\x00\x00\x00\x00\x00\x00\x00'),
-    (LineStringZ, b'\x01\xea\x03\x00\x00\x00\x00\x00\x00'),
-    (LineStringM, b'\x01\xd2\x07\x00\x00\x00\x00\x00\x00'),
-    (LineStringZM, b'\x01\xba\x0b\x00\x00\x00\x00\x00\x00'),
+@mark.parametrize('cls, wkb, data', [
+    (LineString, b'\x01\x02\x00\x00\x00\x00\x00\x00\x00', b'GP\x00\x11\xe6\x10\x00\x00\x01\x02\x00\x00\x00\x00\x00\x00\x00'),
+    (LineStringZ, b'\x01\xea\x03\x00\x00\x00\x00\x00\x00', b'GP\x00\x11\xe6\x10\x00\x00\x01\xea\x03\x00\x00\x00\x00\x00\x00'),
+    (LineStringM, b'\x01\xd2\x07\x00\x00\x00\x00\x00\x00', b'GP\x00\x11\xe6\x10\x00\x00\x01\xd2\x07\x00\x00\x00\x00\x00\x00'),
+    (LineStringZM, b'\x01\xba\x0b\x00\x00\x00\x00\x00\x00', b'GP\x00\x11\xe6\x10\x00\x00\x01\xba\x0b\x00\x00\x00\x00\x00\x00'),
 ])
-def test_empty_line_string(cls, wkb):
+def test_empty_line_string(cls, wkb, data):
     """
     Test Empty LineString
     """
@@ -58,6 +58,12 @@ def test_empty_line_string(cls, wkb):
     assert geom._to_wkb(ary) == wkb
     assert isinstance(geom, cls)
     assert not len(geom.coordinates)
+    assert geom._is_empty is None
+    assert geom.is_empty is True
+    assert geom.to_gpkg() == data
+    geom = cls.from_gpkg(data)
+    assert geom._is_empty is True
+    assert geom.is_empty is True
 # End test_empty_line_string function
 
 
@@ -112,6 +118,10 @@ def test_line_string(header, cls, values, env_code, wkb_func, gpkg_func, env):
     assert from_gpkg == line
     assert not line.is_empty
     assert line.envelope == env
+    geo = line.__geo_interface__
+    assert geo['type'] == 'LineString'
+    assert geo['coordinates'] == tuple(values)
+    assert geo['bbox'] == env.bounding_box
 # End test_line_string function
 
 
@@ -164,6 +174,10 @@ def test_multi_line_string(header, cls, values, env_code, wkb_func, env):
     assert gpkg.startswith(header(env_code))
     assert not multi.is_empty
     assert multi.envelope == env
+    geo = multi.__geo_interface__
+    assert geo['type'] == 'MultiLineString'
+    assert geo['coordinates'] == tuple(tuple(v) for v in values)
+    assert geo['bbox'] == env.bounding_box
 # End test_multi_line_string function
 
 

@@ -14,10 +14,9 @@ from numpy import array, frombuffer, ndarray
 from bottleneck import nanmax, nanmin
 
 from fudgeo.constant import (
-    COUNT_CODE, EMPTY, ENVELOPE_COUNT, ENVELOPE_OFFSET, EnvelopeCode, GP_MAGIC,
-    HEADER_CODE,
-    HEADER_OFFSET, POINT_PREFIX)
-
+    COUNT_CODE, EMPTY, ENVELOPE_COUNT, ENVELOPE_OFFSET, GP_MAGIC, HEADER_CODE,
+    HEADER_OFFSET, POINT_PREFIX_ZM)
+from fudgeo.enumeration import EnvelopeCode
 
 if TYPE_CHECKING:  # pragma: no cover
     # noinspection PyUnresolvedReferences
@@ -106,6 +105,14 @@ class Envelope:
             return same_m
         return same_m and same_z
     # End eq built-in
+
+    @property
+    def bounding_box(self) -> Tuple[float, float, float, float]:
+        """
+        Bounding Box
+        """
+        return self.min_x, self.min_y, self.max_x, self.max_y
+    # End bounding_box property
 
     def to_wkb(self) -> Tuple[int, bytes]:
         """
@@ -265,7 +272,7 @@ def pack_coordinates(ary: bytearray, prefix: bytes, coordinates: ndarray,
     length = len(data)
     view = memoryview(data)
     step = length // count
-    prefix = POINT_PREFIX.get((has_z, has_m))
+    prefix = POINT_PREFIX_ZM.get((has_z, has_m))
     for i in range(0, length, step):
         ary.extend(prefix)
         ary.extend(view[i:i + step])

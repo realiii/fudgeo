@@ -14,7 +14,7 @@ from fudgeo.geometry.polygon import (
 from fudgeo.geometry.util import (
     EMPTY_ENVELOPE, Envelope, make_header,
     unpack_header)
-from tests.conversion.wkb import (
+from tests.wkb import (
     _linear_ring_m_to_wkb, _linear_ring_to_wkb, _linear_ring_z_to_wkb,
     _linear_ring_zm_to_wkb, point_lists_m_to_wkb_multipolygon_m,
     point_lists_m_to_wkb_polygon_m, point_lists_to_wkb_multipolygon,
@@ -43,13 +43,13 @@ def test_empty_polygon_gpkg():
 # End test_empty_polygon_gpkg function
 
 
-@mark.parametrize('cls, wkb', [
-    (Polygon, b'\x01\x03\x00\x00\x00\x00\x00\x00\x00'),
-    (PolygonZ, b'\x01\xeb\x03\x00\x00\x00\x00\x00\x00'),
-    (PolygonM, b'\x01\xd3\x07\x00\x00\x00\x00\x00\x00'),
-    (PolygonZM, b'\x01\xbb\x0b\x00\x00\x00\x00\x00\x00')
+@mark.parametrize('cls, wkb, data', [
+    (Polygon, b'\x01\x03\x00\x00\x00\x00\x00\x00\x00', b'GP\x00\x11\xe6\x10\x00\x00\x01\x03\x00\x00\x00\x00\x00\x00\x00'),
+    (PolygonZ, b'\x01\xeb\x03\x00\x00\x00\x00\x00\x00', b'GP\x00\x11\xe6\x10\x00\x00\x01\xeb\x03\x00\x00\x00\x00\x00\x00'),
+    (PolygonM, b'\x01\xd3\x07\x00\x00\x00\x00\x00\x00', b'GP\x00\x11\xe6\x10\x00\x00\x01\xd3\x07\x00\x00\x00\x00\x00\x00'),
+    (PolygonZM, b'\x01\xbb\x0b\x00\x00\x00\x00\x00\x00', b'GP\x00\x11\xe6\x10\x00\x00\x01\xbb\x0b\x00\x00\x00\x00\x00\x00')
 ])
-def test_empty_polygon(cls, wkb):
+def test_empty_polygon(cls, wkb, data):
     """
     Test Empty Polygon
     """
@@ -58,6 +58,12 @@ def test_empty_polygon(cls, wkb):
     assert geom._to_wkb(ary) == wkb
     assert isinstance(geom, cls)
     assert geom.rings == []
+    assert geom._is_empty is None
+    assert geom.is_empty is True
+    assert geom.to_gpkg() == data
+    geom = cls.from_gpkg(data)
+    assert geom._is_empty is True
+    assert geom.is_empty is True
 # End test_empty_polygon function
 
 
@@ -135,6 +141,10 @@ def test_polygon(header, cls, values, env_code, wkb_func, env):
     assert from_gpkg == poly
     assert not poly.is_empty
     assert poly.envelope == env
+    geo = poly.__geo_interface__
+    assert geo['type'] == 'Polygon'
+    assert geo['coordinates'] == tuple(tuple(v) for v in values)
+    assert geo['bbox'] == env.bounding_box
 # End test_polygon function
 
 
@@ -152,19 +162,23 @@ def test_multi_polygon(header, cls, values, env_code, wkb_func, env):
     """
     Test multi polygon wkb
     """
-    poly = cls(values, srs_id=WGS84)
+    multi = cls(values, srs_id=WGS84)
     with raises(AttributeError):
         # noinspection PyDunderSlots,PyUnresolvedReferences
-        poly.attribute = 10
+        multi.attribute = 10
     ary = bytearray()
-    assert poly._to_wkb(ary) == wkb_func(values)
-    gpkg = poly.to_gpkg()
+    assert multi._to_wkb(ary) == wkb_func(values)
+    gpkg = multi.to_gpkg()
     assert gpkg.startswith(header(env_code))
     from_gpkg = cls.from_gpkg(gpkg)
     assert not from_gpkg.is_empty
-    assert from_gpkg == poly
-    assert not poly.is_empty
-    assert poly.envelope == env
+    assert from_gpkg == multi
+    assert not multi.is_empty
+    assert multi.envelope == env
+    geo = multi.__geo_interface__
+    assert geo['type'] == 'MultiPolygon'
+    assert geo['coordinates'] == tuple(tuple(tuple(v) for v in vs) for vs in values)
+    assert geo['bbox'] == env.bounding_box
 # End test_multi_polygon function
 
 

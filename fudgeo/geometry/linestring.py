@@ -5,13 +5,14 @@ Line String
 
 
 from struct import pack
-from typing import Any, ClassVar, List, TYPE_CHECKING
+from typing import Any, ClassVar, Dict, List, TYPE_CHECKING
 
 from fudgeo.constant import (
-    COUNT_CODE, EMPTY, EnvelopeCode, FOUR_D, THREE_D, TWO_D,
-    WKB_LINESTRING_M_PRE, WKB_LINESTRING_PRE, WKB_LINESTRING_ZM_PRE,
-    WKB_LINESTRING_Z_PRE, WKB_MULTI_LINESTRING_M_PRE, WKB_MULTI_LINESTRING_PRE,
+    COUNT_CODE, EMPTY, FOUR_D, THREE_D, TWO_D, WKB_LINESTRING_M_PRE,
+    WKB_LINESTRING_PRE, WKB_LINESTRING_ZM_PRE, WKB_LINESTRING_Z_PRE,
+    WKB_MULTI_LINESTRING_M_PRE, WKB_MULTI_LINESTRING_PRE,
     WKB_MULTI_LINESTRING_ZM_PRE, WKB_MULTI_LINESTRING_Z_PRE)
+from fudgeo.enumeration import EnvelopeCode
 from fudgeo.geometry.base import AbstractGeometry
 from fudgeo.geometry.point import Point, PointM, PointZ, PointZM
 from fudgeo.geometry.util import (
@@ -56,6 +57,20 @@ class BaseLineString(AbstractGeometry):
     # End eq built-in
 
     @property
+    def __geo_interface__(self) -> Dict:
+        """
+        Geo Interface
+        """
+        # NOTE return 4 values when ZM present even though GeoJSON spec
+        #  suggests no more than 3
+        #  https://stevage.github.io/geojson-spec/#section-3.1.1
+        return {'type': 'LineString',
+                'bbox': self.envelope.bounding_box,
+                'coordinates': tuple(
+                    tuple(coords) for coords in self.coordinates)}
+    # End geo_interface property
+
+    @property
     def coordinates(self) -> 'ndarray':
         """
         Coordinates
@@ -72,7 +87,9 @@ class BaseLineString(AbstractGeometry):
         """
         Is Empty
         """
-        return self._is_empty or not len(self.coordinates)
+        if self._is_empty is not None:
+            return self._is_empty
+        return not len(self.coordinates)
     # End is_empty property
 
     @property
@@ -202,6 +219,21 @@ class BaseMultiLineString(AbstractGeometry):
         return self.lines == other.lines
     # End eq built-in
 
+    @property
+    def __geo_interface__(self) -> Dict:
+        """
+        Geo Interface
+        """
+        # NOTE return 4 values when ZM present even though GeoJSON spec
+        #  suggests no more than 3
+        #  https://stevage.github.io/geojson-spec/#section-3.1.1
+        return {'type': 'MultiLineString',
+                'bbox': self.envelope.bounding_box,
+                'coordinates': tuple(
+                    tuple(tuple(coords) for coords in line.coordinates)
+                    for line in self.lines)}
+    # End geo_interface property
+
     def _make_lines(self, coordinates: List[List]) -> List:
         """
         Make Lines
@@ -229,7 +261,9 @@ class BaseMultiLineString(AbstractGeometry):
         """
         Is Empty
         """
-        return self._is_empty or not (bool(self._args) or bool(self.lines))
+        if self._is_empty is not None:
+            return self._is_empty
+        return not (bool(self._args) or bool(self.lines))
     # End is_empty property
 
     def _to_wkb(self, ary: bytearray) -> bytearray:

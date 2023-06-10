@@ -4,63 +4,48 @@ Geopackage
 """
 
 
-from datetime import datetime, timedelta, timezone
 from math import nan
 from os import PathLike
 from pathlib import Path
-from re import IGNORECASE, compile as recompile
 from sqlite3 import (
-    Connection, Cursor, DatabaseError, OperationalError, PARSE_COLNAMES,
-    PARSE_DECLTYPES, connect, register_adapter, register_converter)
-from typing import Callable, Dict, List, Optional, Tuple, Type, Union
+    PARSE_COLNAMES, PARSE_DECLTYPES, connect, register_adapter,
+    register_converter)
+from typing import Dict, List, Optional, TYPE_CHECKING, Tuple, Type, Union
 
-from fudgeo.enumeration import (
-    DataType, GPKGFlavors, GeometryType, SQLFieldType)
+from fudgeo.constant import COMMA_SPACE, GPKG_EXT, SHAPE
+from fudgeo.enumeration import DataType, GPKGFlavors, GeometryType, SQLFieldType
+from fudgeo.extension.metadata import (
+    Metadata, add_metadata_extension, has_metadata_extension)
+from fudgeo.extension.ogr import add_ogr_contents, has_ogr_contents
+from fudgeo.extension.schema import (
+    Schema, add_schema_extension, has_schema_extension)
+from fudgeo.extension.spatial import ST_FUNCS, add_spatial_index
 from fudgeo.geometry import (
-    Point, PointZ, PointM, PointZM, MultiPoint, MultiPointZ, MultiPointM,
-    MultiPointZM, LineString, LineStringZ, LineStringM, LineStringZM,
-    MultiLineString, MultiLineStringZ, MultiLineStringM, MultiLineStringZM,
-    Polygon, PolygonZ, PolygonM, PolygonZM, MultiPolygon, MultiPolygonZ,
-    MultiPolygonM, MultiPolygonZM)
+    LineString, LineStringM, LineStringZ, LineStringZM, MultiLineString,
+    MultiLineStringM, MultiLineStringZ, MultiLineStringZM, MultiPoint,
+    MultiPointM, MultiPointZ, MultiPointZM, MultiPolygon, MultiPolygonM,
+    MultiPolygonZ, MultiPolygonZM, Point, PointM, PointZ, PointZM, Polygon,
+    PolygonM, PolygonZ, PolygonZM)
 from fudgeo.sql import (
     CHECK_SRS_EXISTS, CREATE_FEATURE_TABLE, CREATE_OGR_CONTENTS, CREATE_TABLE,
-    DEFAULT_EPSG_RECS, DEFAULT_ESRI_RECS, DELETE_OGR_CONTENTS,
-    GPKG_OGR_CONTENTS_DELETE_TRIGGER, GPKG_OGR_CONTENTS_INSERT_TRIGGER,
-    HAS_OGR_CONTENTS, INSERT_GPKG_CONTENTS_SHORT, INSERT_GPKG_GEOM_COL,
-    INSERT_GPKG_OGR_CONTENTS, INSERT_GPKG_SRS, KEYWORDS, REMOVE_FEATURE_CLASS,
-    REMOVE_TABLE, SELECT_EXTENT, SELECT_GEOMETRY_COLUMN, SELECT_GEOMETRY_TYPE,
-    SELECT_HAS_ZM, SELECT_SRS, SELECT_TABLES_BY_TYPE, TABLE_EXISTS,
-    UPDATE_EXTENT)
+    DEFAULT_EPSG_RECS, DEFAULT_ESRI_RECS, DELETE_DATA_COLUMNS,
+    DELETE_METADATA_REFERENCE, DELETE_OGR_CONTENTS, INSERT_GPKG_CONTENTS_SHORT,
+    INSERT_GPKG_GEOM_COL, INSERT_GPKG_SRS, REMOVE_FEATURE_CLASS, REMOVE_TABLE,
+    SELECT_COUNT, SELECT_EXTENT, SELECT_GEOMETRY_COLUMN, SELECT_GEOMETRY_TYPE,
+    SELECT_HAS_ZM, SELECT_PRIMARY_KEY, SELECT_SRS, SELECT_TABLES_BY_TYPE,
+    TABLE_EXISTS, UPDATE_EXTENT)
+from fudgeo.util import convert_datetime, escape_name, now
+
+
+if TYPE_CHECKING:
+    from sqlite3 import Connection, Cursor
+    from fudgeo.geometry.base import AbstractGeometry
 
 
 FIELDS = Union[Tuple['Field', ...], List['Field']]
-NAME_MATCHER: Callable = recompile(r'^[A-Z]\w*$', IGNORECASE).match
 
 
-COMMA_SPACE = ', '
-GPKG_EXT = '.gpkg'
-SHAPE = 'SHAPE'
-
-
-def _escape_name(name: str) -> str:
-    """
-    Escape Name
-    """
-    if name.upper() in KEYWORDS or not NAME_MATCHER(name):
-        name = f'"{name}"'
-    return name
-# End _escape_name function
-
-
-def _now() -> str:
-    """
-    Formatted Now
-    """
-    return datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%fZ')
-# End _now method
-
-
-def _adapt_geometry(val) -> bytes:
+def _adapt_geometry(val: 'AbstractGeometry') -> bytes:
     """
     Adapt Geometry to Geopackage
     """
@@ -68,50 +53,7 @@ def _adapt_geometry(val) -> bytes:
 # End _adapt_geometry function
 
 
-def _convert_datetime(val: bytes) -> datetime:
-    """
-    Heavily Influenced by convert_timestamp from ../sqlite3/dbapi2.py,
-    Added in support for timezone handling although the practice should
-    be to resolve to UTC.
-    """
-    colon = b':'
-    dash = b'-'
-    # To split timestamps like that b'2022-09-06T13:50:33'
-    for separator in (b' ', b'T'):
-        try:
-            dt, tm = val.split(separator)
-            break
-        except ValueError:
-            pass
-    else:
-        raise Exception(f"Could not split datetime: '{val}'")
-    year, month, day = map(int, dt.split(dash))
-    tm, *micro = tm.split(b'.')
-    tz = []
-    factor = 0
-    for token, scale in zip((b'+', dash), (1, -1)):
-        if token in tm:
-            tm, *tz = tm.split(token)
-            factor = scale
-            break
-    hours, minutes, seconds = map(int, tm.split(colon))
-    try:
-        micro = int('{:0<6.6}'.format(micro[0].decode())) if micro else 0
-    except (ValueError, TypeError):
-        micro = 0
-    if tz:
-        tz_hr, *tz_min = map(int, tz[0].split(colon))
-        tz_min = tz_min[0] if tz_min else 0
-        tzinfo = timezone(timedelta(
-            hours=factor * tz_hr, minutes=factor * tz_min))
-    else:
-        tzinfo = None
-    return datetime(year, month, day, hours, minutes, seconds,
-                    micro, tzinfo=tzinfo)
-# End _convert_datetime function
-
-
-def _register_geometry():
+def _register_geometry() -> None:
     """
     Register adapters and converters for geometry / geopackage
     """
@@ -127,6 +69,15 @@ def _register_geometry():
 # End _register_geometry function
 
 
+def _add_st_functions(conn: 'Connection') -> None:
+    """
+    Add ST Functions
+    """
+    for name, func in ST_FUNCS.items():
+        conn.create_function(name=name, narg=1, func=func)
+# End _add_st_functions function
+
+
 class GeoPackage:
     """
     GeoPackage
@@ -137,7 +88,7 @@ class GeoPackage:
         """
         super().__init__()
         self._path: Path = Path(path)
-        self._conn: Optional[Connection] = None
+        self._conn: Optional['Connection'] = None
     # End init built-in
 
     def __repr__(self) -> str:
@@ -156,7 +107,7 @@ class GeoPackage:
     # End path property
 
     @property
-    def connection(self) -> Connection:
+    def connection(self) -> 'Connection':
         """
         Connection
         """
@@ -164,16 +115,18 @@ class GeoPackage:
             self._conn = connect(
                 str(self._path), isolation_level='EXCLUSIVE',
                 detect_types=PARSE_DECLTYPES | PARSE_COLNAMES)
+            self._conn.execute("""PRAGMA foreign_keys = true""")
             _register_geometry()
-            register_converter('timestamp', _convert_datetime)
-            register_converter('datetime', _convert_datetime)
+            _add_st_functions(self._conn)
+            register_converter('timestamp', convert_datetime)
+            register_converter('datetime', convert_datetime)
         return self._conn
     # End connection property
 
     @classmethod
-    def create(cls, path: Union[PathLike, str],
-               flavor: str = GPKGFlavors.esri,
-               ogr_contents: bool = True) -> 'GeoPackage':
+    def create(cls, path: Union[PathLike, str], flavor: str = GPKGFlavors.esri,
+               ogr_contents: bool = False, enable_metadata: bool = False,
+               enable_schema: bool = False) -> 'GeoPackage':
         """
         Create a new GeoPackage
         """
@@ -192,17 +145,71 @@ class GeoPackage:
             conn.executemany(INSERT_GPKG_SRS, defaults)
             if ogr_contents:
                 conn.execute(CREATE_OGR_CONTENTS)
+            if enable_metadata:
+                add_metadata_extension(conn)
+            if enable_schema:
+                add_schema_extension(conn)
         return cls(path)
     # End create method
+
+    def add_spatial_reference(self, srs: 'SpatialReferenceSystem') -> None:
+        """
+        Add Spatial Reference
+        """
+        if self.check_srs_exists(srs.srs_id):
+            return
+        with self.connection as conn:
+            conn.execute(INSERT_GPKG_SRS, srs.as_record())
+    # End add_spatial_reference method
 
     def check_srs_exists(self, srs_id: int) -> bool:
         """
         Check if a SpatialReferenceSystem already exists in the table.
-        This is done purely by srs id because that is all ESRI looks at.
+        Done purely by srs id here but could be done via wkt on definition.
         """
         cursor = self.connection.execute(CHECK_SRS_EXISTS, (srs_id,))
         return bool(cursor.fetchall())
     # End check_srs_exists method
+
+    def enable_metadata_extension(self) -> bool:
+        """
+        Enable Metadata Extension in the Geopackage.  Short circuit if
+        already enabled.
+        """
+        if self.is_metadata_enabled:
+            return True
+        with self.connection as conn:
+            add_metadata_extension(conn=conn)
+        return True
+    # End enable_metadata_extension method
+
+    def enable_schema_extension(self) -> bool:
+        """
+        Enable Schema Extension in the Geopackage.  Short circuit if
+        already enabled.
+        """
+        if self.is_schema_enabled:
+            return True
+        with self.connection as conn:
+            add_schema_extension(conn=conn)
+        return True
+    # End enable_schema_extension method
+
+    @property
+    def is_metadata_enabled(self) -> bool:
+        """
+        Is Metadata Extension Enabled
+        """
+        return has_metadata_extension(self.connection)
+    # End is_metadata_enabled property
+
+    @property
+    def is_schema_enabled(self) -> bool:
+        """
+        Is Schema Extension Enabled
+        """
+        return has_schema_extension(self.connection)
+    # End is_schema_enabled property
 
     def _check_table_exists(self, table_name: str) -> bool:
         """
@@ -228,7 +235,8 @@ class GeoPackage:
                              shape_type: str = GeometryType.point,
                              z_enabled: bool = False, m_enabled: bool = False,
                              fields: FIELDS = (), description: str = '',
-                             overwrite: bool = False) -> 'FeatureClass':
+                             overwrite: bool = False,
+                             spatial_index: bool = False) -> 'FeatureClass':
         """
         Creates a feature class in the GeoPackage per the options given.
         """
@@ -236,7 +244,8 @@ class GeoPackage:
         return FeatureClass.create(
             geopackage=self, name=name, shape_type=shape_type, srs=srs,
             z_enabled=z_enabled, m_enabled=m_enabled, fields=fields,
-            description=description, overwrite=overwrite)
+            description=description, overwrite=overwrite,
+            spatial_index=spatial_index)
     # End create_feature_class method
 
     def create_table(self, name: str, fields: FIELDS = (),
@@ -277,6 +286,26 @@ class GeoPackage:
             SELECT_TABLES_BY_TYPE, (data_type,))
         return {name: cls(self, name) for name, in cursor.fetchall()}
     # End _get_table_objects method
+
+    @property
+    def metadata(self) -> Optional[Metadata]:
+        """
+        Metadata for the Geopackage, None if Metadata extension not enabled.
+        """
+        if not self.is_metadata_enabled:
+            return
+        return Metadata(geopackage=self)
+    # End metadata property
+
+    @property
+    def schema(self) -> Optional[Schema]:
+        """
+        Schema for the Geopackage, None if Schema extension not enabled.
+        """
+        if not self.is_schema_enabled:
+            return
+        return Schema(geopackage=self)
+    # End schema property
 # End GeoPackage class
 
 
@@ -293,13 +322,63 @@ class BaseTable:
         self.name: str = name
     # End init built-in
 
+    @staticmethod
+    def _column_names(fields: FIELDS) -> str:
+        """
+        Column Names
+        """
+        if not fields:
+            return ''
+        return f'{COMMA_SPACE}{COMMA_SPACE.join(repr(f) for f in fields)}'
+    # End _column_names method
+
+    @staticmethod
+    def _drop(conn: 'Connection', sql: str, name: str, escaped_name: str,
+              geom_name: str, delete_ogr_contents: bool,
+              delete_metadata: bool, delete_schema: bool) -> None:
+        """
+        Drop Table from Geopackage
+        """
+        conn.executescript(sql.format(name, escaped_name, geom_name))
+        if delete_ogr_contents:
+            conn.execute(DELETE_OGR_CONTENTS.format(name))
+        if delete_metadata:
+            conn.execute(DELETE_METADATA_REFERENCE.format(name))
+        if delete_schema:
+            conn.execute(DELETE_DATA_COLUMNS.format(name))
+    # End _drop method
+
+    @property
+    def count(self) -> int:
+        """
+        Number of records
+        """
+        cursor = self.geopackage.connection.execute(
+            SELECT_COUNT.format(self.escaped_name))
+        count, = cursor.fetchone()
+        return count
+    # End count property
+
     @property
     def escaped_name(self) -> str:
         """
         Escaped Name
         """
-        return _escape_name(self.name)
+        return escape_name(self.name)
     # End escaped_name property
+
+    @property
+    def primary_key_field(self) -> Optional['Field']:
+        """
+        Primary Key Field
+        """
+        cursor = self.geopackage.connection.execute(
+            SELECT_PRIMARY_KEY.format(self.name, SQLFieldType.integer))
+        result = cursor.fetchone()
+        if not result:
+            return
+        return Field(*result)
+    # End primary_key_field property
 
     @property
     def fields(self) -> List['Field']:
@@ -339,20 +418,22 @@ class Table(BaseTable):
         """
         Create a regular non-spatial table in the geopackage
         """
-        cols = f', {", ".join(repr(f) for f in fields)}' if fields else ''
+        cols = cls._column_names(fields)
         with geopackage.connection as conn:
-            escaped_name = _escape_name(name)
-            has_ogr_contents = _has_ogr_contents(conn)
+            escaped_name = escape_name(name)
+            has_contents = has_ogr_contents(conn)
             if overwrite:
-                conn.executescript(REMOVE_TABLE.format(name, escaped_name))
-                if has_ogr_contents:
-                    conn.execute(DELETE_OGR_CONTENTS.format(name))
+                cls._drop(conn=conn, sql=REMOVE_TABLE, geom_name='',
+                          name=name, escaped_name=escaped_name,
+                          delete_ogr_contents=has_contents,
+                          delete_metadata=geopackage.is_metadata_enabled,
+                          delete_schema=geopackage.is_schema_enabled)
             conn.execute(CREATE_TABLE.format(
                 name=escaped_name, other_fields=cols))
             conn.execute(INSERT_GPKG_CONTENTS_SHORT, (
-                name, DataType.attributes, name, description, _now(), None))
-            if has_ogr_contents:
-                _add_ogr_contents(conn, name=name, escaped_name=escaped_name)
+                name, DataType.attributes, name, description, now(), None))
+            if has_contents:
+                add_ogr_contents(conn, name=name, escaped_name=escaped_name)
         return cls(geopackage=geopackage, name=name)
     # End create method
 
@@ -361,10 +442,11 @@ class Table(BaseTable):
         Drop table from Geopackage
         """
         with self.geopackage.connection as conn:
-            conn.executescript(
-                REMOVE_TABLE.format(self.name, self.escaped_name))
-            if _has_ogr_contents(conn):
-                conn.execute(DELETE_OGR_CONTENTS.format(self.name))
+            self._drop(conn=conn, sql=REMOVE_TABLE, geom_name='',
+                       name=self.name, escaped_name=self.escaped_name,
+                       delete_ogr_contents=has_ogr_contents(conn),
+                       delete_metadata=self.geopackage.is_metadata_enabled,
+                       delete_schema=self.geopackage.is_schema_enabled)
     # End drop method
 # End Table class
 
@@ -381,36 +463,65 @@ class FeatureClass(BaseTable):
                 f'name={self.name!r})')
     # End repr built-in
 
+    @staticmethod
+    def _find_geometry_column_name(geopackage: 'GeoPackage', name: str) -> str:
+        """
+        Find Geometry Column Name for an Existing Feature Class
+        """
+        sans_case = {k.casefold(): v
+                     for k, v in geopackage.feature_classes.items()}
+        existing = sans_case.get(name.casefold())
+        if not existing:
+            return ''
+        return existing.geometry_column_name
+    # End _find_geometry_column_name method
+
+    def add_spatial_index(self) -> bool:
+        """
+        Add Spatial Index if does not already exist
+        """
+        if self.has_spatial_index:
+            return False
+        with self.geopackage.connection as conn:
+            add_spatial_index(conn=conn, feature_class=self)
+        return True
+    # End add_spatial_index method
+
     @classmethod
     def create(cls, geopackage: GeoPackage, name: str, shape_type: str,
                srs: 'SpatialReferenceSystem', z_enabled: bool = False,
                m_enabled: bool = False, fields: FIELDS = (),
-               description: str = '',
-               overwrite: bool = False) -> 'FeatureClass':
+               description: str = '', overwrite: bool = False,
+               spatial_index: bool = False) -> 'FeatureClass':
         """
         Create Feature Class
         """
-        cols = f', {", ".join(repr(f) for f in fields)}' if fields else ''
+        cols = cls._column_names(fields)
         with geopackage.connection as conn:
-            escaped_name = _escape_name(name)
-            has_ogr_contents = _has_ogr_contents(conn)
+            escaped_name = escape_name(name)
+            has_contents = has_ogr_contents(conn)
             if overwrite:
-                conn.executescript(
-                    REMOVE_FEATURE_CLASS.format(name, escaped_name))
-                if has_ogr_contents:
-                    conn.execute(DELETE_OGR_CONTENTS.format(name))
+                geom_name = cls._find_geometry_column_name(geopackage, name)
+                cls._drop(conn=conn, sql=REMOVE_FEATURE_CLASS,
+                          name=name, escaped_name=escaped_name,
+                          geom_name=geom_name, delete_ogr_contents=has_contents,
+                          delete_metadata=geopackage.is_metadata_enabled,
+                          delete_schema=geopackage.is_schema_enabled)
             conn.execute(CREATE_FEATURE_TABLE.format(
                 name=escaped_name, feature_type=shape_type, other_fields=cols))
             if not geopackage.check_srs_exists(srs.srs_id):
                 conn.execute(INSERT_GPKG_SRS, srs.as_record())
+            conn.execute(INSERT_GPKG_CONTENTS_SHORT, (
+                name, DataType.features, name, description, now(), srs.srs_id))
             conn.execute(INSERT_GPKG_GEOM_COL,
                          (name, SHAPE, shape_type, srs.srs_id,
                           int(z_enabled), int(m_enabled)))
-            conn.execute(INSERT_GPKG_CONTENTS_SHORT, (
-                name, DataType.features, name, description, _now(), srs.srs_id))
-            if has_ogr_contents:
-                _add_ogr_contents(conn, name=name, escaped_name=escaped_name)
-        return cls(geopackage=geopackage, name=name)
+            if has_contents:
+                add_ogr_contents(conn, name=name, escaped_name=escaped_name)
+            feature_class = cls(geopackage=geopackage, name=name)
+            if spatial_index:
+                add_spatial_index(conn=conn, feature_class=feature_class)
+        return feature_class
     # End create method
 
     def drop(self) -> None:
@@ -418,14 +529,16 @@ class FeatureClass(BaseTable):
         Drop feature class from Geopackage
         """
         with self.geopackage.connection as conn:
-            conn.executescript(
-                REMOVE_FEATURE_CLASS.format(self.name, self.escaped_name))
-            if _has_ogr_contents(conn):
-                conn.execute(DELETE_OGR_CONTENTS.format(self.name))
+            self._drop(conn=conn, sql=REMOVE_FEATURE_CLASS,
+                       geom_name=self.geometry_column_name,
+                       name=self.name, escaped_name=self.escaped_name,
+                       delete_ogr_contents=has_ogr_contents(conn),
+                       delete_metadata=self.geopackage.is_metadata_enabled,
+                       delete_schema=self.geopackage.is_schema_enabled)
     # End drop method
 
     @staticmethod
-    def _check_result(cursor: Cursor) -> Optional[str]:
+    def _check_result(cursor: 'Cursor') -> Optional[str]:
         """
         Check Result
         """
@@ -488,6 +601,34 @@ class FeatureClass(BaseTable):
         _, m = cursor.fetchone()
         return bool(m)
     # End has_m property
+
+    @property
+    def spatial_index_name(self) -> Optional[str]:
+        """
+        Spatial Index Name (escaped) if present, None otherwise
+        """
+        if not self.has_spatial_index:
+            return
+        return escape_name(self._spatial_index_name)
+    # End spatial_index_name property
+
+    @property
+    def _spatial_index_name(self) -> str:
+        """
+        Spatial Index Name
+        """
+        return f'rtree_{self.name}_{self.geometry_column_name}'
+    # End _spatial_index_name property
+
+    @property
+    def has_spatial_index(self) -> bool:
+        """
+        Has Spatial Index
+        """
+        cursor = self.geopackage.connection.execute(
+            TABLE_EXISTS, (self._spatial_index_name,))
+        return bool(cursor.fetchall())
+    # End has_spatial_index property
 
     @property
     def extent(self) -> Tuple[float, float, float, float]:
@@ -576,7 +717,7 @@ class Field:
         """
         Escaped Name, only adds quotes if needed
         """
-        return _escape_name(self.name)
+        return escape_name(self.name)
     # End escaped_name property
 
     def __repr__(self) -> str:
@@ -591,27 +732,5 @@ class Field:
 # End Field class
 
 
-def _has_ogr_contents(conn: 'Connection') -> bool:
-    """
-    Has gpkg_ogr_contents table
-    """
-    try:
-        cursor = conn.execute(HAS_OGR_CONTENTS)
-    except (DatabaseError, OperationalError):
-        return False
-    return bool(cursor.fetchone())
-# End _has_ogr_contents function
-
-
-def _add_ogr_contents(conn: Connection, name: str, escaped_name: str) -> None:
-    """
-    Add OGR Contents Table Entry and Triggers
-    """
-    conn.execute(INSERT_GPKG_OGR_CONTENTS, (name, 0))
-    conn.execute(GPKG_OGR_CONTENTS_INSERT_TRIGGER.format(name, escaped_name))
-    conn.execute(GPKG_OGR_CONTENTS_DELETE_TRIGGER.format(name, escaped_name))
-# End _add_ogr_contents function
-
-
-if __name__ == '__main__':
+if __name__ == '__main__':  # pragma: no cover
     pass

@@ -67,21 +67,25 @@ def test_envelope_internal_and_coordinates():
     zs = arange(10, 15)
     ms = arange(15, 20)
     env = Envelope(code=1, min_x=0, max_x=4, min_y=5, max_y=9)
+    assert env.bounding_box == (0, 5, 4, 9)
     assert _envelope_xy(xs=xs, ys=ys) == env
     assert envelope_from_coordinates(array(list(zip(xs, ys)), dtype=float)) == env
     assert envelope_from_coordinates(array([], dtype=float)) is EMPTY_ENVELOPE
     env = Envelope(code=2, min_x=0, max_x=4, min_y=5, max_y=9,
                    min_z=10, max_z=14)
+    assert env.bounding_box == (0, 5, 4, 9)
     assert _envelope_xyz(xs=xs, ys=ys, zs=zs) == env
     assert envelope_from_coordinates_z(array(list(zip(xs, ys, zs)), dtype=float)) == env
     assert envelope_from_coordinates_z(array([], dtype=float)) is EMPTY_ENVELOPE
     env = Envelope(code=3, min_x=0, max_x=4, min_y=5, max_y=9,
                    min_m=15, max_m=19)
+    assert env.bounding_box == (0, 5, 4, 9)
     assert _envelope_xym(xs=xs, ys=ys, ms=ms) == env
     assert envelope_from_coordinates_m(array(list(zip(xs, ys, ms)), dtype=float)) == env
     assert envelope_from_coordinates_m(array([], dtype=float)) is EMPTY_ENVELOPE
     env = Envelope(code=4, min_x=0, max_x=4, min_y=5, max_y=9,
                    min_z=10, max_z=14, min_m=15, max_m=19)
+    assert env.bounding_box == (0, 5, 4, 9)
     assert _envelope_xyzm(xs=xs, ys=ys, zs=zs, ms=ms) == env
     assert envelope_from_coordinates_zm(array(list(zip(xs, ys, zs, ms)), dtype=float)) == env
     assert envelope_from_coordinates_zm(array([], dtype=float)) is EMPTY_ENVELOPE

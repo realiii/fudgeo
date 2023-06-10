@@ -6,14 +6,15 @@ Points
 
 from math import isnan, nan
 from struct import pack, unpack
-from typing import Any, ClassVar, List, Optional, TYPE_CHECKING
+from typing import Any, ClassVar, Dict, List, Optional, TYPE_CHECKING, Union
 
 from fudgeo.constant import (
-    DOUBLE, EMPTY, EnvelopeCode, FOUR_D, FOUR_D_PACK_CODE, FOUR_D_UNPACK_CODE,
-    HEADER_OFFSET, QUADRUPLE, THREE_D, THREE_D_PACK_CODE, THREE_D_UNPACK_CODE,
-    TRIPLE, TWO_D, TWO_D_PACK_CODE, TWO_D_UNPACK_CODE, WKB_MULTI_POINT_M_PRE,
+    DOUBLE, EMPTY, FOUR_D, FOUR_D_PACK_CODE, FOUR_D_UNPACK_CODE, HEADER_OFFSET,
+    QUADRUPLE, THREE_D, THREE_D_PACK_CODE, THREE_D_UNPACK_CODE, TRIPLE, TWO_D,
+    TWO_D_PACK_CODE, TWO_D_UNPACK_CODE, WKB_MULTI_POINT_M_PRE,
     WKB_MULTI_POINT_PRE, WKB_MULTI_POINT_ZM_PRE, WKB_MULTI_POINT_Z_PRE,
     WKB_POINT_M_PRE, WKB_POINT_PRE, WKB_POINT_ZM_PRE, WKB_POINT_Z_PRE)
+from fudgeo.enumeration import EnvelopeCode
 from fudgeo.geometry.base import AbstractGeometry
 from fudgeo.geometry.util import (
     EMPTY_ENVELOPE, ENV_COORD, Envelope, as_array, lazy_unpack, make_header,
@@ -46,8 +47,23 @@ class Point(AbstractGeometry):
             return NotImplemented
         if self.srs_id != other.srs_id:
             return False
-        return (self.x, self.y) == (other.x, other.y)
+        return self.as_tuple() == other.as_tuple()
     # End eq built-in
+
+    @property
+    def __geo_interface__(self) -> Dict[str, Union[str, DOUBLE]]:
+        """
+        Geo Interface
+        """
+        return {'type': 'Point', 'coordinates': self.as_tuple()}
+    # End geo_interface property
+
+    def as_tuple(self) -> DOUBLE:
+        """
+        As Tuple
+        """
+        return self.x, self.y
+    # End as_tuple method
 
     @property
     def is_empty(self) -> bool:
@@ -58,11 +74,11 @@ class Point(AbstractGeometry):
     # End is_empty property
 
     @staticmethod
-    def _unpack(view: memoryview) -> DOUBLE:
+    def _unpack(value: bytes) -> DOUBLE:
         """
         Unpack Values
         """
-        *_, x, y = unpack(TWO_D_UNPACK_CODE, view)
+        *_, x, y = unpack(TWO_D_UNPACK_CODE, value)
         return x, y
     # End _unpack method
 
@@ -70,7 +86,7 @@ class Point(AbstractGeometry):
         """
         To WKB
         """
-        return WKB_POINT_PRE + pack(TWO_D_PACK_CODE, self.x, self.y)
+        return WKB_POINT_PRE + pack(TWO_D_PACK_CODE, *self.as_tuple())
     # End _to_wkb method
 
     @property
@@ -94,11 +110,10 @@ class Point(AbstractGeometry):
         """
         From Geopackage
         """
-        view = memoryview(value)
-        srs_id, _, offset, is_empty = unpack_header(view[:HEADER_OFFSET])
+        srs_id, _, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
         if is_empty:
             return cls.empty(srs_id)
-        x, y = cls._unpack(view[offset:])
+        x, y = cls._unpack(value[offset:])
         return cls(x=x, y=y, srs_id=srs_id)
     # End from_gpkg method
 
@@ -145,8 +160,24 @@ class PointZ(AbstractGeometry):
             return NotImplemented
         if self.srs_id != other.srs_id:
             return False
-        return (self.x, self.y, self.z) == (other.x, other.y, other.z)
+        return self.as_tuple() == other.as_tuple()
     # End eq built-in
+
+    @property
+    def __geo_interface__(self) -> Dict[str, Union[str, TRIPLE]]:
+        """
+        Geo Interface
+        """
+        return {'type': 'Point', 'coordinates': self.as_tuple()}
+
+    # End geo_interface property
+
+    def as_tuple(self) -> TRIPLE:
+        """
+        As Tuple
+        """
+        return self.x, self.y, self.z
+    # End as_tuple method
 
     @property
     def is_empty(self) -> bool:
@@ -157,11 +188,11 @@ class PointZ(AbstractGeometry):
     # End is_empty property
 
     @staticmethod
-    def _unpack(view: memoryview) -> TRIPLE:
+    def _unpack(value: bytes) -> TRIPLE:
         """
         Unpack Values
         """
-        *_, x, y, z = unpack(THREE_D_UNPACK_CODE, view)
+        *_, x, y, z = unpack(THREE_D_UNPACK_CODE, value)
         return x, y, z
     # End _unpack method
 
@@ -169,7 +200,7 @@ class PointZ(AbstractGeometry):
         """
         To WKB
         """
-        return WKB_POINT_Z_PRE + pack(THREE_D_PACK_CODE, self.x, self.y, self.z)
+        return WKB_POINT_Z_PRE + pack(THREE_D_PACK_CODE, *self.as_tuple())
     # End _to_wkb method
 
     @property
@@ -193,11 +224,10 @@ class PointZ(AbstractGeometry):
         """
         From Geopackage
         """
-        view = memoryview(value)
-        srs_id, _, offset, is_empty = unpack_header(view[:HEADER_OFFSET])
+        srs_id, _, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
         if is_empty:
             return cls.empty(srs_id)
-        x, y, z = cls._unpack(view[offset:])
+        x, y, z = cls._unpack(value[offset:])
         return cls(x=x, y=y, z=z, srs_id=srs_id)
     # End from_gpkg method
 
@@ -244,8 +274,23 @@ class PointM(AbstractGeometry):
             return NotImplemented
         if self.srs_id != other.srs_id:
             return False
-        return (self.x, self.y, self.m) == (other.x, other.y, other.m)
+        return self.as_tuple() == other.as_tuple()
     # End eq built-in
+
+    @property
+    def __geo_interface__(self) -> Dict[str, Union[str, TRIPLE]]:
+        """
+        Geo Interface
+        """
+        return {'type': 'Point', 'coordinates': self.as_tuple()}
+    # End geo_interface property
+
+    def as_tuple(self) -> TRIPLE:
+        """
+        As Tuple
+        """
+        return self.x, self.y, self.m
+    # End as_tuple method
 
     @property
     def is_empty(self) -> bool:
@@ -256,11 +301,11 @@ class PointM(AbstractGeometry):
     # End is_empty property
 
     @staticmethod
-    def _unpack(view: memoryview) -> TRIPLE:
+    def _unpack(value: bytes) -> TRIPLE:
         """
         Unpack Values
         """
-        *_, x, y, m = unpack(THREE_D_UNPACK_CODE, view)
+        *_, x, y, m = unpack(THREE_D_UNPACK_CODE, value)
         return x, y, m
     # End _unpack method
 
@@ -268,7 +313,7 @@ class PointM(AbstractGeometry):
         """
         To WKB
         """
-        return WKB_POINT_M_PRE + pack(THREE_D_PACK_CODE, self.x, self.y, self.m)
+        return WKB_POINT_M_PRE + pack(THREE_D_PACK_CODE, *self.as_tuple())
     # End _to_wkb method
 
     @property
@@ -292,11 +337,10 @@ class PointM(AbstractGeometry):
         """
         From Geopackage
         """
-        view = memoryview(value)
-        srs_id, _, offset, is_empty = unpack_header(view[:HEADER_OFFSET])
+        srs_id, _, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
         if is_empty:
             return cls.empty(srs_id)
-        x, y, m = cls._unpack(view[offset:])
+        x, y, m = cls._unpack(value[offset:])
         return cls(x=x, y=y, m=m, srs_id=srs_id)
     # End from_gpkg method
 
@@ -345,9 +389,26 @@ class PointZM(AbstractGeometry):
             return NotImplemented
         if self.srs_id != other.srs_id:
             return False
-        return (self.x, self.y, self.z, self.m) == (
-            other.x, other.y, other.z, other.m)
+        return self.as_tuple() == other.as_tuple()
     # End eq built-in
+
+    @property
+    def __geo_interface__(self) -> Dict[str, Union[str, QUADRUPLE]]:
+        """
+        Geo Interface
+        """
+        # NOTE return 4 values when ZM present even though GeoJSON spec
+        #  suggests no more than 3
+        #  https://stevage.github.io/geojson-spec/#section-3.1.1
+        return {'type': 'Point', 'coordinates': self.as_tuple()}
+    # End geo_interface property
+
+    def as_tuple(self) -> QUADRUPLE:
+        """
+        As Tuple
+        """
+        return self.x, self.y, self.z, self.m
+    # End as_tuple method
 
     @property
     def is_empty(self) -> bool:
@@ -359,11 +420,11 @@ class PointZM(AbstractGeometry):
     # End is_empty property
 
     @staticmethod
-    def _unpack(view: memoryview) -> QUADRUPLE:
+    def _unpack(value: bytes) -> QUADRUPLE:
         """
         Unpack Values
         """
-        *_, x, y, z, m = unpack(FOUR_D_UNPACK_CODE, view)
+        *_, x, y, z, m = unpack(FOUR_D_UNPACK_CODE, value)
         return x, y, z, m
     # End _unpack method
 
@@ -371,8 +432,7 @@ class PointZM(AbstractGeometry):
         """
         To WKB
         """
-        return WKB_POINT_ZM_PRE + pack(
-            FOUR_D_PACK_CODE, self.x, self.y, self.z, self.m)
+        return WKB_POINT_ZM_PRE + pack(FOUR_D_PACK_CODE, *self.as_tuple())
     # End _to_wkb method
 
     @property
@@ -396,11 +456,10 @@ class PointZM(AbstractGeometry):
         """
         From Geopackage
         """
-        view = memoryview(value)
-        srs_id, _, offset, is_empty = unpack_header(view[:HEADER_OFFSET])
+        srs_id, _, offset, is_empty = unpack_header(value[:HEADER_OFFSET])
         if is_empty:
             return cls.empty(srs_id)
-        x, y, z, m = cls._unpack(view[offset:])
+        x, y, z, m = cls._unpack(value[offset:])
         return cls(x=x, y=y, z=z, m=m, srs_id=srs_id)
     # End from_gpkg method
 
@@ -456,6 +515,20 @@ class BaseMultiPoint(AbstractGeometry):
     # End eq built-in
 
     @property
+    def __geo_interface__(self) -> Dict:
+        """
+        Geo Interface
+        """
+        # NOTE return 4 values when ZM present even though GeoJSON spec
+        #  suggests no more than 3
+        #  https://stevage.github.io/geojson-spec/#section-3.1.1
+        return {'type': 'MultiPoint',
+                'bbox': self.envelope.bounding_box,
+                'coordinates': tuple(
+                    tuple(coords) for coords in self.coordinates)}
+    # End geo_interface property
+
+    @property
     def coordinates(self) -> 'ndarray':
         """
         Coordinates
@@ -472,7 +545,9 @@ class BaseMultiPoint(AbstractGeometry):
         """
         Is Empty
         """
-        return self._is_empty or not len(self.coordinates)
+        if self._is_empty is not None:
+            return self._is_empty
+        return not len(self.coordinates)
     # End is_empty property
 
     @property
