@@ -105,6 +105,10 @@ fields: Tuple[Field, ...] = (
     Field('begin_northing', SQLFieldType.double),
     Field('end_easting', SQLFieldType.double),
     Field('end_northing', SQLFieldType.double),
+    Field('begin_longitude', SQLFieldType.double),
+    Field('begin_latitude', SQLFieldType.double),
+    Field('end_longitude', SQLFieldType.double),
+    Field('end_latitude', SQLFieldType.double),
     Field('is_one_way', SQLFieldType.boolean))
 
 gpkg: GeoPackage = GeoPackage.create('../temp/test.gpkg')
