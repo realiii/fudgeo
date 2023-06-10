@@ -12,7 +12,8 @@ from typing import List, Optional, TYPE_CHECKING, Tuple, Union
 from fudgeo.enumeration import MetadataReferenceScope, MetadataScope
 from fudgeo.sql import (
     CREATE_METADATA, CREATE_METADATA_REFERENCE, HAS_METADATA, INSERT_EXTENSION,
-    INSERT_METADATA, INSERT_METADATA_REFERENCE, METADATA_RECORDS)
+    INSERT_METADATA, INSERT_METADATA_REFERENCE, METADATA_RECORDS,
+    SELECT_METADATA_ID)
 from fudgeo.util import now
 
 
@@ -336,8 +337,10 @@ class Metadata:
         self._geopackage: 'GeoPackage' = geopackage
     # End init built-in
 
-    def add_metadata(self, uri: str, scope: str = MetadataScope.dataset,
-                     metadata: str = '', mime_type: str = 'text/xml') -> None:
+    def add_metadata(self, uri: str,
+                     scope: str = MetadataScope.dataset,
+                     metadata: str = '',
+                     mime_type: str = 'text/xml') -> Optional[int]:
         """
         Add Metadata to the Geopackage if the metadata extension enabled.
         """
@@ -345,6 +348,9 @@ class Metadata:
             return
         with self._geopackage.connection as conn:
             conn.execute(INSERT_METADATA, (scope, uri, mime_type, metadata))
+        cursor = conn.execute(SELECT_METADATA_ID)
+        id_, = cursor.fetchone()
+        return id_
     # End add_metadata method
 
     def add_references(self, references: REFERENCES) -> None:
