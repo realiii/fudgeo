@@ -40,10 +40,10 @@ tested on **macOS** and **Windows**, should be fine on **Linux** too.
 from fudgeo.geopkg import GeoPackage
 
 # Creates an empty geopackage
-gpkg: GeoPackage = GeoPackage.create(r'c:\data\example.gpkg')
+gpkg: GeoPackage = GeoPackage.create('../data/example.gpkg')
 
 # Opens an existing Geopackage (no validation)
-gpkg: GeoPackage = GeoPackage(r'c:\data\example.gpkg')
+gpkg: GeoPackage = GeoPackage('../data/example.gpkg')
 ```
 
 `GeoPackage`s are created with *three* default Spatial References defined
@@ -57,8 +57,10 @@ default the *ESRI WKT* is used - However, if *EPSG WKT* is desired, you
 may provide a ``flavor`` parameter to the create method specifying EPSG.
 
 ```python
-# Creates an empty geopackage
-gpkg: GeoPackage = GeoPackage.create(r'c:\temp\test.gpkg', flavor='EPSG')
+from fudgeo.geopkg import GeoPackage
+
+# Creates an empty geopackage using EPSG definitions
+gpkg: GeoPackage = GeoPackage.create('../temp/test.gpkg', flavor='EPSG')
 ```
 
 ### Create a Feature Class
@@ -75,9 +77,8 @@ Feature Class **must** include a value for the option specified.
 
 ```python
 from typing import Tuple
-
-from fudgeo.geopkg import FeatureClass, Field, GeoPackage, SpatialReferenceSystem
 from fudgeo.enumeration import GeometryType, SQLFieldType
+from fudgeo.geopkg import FeatureClass, Field, GeoPackage, SpatialReferenceSystem
 
 SRS_WKT: str = (
     'PROJCS["WGS_1984_UTM_Zone_23N",'
@@ -106,10 +107,10 @@ fields: Tuple[Field, ...] = (
     Field('end_northing', SQLFieldType.double),
     Field('is_one_way', SQLFieldType.boolean))
 
-gpkg: GeoPackage = GeoPackage.create(r'c:\temp\test.gpkg')
+gpkg: GeoPackage = GeoPackage.create('../temp/test.gpkg')
 fc: FeatureClass = gpkg.create_feature_class(
     'road_l', srs=SRS, fields=fields, shape_type=GeometryType.linestring,
-    z_enabled=False, m_enabled=True, overwrite=True, spatial_index=True)
+    m_enabled=True, overwrite=True, spatial_index=True)
 ```
 
 ### About Spatial References For GeoPackages
@@ -149,7 +150,7 @@ for i in range(10000):
                  eastings[-1], northings[-1], False))
 
 # NOTE Builds from previous examples
-gpkg: GeoPackage = GeoPackage(r'c:\data\example.gpkg')   
+gpkg: GeoPackage = GeoPackage('../data/example.gpkg')   
 with gpkg.connection as conn:
     conn.executemany("""
         INSERT INTO road_l (SHAPE, road_id, name, begin_easting, begin_northing, 
@@ -203,24 +204,30 @@ then the approach is to ensure `SQLite` knows how to convert the
 geopackage stored geometry to a `fudgeo` geometry, this is done like so:
 
 ```python
-gpkg = GeoPackage(r'c:\data\example.gpkg')
+from typing import List, Tuple
+from fudgeo.geometry import LineStringM
+from fudgeo.geopkg import GeoPackage
+
+gpkg: GeoPackage = GeoPackage('../data/example.gpkg')
 cursor = gpkg.connection.execute(
     """SELECT SHAPE "[LineStringM]", road_id FROM test""")
-features = cursor.fetchall()
+features: List[Tuple[LineStringM, int]] = cursor.fetchall()
 ```
 
 or a little more general, accounting for extended geometry types and
 possibility of the geometry column being something other tha `SHAPE`:
 
 ```python
-from fudgeo.geopkg import FeatureClass
+from typing import List, Tuple
+from fudgeo.geometry import LineStringM
+from fudgeo.geopkg import FeatureClass, GeoPackage
 
-gpkg = GeoPackage(r'c:\data\example.gpkg')
-fc = FeatureClass(geopackage=gpkg, name='road_l')
+gpkg: GeoPackage = GeoPackage('../data/example.gpkg')
+fc: FeatureClass = FeatureClass(geopackage=gpkg, name='road_l')
 cursor = gpkg.connection.execute(f"""
     SELECT {fc.geometry_column_name} "[{fc.geometry_type}]", road_id 
     FROM {fc.escaped_name}""")
-features = cursor.fetchall()
+features: List[Tuple[LineStringM, int]] = cursor.fetchall()
 ```
 
 ## License
