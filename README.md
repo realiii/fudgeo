@@ -32,6 +32,7 @@ tested on **macOS** and **Windows**, should be fine on **Linux** too.
 * Access geometry column name and geometry type for `FeatureClass`
 * Add spatial index on `FeatureClass`
 * Drop `FeatureClass` or `Table`
+* Add metadata and schema details
 
 
 ### Create an Empty GeoPackage / Open GeoPackage
