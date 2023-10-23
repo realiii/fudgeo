@@ -15,7 +15,7 @@ For details on OGC GeoPackages, please see the [OGC web page](http://www.geopack
 
 ## Python Compatibility
 
-The `fudgeo` library is compatible with Python 3.7 to 3.11.  Developed and 
+The `fudgeo` library is compatible with Python 3.7 to 3.12.  Developed and 
 tested on **macOS** and **Windows**, should be fine on **Linux** too.
 
 
@@ -420,6 +420,9 @@ Support provided for the following constraint types:
 [MIT](https://choosealicense.com/licenses/mit/)
 
 ## Release History
+
+### Next Release
+* ensure support for Python 3.12
 
 ### v0.7.0
 * add support for **schema** extension
