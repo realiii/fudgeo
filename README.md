@@ -422,8 +422,8 @@ Support provided for the following constraint types:
 
 ## Release History
 
-### Next Release
-* ensure support for Python 3.12
+### v0.7.1
+* ensure support for Python 3.12 and update documentation / configuration
 
 ### v0.7.0
 * add support for **schema** extension
