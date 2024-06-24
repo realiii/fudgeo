@@ -303,20 +303,6 @@ SPATIAL_INDEX_TRIGGERS: str = """
       );
     END;
     
-    /* Conditions: Update of geometry column to non-empty geometry
-                   No row ID change
-       Actions   : Update record in rtree */
-    CREATE TRIGGER "rtree_{0}_{1}_update1" AFTER UPDATE OF "{1}" ON "{0}"
-      WHEN OLD."{2}" = NEW."{2}" AND
-           (NEW."{1}" NOTNULL AND NOT ST_IsEmpty(NEW."{1}"))
-    BEGIN
-      INSERT OR REPLACE INTO "rtree_{0}_{1}" VALUES (
-        NEW."{2}",
-        ST_MinX(NEW."{1}"), ST_MaxX(NEW."{1}"),
-        ST_MinY(NEW."{1}"), ST_MaxY(NEW."{1}")
-      );
-    END;
-    
     /* Conditions: Update of geometry column to empty geometry
                    No row ID change
        Actions   : Remove record from rtree */
@@ -355,6 +341,35 @@ SPATIAL_INDEX_TRIGGERS: str = """
       DELETE FROM "rtree_{0}_{1}" WHERE id IN (OLD."{2}", NEW."{2}");
     END;
     
+    /* Conditions: Update a non-empty geometry with another non-empty geometry
+       Actions   : Replace record from R-tree for identifier */
+    CREATE TRIGGER "rtree_{0}_{1}_update6" AFTER UPDATE OF "{1}" ON "{0}"
+      WHEN OLD."{2}" = NEW."{2}" AND
+           (NEW."{1}" NOTNULL AND NOT ST_IsEmpty(NEW."{1}")) AND
+           (OLD."{1}" NOTNULL AND NOT ST_IsEmpty(OLD."{1}"))
+    BEGIN
+      UPDATE "rtree_{0}_{1}" SET
+        minx = ST_MinX(NEW."{1}"),
+        maxx = ST_MaxX(NEW."{1}"),
+        miny = ST_MinY(NEW."{1}"),
+        maxy = ST_MaxY(NEW."{1}")
+      WHERE id = NEW."{2}";
+    END;
+    
+    /* Conditions: Update a null/empty geometry with a non-empty geometry
+       Actions   : Insert record into R-tree for new identifier */
+    CREATE TRIGGER "rtree_{0}_{1}_update7" AFTER UPDATE OF "{1}" ON "{0}"
+      WHEN OLD."{2}" = NEW."{2}" AND
+           (NEW."{1}" NOTNULL AND NOT ST_IsEmpty(NEW."{1}")) AND
+           (OLD."{1}" ISNULL OR ST_IsEmpty(OLD."{1}"))
+    BEGIN
+      INSERT INTO "rtree_{0}_{1}" VALUES (
+        NEW."{2}",
+        ST_MinX(NEW."{1}"), ST_MaxX(NEW."{1}"),
+        ST_MinY(NEW."{1}"), ST_MaxY(NEW."{1}")
+      );
+    END;
+        
     /* Conditions: Row deleted
        Actions   : Remove record from rtree for old identifier */
     CREATE TRIGGER "rtree_{0}_{1}_delete" AFTER DELETE ON "{0}"
