@@ -1,5 +1,5 @@
 PRAGMA application_id=0x47504B47;
-PRAGMA user_version=10301;
+PRAGMA user_version=10400;
 
 -- TABLES
 
