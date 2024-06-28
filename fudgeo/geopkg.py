@@ -10,8 +10,9 @@ from pathlib import Path
 from sqlite3 import (
     PARSE_COLNAMES, PARSE_DECLTYPES, connect, register_adapter,
     register_converter)
-from typing import Dict, List, Optional, TYPE_CHECKING, Tuple, Type, Union
+from typing import Optional, TYPE_CHECKING, Type, Union
 
+from fudgeo.alias import FIELDS, INT, STRING
 from fudgeo.constant import COMMA_SPACE, GPKG_EXT, SHAPE
 from fudgeo.enumeration import DataType, GPKGFlavors, GeometryType, SQLFieldType
 from fudgeo.extension.metadata import (
@@ -40,9 +41,6 @@ from fudgeo.util import convert_datetime, escape_name, now
 if TYPE_CHECKING:
     from sqlite3 import Connection, Cursor
     from fudgeo.geometry.base import AbstractGeometry
-
-
-FIELDS = Union[Tuple['Field', ...], List['Field']]
 
 
 def _adapt_geometry(val: 'AbstractGeometry') -> bytes:
@@ -260,7 +258,7 @@ class GeoPackage:
     # End create_feature_class method
 
     @property
-    def tables(self) -> Dict[str, 'Table']:
+    def tables(self) -> dict[str, 'Table']:
         """
         Tables in the GeoPackage
         """
@@ -269,7 +267,7 @@ class GeoPackage:
     # End tables property
 
     @property
-    def feature_classes(self) -> Dict[str, 'FeatureClass']:
+    def feature_classes(self) -> dict[str, 'FeatureClass']:
         """
         Feature Classes in the GeoPackage
         """
@@ -278,7 +276,7 @@ class GeoPackage:
     # End feature_classes property
 
     def _get_table_objects(self, cls: Type['BaseTable'],
-                           data_type: str) -> Dict[str, 'BaseTable']:
+                           data_type: str) -> dict[str, 'BaseTable']:
         """
         Get Table Objects
         """
@@ -381,7 +379,7 @@ class BaseTable:
     # End primary_key_field property
 
     @property
-    def fields(self) -> List['Field']:
+    def fields(self) -> list['Field']:
         """
         Fields
         """
@@ -392,7 +390,7 @@ class BaseTable:
     # End fields property
 
     @property
-    def field_names(self) -> List[str]:
+    def field_names(self) -> list[str]:
         """
         Field Names
         """
@@ -538,7 +536,7 @@ class FeatureClass(BaseTable):
     # End drop method
 
     @staticmethod
-    def _check_result(cursor: 'Cursor') -> Optional[str]:
+    def _check_result(cursor: 'Cursor') -> STRING:
         """
         Check Result
         """
@@ -552,7 +550,7 @@ class FeatureClass(BaseTable):
     # End _check_result method
 
     @property
-    def geometry_column_name(self) -> Optional[str]:
+    def geometry_column_name(self) -> STRING:
         """
         Geometry Column Name
         """
@@ -562,7 +560,7 @@ class FeatureClass(BaseTable):
     # End geometry_column_name property
 
     @property
-    def geometry_type(self) -> Optional[str]:
+    def geometry_type(self) -> STRING:
         """
         Geometry Type
         """
@@ -603,7 +601,7 @@ class FeatureClass(BaseTable):
     # End has_m property
 
     @property
-    def spatial_index_name(self) -> Optional[str]:
+    def spatial_index_name(self) -> STRING:
         """
         Spatial Index Name (escaped) if present, None otherwise
         """
@@ -631,7 +629,7 @@ class FeatureClass(BaseTable):
     # End has_spatial_index property
 
     @property
-    def extent(self) -> Tuple[float, float, float, float]:
+    def extent(self) -> tuple[float, float, float, float]:
         """
         Extent property
         """
@@ -645,7 +643,7 @@ class FeatureClass(BaseTable):
         return result
 
     @extent.setter
-    def extent(self, value: Tuple[float, float, float, float]) -> None:
+    def extent(self, value: tuple[float, float, float, float]) -> None:
         if not isinstance(value, (tuple, list)):  # pragma: nocover
             raise ValueError('Please supply a tuple or list of values')
         if not len(value) == 4:  # pragma: nocover
@@ -662,7 +660,7 @@ class SpatialReferenceSystem:
     """
     def __init__(self, name: str, organization: str, org_coord_sys_id: int,
                  definition: str, description: str = '',
-                 srs_id: Optional[int] = None) -> None:
+                 srs_id: INT = None) -> None:
         """
         Initialize the SpatialReferenceSystem class
         """
@@ -687,7 +685,7 @@ class SpatialReferenceSystem:
         self._srs_id = value
     # End srs_id property
 
-    def as_record(self) -> Tuple[str, int, str, int, str, str]:
+    def as_record(self) -> tuple[str, int, str, int, str, str]:
         """
         Record of the Spatial Reference System
         """
@@ -701,15 +699,14 @@ class Field:
     """
     Field Object for GeoPackage
     """
-    def __init__(self, name: str, data_type: str,
-                 size: Optional[int] = None) -> None:
+    def __init__(self, name: str, data_type: str, size: INT = None) -> None:
         """
         Initialize the Field class
         """
         super().__init__()
         self.name: str = name
         self.data_type: str = data_type
-        self.size: Optional[int] = size
+        self.size: INT = size
     # End init built-in
 
     @property

@@ -8,30 +8,16 @@ from functools import lru_cache
 from math import nan
 # noinspection PyPep8Naming
 from struct import error as StructError, pack, unpack
-from typing import Any, Callable, Dict, List, TYPE_CHECKING, Tuple, Union
+from typing import Any, Callable, Union
 
 from numpy import array, frombuffer, ndarray
 from bottleneck import nanmax, nanmin
 
+from fudgeo.alias import GEOMS, GEOMS_M, GEOMS_Z, GEOMS_ZM
 from fudgeo.constant import (
     COUNT_CODE, EMPTY, ENVELOPE_COUNT, ENVELOPE_OFFSET, GP_MAGIC, HEADER_CODE,
     HEADER_OFFSET, POINT_PREFIX_ZM)
 from fudgeo.enumeration import EnvelopeCode
-
-if TYPE_CHECKING:  # pragma: no cover
-    # noinspection PyUnresolvedReferences
-    from fudgeo.geometry.linestring import (
-        LineString, LineStringZ, LineStringM, LineStringZM)
-    # noinspection PyUnresolvedReferences
-    from fudgeo.geometry.polygon import (
-        LinearRing, LinearRingZ, LinearRingM, LinearRingZM,
-        Polygon, PolygonZ, PolygonM, PolygonZM)
-
-
-GEOMS = Union[List['LineString'], List['LinearRing'], List['Polygon']]
-GEOMS_Z = Union[List['LineStringZ'], List['LinearRingZ'], List['PolygonZ']]
-GEOMS_M = Union[List['LineStringM'], List['LinearRingM'], List['PolygonM']]
-GEOMS_ZM = Union[List['LineStringZM'], List['LinearRingZM'], List['PolygonZM']]
 
 
 def as_array(coordinates: Any) -> ndarray:
@@ -107,14 +93,14 @@ class Envelope:
     # End eq built-in
 
     @property
-    def bounding_box(self) -> Tuple[float, float, float, float]:
+    def bounding_box(self) -> tuple[float, float, float, float]:
         """
         Bounding Box
         """
         return self.min_x, self.min_y, self.max_x, self.max_y
     # End bounding_box property
 
-    def to_wkb(self) -> Tuple[int, bytes]:
+    def to_wkb(self) -> tuple[int, bytes]:
         """
         To WKB
         """
@@ -281,7 +267,7 @@ def pack_coordinates(ary: bytearray, prefix: bytes, coordinates: ndarray,
 
 
 def unpack_lines(view: memoryview, dimension: int, is_ring: bool = False) \
-        -> List[ndarray]:
+        -> list[ndarray]:
     """
     Unpack Values for Multi LineString and Polygons
     """
@@ -300,7 +286,7 @@ def unpack_lines(view: memoryview, dimension: int, is_ring: bool = False) \
 
 
 def unpack_polygons(view: memoryview, dimension: int) \
-        -> List[List[ndarray]]:
+        -> list[list[ndarray]]:
     """
     Unpack Values for Multi Polygon Type Containing Polygons
     """
@@ -317,7 +303,7 @@ def unpack_polygons(view: memoryview, dimension: int) \
 
 
 def get_count_and_data(view: memoryview, is_ring: bool = False) \
-        -> Tuple[int, memoryview]:
+        -> tuple[int, memoryview]:
     """
     Get Count from header and return the value portion of the stream
     """
@@ -342,7 +328,7 @@ def make_header(srs_id: int, is_empty: bool, envelope_code: int = 0) -> bytes:
 
 
 @lru_cache(maxsize=None)
-def unpack_header(view: Union[bytes, memoryview]) -> Tuple[int, int, int, bool]:
+def unpack_header(view: Union[bytes, memoryview]) -> tuple[int, int, int, bool]:
     """
     Cached Unpacking of a GeoPackage Geometry Header
     """
@@ -553,7 +539,7 @@ def _envelope_xyzm(xs: ndarray, ys: ndarray,
 # End _envelope_xyzm function
 
 
-ENV_GEOM: Dict[int, Callable] = {
+ENV_GEOM: dict[int, Callable[[Union[GEOMS, GEOMS_Z, GEOMS_M, GEOMS_ZM]], Envelope]] = {
     EnvelopeCode.empty: lambda _: EMPTY_ENVELOPE,
     EnvelopeCode.xy: envelope_from_geometries,
     EnvelopeCode.xyz: envelope_from_geometries_z,
@@ -562,7 +548,7 @@ ENV_GEOM: Dict[int, Callable] = {
 }
 
 
-ENV_COORD: Dict[int, Callable] = {
+ENV_COORD: dict[int, Callable[[ndarray], Envelope]] = {
     EnvelopeCode.empty: lambda _: EMPTY_ENVELOPE,
     EnvelopeCode.xy: envelope_from_coordinates,
     EnvelopeCode.xyz: envelope_from_coordinates_z,

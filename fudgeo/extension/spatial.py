@@ -8,11 +8,12 @@ from functools import lru_cache
 from sqlite3 import IntegrityError
 # noinspection PyPep8Naming
 from struct import error as StructError, unpack
-from typing import Callable, Dict, Optional, TYPE_CHECKING, Tuple, Type, Union
+from typing import Callable, TYPE_CHECKING, Type, Union
 
+from fudgeo.alias import FLOAT, INT, NONES, QUADRUPLE
 from fudgeo.constant import (
     ENVELOPE_COUNT, ENVELOPE_OFFSET, HEADER_CODE, HEADER_OFFSET, POINT_PREFIXES,
-    QUADRUPLE, WKB_LINESTRING_M_PRE, WKB_LINESTRING_PRE, WKB_LINESTRING_ZM_PRE,
+    WKB_LINESTRING_M_PRE, WKB_LINESTRING_PRE, WKB_LINESTRING_ZM_PRE,
     WKB_LINESTRING_Z_PRE, WKB_MULTI_LINESTRING_M_PRE, WKB_MULTI_LINESTRING_PRE,
     WKB_MULTI_LINESTRING_ZM_PRE, WKB_MULTI_LINESTRING_Z_PRE,
     WKB_MULTI_POINT_M_PRE, WKB_MULTI_POINT_PRE, WKB_MULTI_POINT_ZM_PRE,
@@ -38,9 +39,6 @@ if TYPE_CHECKING:  # pragma: no cover
     from sqlite3 import Connection
     from fudgeo.geometry.base import AbstractGeometry
     from fudgeo.geopkg import FeatureClass
-
-
-NONES = Tuple[None, None, None, None]
 
 
 def add_spatial_index(conn: 'Connection', feature_class: 'FeatureClass') -> None:
@@ -100,7 +98,7 @@ def _find_bounds(geometry: bytes) -> Union[QUADRUPLE, NONES]:
 # End _find_bounds function
 
 
-def _st_is_empty(geometry: bytes) -> Optional[int]:
+def _st_is_empty(geometry: bytes) -> INT:
     """
     Is Empty
     """
@@ -111,7 +109,7 @@ def _st_is_empty(geometry: bytes) -> Optional[int]:
 # End _st_is_empty function
 
 
-def _st_min_x(geometry: bytes) -> Optional[float]:
+def _st_min_x(geometry: bytes) -> FLOAT:
     """
     Min X
     """
@@ -119,7 +117,7 @@ def _st_min_x(geometry: bytes) -> Optional[float]:
 # End _st_min_x function
 
 
-def _st_max_x(geometry: bytes) -> Optional[float]:
+def _st_max_x(geometry: bytes) -> FLOAT:
     """
     Max X
     """
@@ -127,7 +125,7 @@ def _st_max_x(geometry: bytes) -> Optional[float]:
 # End _st_max_x function
 
 
-def _st_min_y(geometry: bytes) -> Optional[float]:
+def _st_min_y(geometry: bytes) -> FLOAT:
     """
     Min Y
     """
@@ -135,7 +133,7 @@ def _st_min_y(geometry: bytes) -> Optional[float]:
 # End _st_min_y function
 
 
-def _st_max_y(geometry: bytes) -> Optional[float]:
+def _st_max_y(geometry: bytes) -> FLOAT:
     """
     Max Y
     """
@@ -143,7 +141,7 @@ def _st_max_y(geometry: bytes) -> Optional[float]:
 # End _st_max_y function
 
 
-ST_FUNCS: Dict[str, Callable] = {
+ST_FUNCS: dict[str, Callable[[bytes], Union[INT, FLOAT]]] = {
     'ST_IsEmpty': _st_is_empty,
     'ST_MinX': _st_min_x,
     'ST_MaxX': _st_max_x,
@@ -152,7 +150,7 @@ ST_FUNCS: Dict[str, Callable] = {
 }
 
 
-PREFIX_GEOM_TYPE: Dict[bytes, Type['AbstractGeometry']] = {
+PREFIX_GEOM_TYPE: dict[bytes, Type['AbstractGeometry']] = {
     WKB_POINT_PRE: Point,
     WKB_POINT_Z_PRE: PointZ,
     WKB_POINT_M_PRE: PointM,

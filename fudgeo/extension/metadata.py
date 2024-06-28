@@ -7,8 +7,9 @@ Metadata Extension
 from abc import abstractmethod
 from datetime import datetime
 from sqlite3 import DatabaseError, OperationalError
-from typing import List, Optional, TYPE_CHECKING, Tuple, Union
+from typing import TYPE_CHECKING
 
+from fudgeo.alias import DATE, INT, REFERENCES, REFERENCE_RECORD, TABLE
 from fudgeo.enumeration import MetadataReferenceScope, MetadataScope
 from fudgeo.sql import (
     CREATE_METADATA, CREATE_METADATA_REFERENCE, HAS_METADATA, INSERT_EXTENSION,
@@ -19,32 +20,22 @@ from fudgeo.util import now
 
 if TYPE_CHECKING:  # pragma: no cover
     from sqlite3 import Connection
-    # noinspection PyUnresolvedReferences
-    from fudgeo.geopkg import FeatureClass, GeoPackage, Table
-
-
-TABLE = Union['Table', 'FeatureClass']
-REFERENCE_RECORD = Tuple[str, Optional[str], Optional[str], Optional[int],
-                         datetime, int, Optional[int]]
-REFERENCE = Union['GeoPackageReference', 'TableReference', 'ColumnReference',
-                  'RowReference', 'RowColumnReference']
-REFERENCES = Union[REFERENCE, Tuple[REFERENCE, ...], List[REFERENCE]]
+    from fudgeo.geopkg import GeoPackage
 
 
 class AbstractReference:
     """
     Abstract Reference
     """
-    def __init__(self, scope: str, file_id: int,
-                 parent_id: Optional[int] = None,
-                 timestamp: Optional[datetime] = None) -> None:
+    def __init__(self, scope: str, file_id: int, parent_id: INT = None,
+                 timestamp: DATE = None) -> None:
         """
         Initialize the AbstractReference class
         """
         super().__init__()
         self._scope: str = scope
         self._file_id: int = file_id
-        self._parent_id: Optional[int] = parent_id
+        self._parent_id: INT = parent_id
         self._timestamp: datetime = timestamp or now()
     # End init built-in
 
@@ -71,8 +62,7 @@ class AbstractTableReference(AbstractReference):
     Abstract Table Reference
     """
     def __init__(self, scope: str, table_name: str, file_id: int,
-                 parent_id: Optional[int] = None,
-                 timestamp: Optional[datetime] = None) -> None:
+                 parent_id: INT = None, timestamp: DATE = None) -> None:
         """
         Initialize the AbstractTableReference class
         """
@@ -143,8 +133,8 @@ class AbstractColumnReference(AbstractTableReference):
     Abstract Column Reference
     """
     def __init__(self, scope: str, table_name: str, column_name: str,
-                 file_id: int, parent_id: Optional[int] = None,
-                 timestamp: Optional[datetime] = None) -> None:
+                 file_id: int, parent_id: INT = None,
+                 timestamp: DATE = None) -> None:
         """
         Initialize the AbstractTableReference class
         """
@@ -176,9 +166,8 @@ class GeoPackageReference(AbstractReference):
     """
     GeoPackage Reference
     """
-    def __init__(self, file_id: int,
-                 parent_id: Optional[int] = None,
-                 timestamp: Optional[datetime] = None) -> None:
+    def __init__(self, file_id: int, parent_id: INT = None,
+                 timestamp: DATE = None) -> None:
         """
         Initialize the GeoPackageReference class
         """
@@ -208,9 +197,8 @@ class TableReference(AbstractTableReference):
     """
     Table Reference
     """
-    def __init__(self, table_name: str, file_id: int,
-                 parent_id: Optional[int] = None,
-                 timestamp: Optional[datetime] = None) -> None:
+    def __init__(self, table_name: str, file_id: int, parent_id: INT = None,
+                 timestamp: DATE = None) -> None:
         """
         Initialize the TableReference class
         """
@@ -233,9 +221,8 @@ class ColumnReference(AbstractColumnReference):
     """
     Column Reference
     """
-    def __init__(self, table_name: str, column_name: str,
-                 file_id: int, parent_id: Optional[int] = None,
-                 timestamp: Optional[datetime] = None) -> None:
+    def __init__(self, table_name: str, column_name: str, file_id: int,
+                 parent_id: INT = None, timestamp: DATE = None) -> None:
         """
         Initialize the ColumnReference class
         """
@@ -259,9 +246,8 @@ class RowReference(AbstractTableReference):
     """
     Row Reference
     """
-    def __init__(self, table_name: str, row_id: int,
-                 file_id: int, parent_id: Optional[int] = None,
-                 timestamp: Optional[datetime] = None) -> None:
+    def __init__(self, table_name: str, row_id: int, file_id: int,
+                 parent_id: INT = None, timestamp: DATE = None) -> None:
         """
         Initialize the RowReference class
         """
@@ -294,8 +280,8 @@ class RowColumnReference(AbstractColumnReference):
     Row/Column Reference
     """
     def __init__(self, table_name: str, column_name: str, row_id: int,
-                 file_id: int, parent_id: Optional[int] = None,
-                 timestamp: Optional[datetime] = None) -> None:
+                 file_id: int, parent_id: INT = None,
+                 timestamp: DATE = None) -> None:
         """
         Initialize the RowColumnReference class
         """
@@ -337,10 +323,8 @@ class Metadata:
         self._geopackage: 'GeoPackage' = geopackage
     # End init built-in
 
-    def add_metadata(self, uri: str,
-                     scope: str = MetadataScope.dataset,
-                     metadata: str = '',
-                     mime_type: str = 'text/xml') -> Optional[int]:
+    def add_metadata(self, uri: str, scope: str = MetadataScope.dataset,
+                     metadata: str = '', mime_type: str = 'text/xml') -> INT:
         """
         Add Metadata to the Geopackage if the metadata extension enabled.
         """

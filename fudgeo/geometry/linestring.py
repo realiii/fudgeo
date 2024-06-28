@@ -5,7 +5,7 @@ Line String
 
 
 from struct import pack
-from typing import Any, ClassVar, Dict, List, TYPE_CHECKING
+from typing import Any, ClassVar, TYPE_CHECKING
 
 from fudgeo.constant import (
     COUNT_CODE, EMPTY, FOUR_D, THREE_D, TWO_D, WKB_LINESTRING_M_PRE,
@@ -16,12 +16,13 @@ from fudgeo.enumeration import EnvelopeCode
 from fudgeo.geometry.base import AbstractGeometry
 from fudgeo.geometry.point import Point, PointM, PointZ, PointZM
 from fudgeo.geometry.util import (
-    EMPTY_ENVELOPE, ENV_COORD, ENV_GEOM, Envelope, as_array, lazy_unpack,
+    EMPTY_ENVELOPE, ENV_COORD, ENV_GEOM, as_array, lazy_unpack,
     pack_coordinates, unpack_line, unpack_lines)
 
 
 if TYPE_CHECKING:
     from numpy import ndarray
+    from fudgeo.geometry.util import Envelope
 
 
 class BaseLineString(AbstractGeometry):
@@ -37,7 +38,7 @@ class BaseLineString(AbstractGeometry):
     _has_z: ClassVar[bool] = False
     _wkb_prefix: ClassVar[bytes] = EMPTY
 
-    def __init__(self, coordinates: List, srs_id: int) -> None:
+    def __init__(self, coordinates: list, srs_id: int) -> None:
         """
         Initialize the BaseLineString class
         """
@@ -57,7 +58,7 @@ class BaseLineString(AbstractGeometry):
     # End eq built-in
 
     @property
-    def __geo_interface__(self) -> Dict:
+    def __geo_interface__(self) -> dict:
         """
         Geo Interface
         """
@@ -93,7 +94,7 @@ class BaseLineString(AbstractGeometry):
     # End is_empty property
 
     @property
-    def points(self) -> List:
+    def points(self) -> list:
         """
         Points
         """
@@ -104,7 +105,7 @@ class BaseLineString(AbstractGeometry):
     # End points property
 
     @property
-    def envelope(self) -> Envelope:
+    def envelope(self) -> 'Envelope':
         """
         Envelope
         """
@@ -200,12 +201,12 @@ class BaseMultiLineString(AbstractGeometry):
     _env_code: ClassVar[int] = EnvelopeCode.empty
     _wkb_prefix: ClassVar[bytes] = EMPTY
 
-    def __init__(self, coordinates: List[List], srs_id: int) -> None:
+    def __init__(self, coordinates: list[list], srs_id: int) -> None:
         """
         Initialize the MultiLineString class
         """
         super().__init__(srs_id=srs_id)
-        self._lines: List[LineString] = self._make_lines(coordinates)
+        self._lines: list[LineString] = self._make_lines(coordinates)
     # End init built-in
 
     def __eq__(self, other: Any) -> bool:
@@ -220,7 +221,7 @@ class BaseMultiLineString(AbstractGeometry):
     # End eq built-in
 
     @property
-    def __geo_interface__(self) -> Dict:
+    def __geo_interface__(self) -> dict:
         """
         Geo Interface
         """
@@ -234,7 +235,7 @@ class BaseMultiLineString(AbstractGeometry):
                     for line in self.lines)}
     # End geo_interface property
 
-    def _make_lines(self, coordinates: List[List]) -> List:
+    def _make_lines(self, coordinates: list[list]) -> list:
         """
         Make Lines
         """
@@ -245,7 +246,7 @@ class BaseMultiLineString(AbstractGeometry):
     # End init built-in
 
     @property
-    def lines(self) -> List:
+    def lines(self) -> list:
         """
         Lines
         """
@@ -276,7 +277,7 @@ class BaseMultiLineString(AbstractGeometry):
     # End _to_wkb method
 
     @property
-    def envelope(self) -> Envelope:
+    def envelope(self) -> 'Envelope':
         """
         Envelope
         """
