@@ -416,6 +416,11 @@ Support provided for the following constraint types:
 
 ## Release History
 
+### next release
+* drop support for Python 3.7 and 3.8
+* modernize type hinting
+* add `select` method to `FeatureClass` and `Table` objects
+
 ### v0.7.2
 * bump `user_version` to reflect adopted version 1.4.0 of OGC GeoPackage
 * updated r-tree triggers based on changes made in 1.4.0
