@@ -7,8 +7,9 @@ Schema Extension
 from abc import abstractmethod
 from numbers import Number
 from sqlite3 import DatabaseError, OperationalError
-from typing import List, Optional, TYPE_CHECKING, Tuple, Union
+from typing import TYPE_CHECKING, Union
 
+from fudgeo.alias import CONSTRAINTS, RECORDS, STRING
 from fudgeo.enumeration import ConstraintType, SQLFieldType
 from fudgeo.sql import (
     CREATE_DATA_COLUMNS, CREATE_DATA_COLUMN_CONSTRAINTS, HAS_SCHEMA,
@@ -21,25 +22,19 @@ if TYPE_CHECKING:  # pragma: no cover
     from fudgeo.geopkg import GeoPackage
 
 
-RECORDS = List[Tuple[str, str, Optional[str], Optional[float], Optional[int],
-                     Optional[float], Optional[int], Optional[str]]]
-CONSTRAINT = Union['EnumerationConstraint', 'GlobConstraint', 'RangeConstraint']
-CONSTRAINTS = Union[CONSTRAINT, List[CONSTRAINT], Tuple[CONSTRAINT, ...]]
-
-
 class AbstractConstraint:
     """
     Abstract Constraint
     """
     def __init__(self, type_: str, name: str,
-                 description: Optional[str]) -> None:
+                 description: STRING) -> None:
         """
         Initialize the AbstractConstraint class
         """
         super().__init__()
         self._type: str = type_
         self._name: str = name
-        self._description: Optional[str] = description
+        self._description: STRING = description
     # End init built-in
 
     def validate(self) -> None:
@@ -64,14 +59,14 @@ class EnumerationConstraint(AbstractConstraint):
     """
     Enumeration Constraint
     """
-    def __init__(self, name: str, values: Union[List, Tuple],
-                 description: Optional[str] = None) -> None:
+    def __init__(self, name: str, values: Union[list, tuple],
+                 description: STRING = None) -> None:
         """
         Initialize the EnumerationConstraint class
         """
         super().__init__(
             type_=ConstraintType.enum, name=name, description=description)
-        self._values: List = sorted(set(values))
+        self._values: list = sorted(set(values))
     # End init built-in
 
     def validate(self) -> None:
@@ -99,7 +94,7 @@ class GlobConstraint(AbstractConstraint):
     Glob Constraint
     """
     def __init__(self, name: str, pattern: str,
-                 description: Optional[str] = None) -> None:
+                 description: STRING = None) -> None:
         """
         Initialize the GlobConstraint class
         """
@@ -133,7 +128,7 @@ class RangeConstraint(AbstractConstraint):
     """
     def __init__(self, name: str, min_value: float, max_value: float,
                  min_inclusive: bool = True, max_inclusive: bool = True,
-                 description: Optional[str] = None) -> None:
+                 description: STRING = None) -> None:
         """
         Initialize the RangeConstraint class
         """
@@ -181,11 +176,10 @@ class Schema:
     # End init built-in
 
     def add_column_definition(self, table_name: str, column_name: str,
-                              name: Optional[str] = None,
-                              title: Optional[str] = None,
-                              description: Optional[str] = None,
-                              mime_type: Optional[str] = None,
-                              constraint_name: Optional[str] = None) -> None:
+                              name: STRING = None, title: STRING = None,
+                              description: STRING = None,
+                              mime_type: STRING = None,
+                              constraint_name: STRING = None) -> None:
         """
         Add Column Definition
         """

@@ -4,10 +4,8 @@ SQL Constants
 """
 
 
-from typing import Set, Tuple
-
 # NOTE from https://sqlite.org/lang_keywords.html
-KEYWORDS: Set[str] = {
+KEYWORDS: set[str] = {
     'ABORT', 'ACTION', 'ADD', 'AFTER', 'ALL', 'ALTER', 'ALWAYS', 'ANALYZE',
     'AND', 'AS', 'ASC', 'ATTACH', 'AUTOINCREMENT', 'BEFORE', 'BEGIN', 'BETWEEN',
     'BY', 'CASCADE', 'CASE', 'CAST', 'CHECK', 'COLLATE', 'COLUMN', 'COMMIT',
@@ -257,7 +255,7 @@ SELECT_PRIMARY_KEY: str = """
 """
 
 
-DEFAULT_SRS_RECS: Tuple[Tuple[str, int, str, int, str, str], ...] = (
+DEFAULT_SRS_RECS: tuple[tuple[str, int, str, int, str, str], ...] = (
     ('Undefined Cartesian SRS', -1, 'NONE', -1, 'undefined',
      'undefined cartesian coordinate reference system'),
     ('Undefined Geographic SRS', 0, 'NONE', 0, 'undefined',
@@ -268,9 +266,9 @@ EPSG_4326: str = """GEOGCS["WGS 84",DATUM["WGS_1984",SPHEROID["WGS 84",6378137,2
 ESRI_4326: str = """GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137,298.257223563]],PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]]"""
 
 
-DEFAULT_EPSG_RECS: Tuple[Tuple[str, int, str, int, str, str], ...] = (
+DEFAULT_EPSG_RECS: tuple[tuple[str, int, str, int, str, str], ...] = (
         DEFAULT_SRS_RECS + (('WGS 84', 4326, 'EPSG', 4326, EPSG_4326, ''),))
-DEFAULT_ESRI_RECS: Tuple[Tuple[str, int, str, int, str, str], ...] = (
+DEFAULT_ESRI_RECS: tuple[tuple[str, int, str, int, str, str], ...] = (
         DEFAULT_SRS_RECS + (('GCS_WGS_1984', 4326, 'EPSG', 4326, ESRI_4326, ''),))
 
 
@@ -386,7 +384,7 @@ INSERT_EXTENSION: str = """
 """
 
 
-SPATIAL_INDEX_RECORD: Tuple[str, str, str] = (
+SPATIAL_INDEX_RECORD: tuple[str, str, str] = (
     'gpkg_rtree_index', f'{ROOT}#extension_rtree', 'write-only')
 
 
@@ -442,7 +440,7 @@ INSERT_METADATA_REFERENCE: str = """
 """
 
 
-METADATA_RECORDS: Tuple[Tuple[str, None, str, str, str], ...] = (
+METADATA_RECORDS: tuple[tuple[str, None, str, str, str], ...] = (
     ('gpkg_metadata', None, 'gpkg_metadata',
      f'{ROOT}#extension_metadata', 'read-write'),
     ('gpkg_metadata_reference', None, 'gpkg_metadata',
@@ -508,7 +506,7 @@ SELECT_CONSTRAINT_NAME: str = """
 """
 
 
-SCHEMA_RECORDS: Tuple[Tuple[str, None, str, str, str], ...] = (
+SCHEMA_RECORDS: tuple[tuple[str, None, str, str, str], ...] = (
     ('gpkg_data_columns', None, 'gpkg_schema',
      f'{ROOT}#extension_schema', 'read-write'),
     ('gpkg_data_column_constraints', None, 'gpkg_schema',
