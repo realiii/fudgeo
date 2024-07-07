@@ -40,4 +40,3 @@ def add_ogr_contents(conn: 'Connection', name: str, escaped_name: str) -> None:
 
 if __name__ == '__main__':  # pragma: no cover
     pass
-
