@@ -108,6 +108,7 @@ class AbstractTableReference(AbstractReference):
         """
         Validate Row ID
         """
+        # noinspection SqlNoDataSourceInspection
         cursor = table.geopackage.connection.execute(f"""
             SELECT COUNT(1) AS C 
             FROM {table.escaped_name} 

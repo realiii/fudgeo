@@ -450,6 +450,7 @@ class PointZM(AbstractGeometry):
         """
         To Geopackage
         """
+        # noinspection PyArgumentEqualDefault
         return (make_header(srs_id=self.srs_id,
                             is_empty=self.is_empty) + self._to_wkb(None))
     # End to_gpkg method
