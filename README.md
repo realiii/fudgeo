@@ -417,7 +417,7 @@ Support provided for the following constraint types:
 
 ## Release History
 
-### next release
+### v0.8.0
 * drop support for Python 3.7 and 3.8
 * modernize type hinting
 * add `select` method to `FeatureClass` and `Table` objects
