@@ -49,7 +49,7 @@ class AbstractGeometry:
 
     @property
     @abstractmethod
-    def is_empty(self) -> bool:
+    def is_empty(self) -> bool:  # pragma: no cover
         """
         Is Empty
         """
@@ -58,7 +58,7 @@ class AbstractGeometry:
 
     @property
     @abstractmethod
-    def envelope(self) -> Envelope:
+    def envelope(self) -> Envelope:  # pragma: no cover
         """
         Envelope
         """

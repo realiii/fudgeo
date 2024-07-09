@@ -186,47 +186,48 @@ rings: list[list[tuple[float, float]]] = [
 poly: Polygon = Polygon(rings, srs_id=32623)
 ```
 
-### Select Features from GeoPackage (SQL)
+### Select Features from GeoPackage
 
-When selecting features from a GeoPackage feature class use SQL.  For 
-the most part (mainly simple geometries e.g. those without *Z* or *M*) this 
-can be done via a basic `SELECT` statement like:
+When selecting features from a GeoPackage feature class use SQL or use the
+helper method `select`.  
+
+For simple geometries (e.g. those without *Z* or *M*) this can be done via a 
+basic `SELECT` statement or the `select` method.
 
 ```python
+from fudgeo.geometry import Point
+from fudgeo.geopkg import FeatureClass, GeoPackage
+
 gpkg = GeoPackage(...)
+
+# NOTE for fudgeo version v0.8.0 and above use helper method
+fc = FeatureClass(geopackage=gpkg, name='point_fc')
+cursor = fc.select(fields=('example_id',), include_geometry=True)
+features: list[tuple[Point, int]] = cursor.fetchall()
+
+# NOTE for fudgeo prior to v0.8.0
 cursor = gpkg.connection.execute("""SELECT SHAPE, example_id FROM point_fc""")
-features = cursor.fetchall()
+features: list[tuple[Point, int]] = cursor.fetchall()
 ```
 
-This will return a list of tuples where each tuple contains a `Point`
-object and an integer for `example_id` field.
+When using SQL with extended geometry types (e.g. those with *Z* and/or *M*) 
+then ensure `SQLite` knows how to convert the geopackage stored geometry to a 
+`fudgeo` geometry by including the converter, this is done like so:
 
-When working with extended geometry types (those with *Z* and/or *M*) 
-then the approach is to ensure `SQLite` knows how to convert the 
-geopackage stored geometry to a `fudgeo` geometry, this is done like so:
-
-```python
-from fudgeo.geometry import LineStringM
-from fudgeo.geopkg import GeoPackage
-
-gpkg: GeoPackage = GeoPackage('../data/example.gpkg')
-cursor = gpkg.connection.execute(
-    """SELECT SHAPE "[LineStringM]", road_id FROM test""")
-features: list[tuple[LineStringM, int]] = cursor.fetchall()
-```
-
-or a little more general, accounting for extended geometry types and
-possibility of the geometry column being something other tha `SHAPE`:
 
 ```python
 from fudgeo.geometry import LineStringM
 from fudgeo.geopkg import FeatureClass, GeoPackage
 
-gpkg: GeoPackage = GeoPackage('../data/example.gpkg')
-fc: FeatureClass = FeatureClass(geopackage=gpkg, name='road_l')
-cursor = gpkg.connection.execute(f"""
-    SELECT {fc.geometry_column_name} "[{fc.geometry_type}]", road_id 
-    FROM {fc.escaped_name}""")
+gpkg = GeoPackage('../data/example.gpkg')
+# NOTE for fudgeo version v0.8.0 and above use helper method
+fc = FeatureClass(geopackage=gpkg, name='test')
+cursor = fc.select(fields=('road_id',), include_geometry=True)
+features: list[tuple[LineStringM, int]] = cursor.fetchall()
+
+# NOTE for fudgeo prior to v0.8.0
+cursor = gpkg.connection.execute(
+    """SELECT SHAPE "[LineStringM]", road_id FROM test""")
 features: list[tuple[LineStringM, int]] = cursor.fetchall()
 ```
 

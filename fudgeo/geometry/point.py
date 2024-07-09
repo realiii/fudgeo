@@ -22,7 +22,7 @@ from fudgeo.geometry.util import (
     pack_coordinates, unpack_header, unpack_points)
 
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from numpy import ndarray
     from fudgeo.geometry.util import Envelope
 
@@ -450,6 +450,7 @@ class PointZM(AbstractGeometry):
         """
         To Geopackage
         """
+        # noinspection PyArgumentEqualDefault
         return (make_header(srs_id=self.srs_id,
                             is_empty=self.is_empty) + self._to_wkb(None))
     # End to_gpkg method
