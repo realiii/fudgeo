@@ -22,7 +22,7 @@ from fudgeo.geometry.util import (
     pack_coordinates, unpack_header, unpack_points)
 
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from numpy import ndarray
     from fudgeo.geometry.util import Envelope
 

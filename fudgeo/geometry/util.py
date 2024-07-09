@@ -71,7 +71,7 @@ class Envelope:
         """
         Equality
         """
-        if not isinstance(other, Envelope):
+        if not isinstance(other, Envelope):  # pragma: no cover
             return NotImplemented
         code = self.code
         if code != other.code:

@@ -38,7 +38,7 @@ from fudgeo.sql import (
 from fudgeo.util import convert_datetime, escape_name, now
 
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from sqlite3 import Connection, Cursor
     from fudgeo.geometry.base import AbstractGeometry
 

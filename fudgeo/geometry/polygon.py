@@ -19,7 +19,7 @@ from fudgeo.geometry.util import (
     pack_coordinates, unpack_lines, unpack_polygons)
 
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from numpy import ndarray
     from fudgeo.geometry.util import Envelope
 

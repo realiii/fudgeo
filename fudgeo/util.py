@@ -48,7 +48,7 @@ def convert_datetime(val: bytes) -> datetime:
             break
         except ValueError:
             pass
-    else:
+    else:  # pragma: no cover
         raise Exception(f"Could not split datetime: '{val}'")
     year, month, day = map(int, dt.split(dash))
     tm, *micro = tm.split(b'.')

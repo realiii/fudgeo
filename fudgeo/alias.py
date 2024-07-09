@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import Optional, TYPE_CHECKING, Union
 
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     # noinspection PyUnresolvedReferences
     from fudgeo.geopkg import FeatureClass, Field, Table
     # noinspection PyUnresolvedReferences
