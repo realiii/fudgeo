@@ -373,7 +373,7 @@ class BaseTable:
         cursor = self.geopackage.connection.execute(
             SELECT_PRIMARY_KEY.format(self.name, SQLFieldType.integer))
         result = cursor.fetchone()
-        if not result:
+        if not result:  # pragma: no cover
             return
         return Field(*result)
     # End primary_key_field property
