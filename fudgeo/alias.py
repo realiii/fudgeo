@@ -37,6 +37,7 @@ BYTE_ARRAY = Optional[bytearray]
 
 TABLE = Union['Table', 'FeatureClass']
 FIELDS = Union[tuple['Field', ...], list['Field']]
+FIELD_NAMES = Union[tuple[str, ...], list[str]]
 
 
 REFERENCE_RECORD = tuple[
