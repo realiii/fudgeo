@@ -709,14 +709,6 @@ class Field:
         self.size: INT = size
     # End init built-in
 
-    @property
-    def escaped_name(self) -> str:
-        """
-        Escaped Name, only adds quotes if needed
-        """
-        return escape_name(self.name)
-    # End escaped_name property
-
     def __repr__(self) -> str:
         """
         String representation
@@ -726,6 +718,23 @@ class Field:
             return f'{self.escaped_name} {self.data_type}{self.size}'
         return f'{self.escaped_name} {self.data_type}'
     # End repr built-in
+
+    def __eq__(self, other: 'Field') -> bool:
+        """
+        Equality Implementation
+        """
+        if not isinstance(other, Field):
+            return NotImplemented
+        return repr(self).casefold() == repr(other).casefold()
+    # End eq built-int
+
+    @property
+    def escaped_name(self) -> str:
+        """
+        Escaped Name, only adds quotes if needed
+        """
+        return escape_name(self.name)
+    # End escaped_name property
 # End Field class
 
 
