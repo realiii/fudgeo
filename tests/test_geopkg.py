@@ -5,7 +5,7 @@ Test GeoPackage
 
 
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from math import isnan
 from random import randint, choice
 from string import ascii_uppercase, digits
@@ -34,8 +34,6 @@ SELECT_ST_FUNCS = """SELECT ST_IsEmpty({0}), ST_MinX({0}), ST_MaxX({0}), ST_MinY
 SELECT_RTREE = """SELECT * FROM rtree_{0}_{1} ORDER BY 1"""
 # noinspection SqlNoDataSourceInspection
 INSERT_SHAPE = """INSERT INTO {} (SHAPE) VALUES (?)"""
-# noinspection SqlNoDataSourceInspection
-SELECT_FID_SHAPE = """SELECT fid, SHAPE "[{}]" FROM {}"""
 
 
 def random_points_and_attrs(count, srs_id):
@@ -119,12 +117,12 @@ def test_create_table(tmp_path, fields, name, ogr_contents, trigger_count):
     assert table.count == 2
     *_, eee, select = fields
     # noinspection SqlNoDataSourceInspection
-    cursor = conn.execute(f"""SELECT {eee.name} FROM {table.escaped_name}""")
+    cursor = table.select(fields=eee)
     value, = cursor.fetchone()
     assert isinstance(value, datetime)
     assert value == eee_datetime
     # noinspection SqlNoDataSourceInspection
-    cursor = conn.execute(f"""SELECT {select.escaped_name} FROM {table.escaped_name}""")
+    cursor = table.select(fields=select)
     value, = cursor.fetchone()
     assert isinstance(value, datetime)
     assert value == fff_datetime
@@ -376,9 +374,8 @@ def test_insert_point_rows(setup_geopackage, name, add_index):
     with gpkg.connection as conn:
         conn.executemany(INSERT_ROWS.format(fc.escaped_name), rows)
     assert fc.count == count
-    conn = gpkg.connection
     # noinspection SqlNoDataSourceInspection
-    cursor = conn.execute(f"""SELECT {SHAPE} FROM {fc.escaped_name} LIMIT 10""")
+    cursor = fc.select(limit=10)
     points = [rec[0] for rec in cursor.fetchall()]
     assert all([isinstance(pt, Point) for pt in points])
     assert all(pt.srs_id == srs.srs_id for pt in points)
@@ -394,10 +391,10 @@ def test_insert_point_rows(setup_geopackage, name, add_index):
 # End test_insert_point_rows function
 
 
-def _insert_shape_and_fetch(gpkg, geom, name):
+def _insert_shape_and_fetch(gpkg, geom, fc):
     with gpkg.connection as conn:
-        conn.execute(INSERT_SHAPE.format(name), (geom,))
-        cursor = conn.execute(SELECT_FID_SHAPE.format(geom.__class__.__name__, name))
+        conn.execute(INSERT_SHAPE.format(fc.escaped_name), (geom,))
+        cursor = fc.select(include_primary=True)
         return cursor.fetchall()
 
 
@@ -419,9 +416,9 @@ def test_insert_poly(setup_geopackage, rings, add_index):
         spatial_index=add_index)
     assert fc.has_spatial_index is add_index
     geom = Polygon(rings, srs.srs_id)
-    result = _insert_shape_and_fetch(gpkg, geom, fc.escaped_name)
+    result = _insert_shape_and_fetch(gpkg, geom, fc)
     assert len(result) == 1
-    _, poly = result[0]
+    poly, _ = result[0]
     assert isinstance(poly, Polygon)
     assert poly == geom
     cursor = gpkg.connection.execute(
@@ -451,9 +448,9 @@ def test_insert_multi_poly(setup_geopackage, add_index):
              [[(100000, 1000000), (100000, 2000000), (200000, 2000000),
                (200000, 1000000), (100000, 1000000)]]]
     geom = MultiPolygon(polys, srs_id=srs.srs_id)
-    result = _insert_shape_and_fetch(gpkg, geom, fc.escaped_name)
+    result = _insert_shape_and_fetch(gpkg, geom, fc)
     assert len(result) == 1
-    _, poly = result[0]
+    poly, _ = result[0]
     assert isinstance(poly, MultiPolygon)
     assert poly == geom
     cursor = gpkg.connection.execute(
@@ -480,9 +477,9 @@ def test_insert_lines(setup_geopackage, add_index):
     assert fc.has_spatial_index is add_index
     coords = [(300000, 1), (300000, 4000000), (700000, 4000000), (700000, 1)]
     geom = LineString(coords, srs_id=srs.srs_id)
-    result = _insert_shape_and_fetch(gpkg, geom, fc.escaped_name)
+    result = _insert_shape_and_fetch(gpkg, geom, fc)
     assert len(result) == 1
-    _, line = result[0]
+    line, _ = result[0]
     assert isinstance(line, LineString)
     assert line == geom
     cursor = gpkg.connection.execute(
@@ -509,11 +506,11 @@ def test_insert_multi_point(setup_geopackage, add_index):
     assert fc.has_spatial_index is add_index
     multipoints = [(300000, 1), (700000, 4000000)]
     geom = MultiPoint(multipoints, srs_id=srs.srs_id)
-    result = _insert_shape_and_fetch(gpkg, geom, fc.escaped_name)
+    result = _insert_shape_and_fetch(gpkg, geom, fc)
     assert len(result) == 1
-    _, line = result[0]
-    assert isinstance(line, MultiPoint)
-    assert line == geom
+    pts, _ = result[0]
+    assert isinstance(pts, MultiPoint)
+    assert pts == geom
     cursor = gpkg.connection.execute(
         SELECT_ST_FUNCS.format(fc.geometry_column_name, fc.escaped_name))
     assert cursor.fetchall() == [(0, 300000, 700000, 1, 4000000)]
@@ -539,9 +536,9 @@ def test_insert_lines_z(setup_geopackage, add_index):
     coords = [(300000, 1, 10), (300000, 4000000, 20), (700000, 4000000, 30),
               (700000, 1, 40)]
     geom = LineStringZ(coords, srs_id=srs.srs_id)
-    result = _insert_shape_and_fetch(gpkg, geom, fc.escaped_name)
+    result = _insert_shape_and_fetch(gpkg, geom, fc)
     assert len(result) == 1
-    _, line = result[0]
+    line, _ = result[0]
     assert isinstance(line, LineStringZ)
     assert line == geom
     cursor = gpkg.connection.execute(
@@ -569,9 +566,9 @@ def test_insert_lines_m(setup_geopackage, add_index):
     coords = [(300000, 1, 10), (300000, 4000000, 20), (700000, 4000000, 30),
               (700000, 1, 40)]
     geom = LineStringM(coords, srs_id=srs.srs_id)
-    result = _insert_shape_and_fetch(gpkg, geom, fc.escaped_name)
+    result = _insert_shape_and_fetch(gpkg, geom, fc)
     assert len(result) == 1
-    _, line = result[0]
+    line, _ = result[0]
     assert isinstance(line, LineStringM)
     assert line == geom
     cursor = gpkg.connection.execute(
@@ -599,9 +596,9 @@ def test_insert_lines_zm(setup_geopackage, add_index):
     coords = [(300000, 1, 10, 0), (300000, 4000000, 20, 1000),
               (700000, 4000000, 30, 2000), (700000, 1, 40, 3000)]
     geom = LineStringZM(coords, srs_id=srs.srs_id)
-    result = _insert_shape_and_fetch(gpkg, geom, fc.escaped_name)
+    result = _insert_shape_and_fetch(gpkg, geom, fc)
     assert len(result) == 1
-    _, line = result[0]
+    line, _ = result[0]
     assert isinstance(line, LineStringZM)
     assert line == geom
     cursor = gpkg.connection.execute(
@@ -625,17 +622,17 @@ def test_insert_multi_lines(setup_geopackage, add_index):
     fc = gpkg.create_feature_class(
         'SELECT', srs, fields=fields,
         shape_type=GeometryType.multi_linestring,
-        z_enabled=True, m_enabled=True, spatial_index=add_index)
+        z_enabled=False, m_enabled=False, spatial_index=add_index)
     assert fc.has_spatial_index is add_index
     coords = [[(300000, 1), (300000, 4000000), (700000, 4000000), (700000, 1)],
               [(600000, 100000), (600000, 3900000), (400000, 3900000),
                (400000, 100000)]]
     geom = MultiLineString(coords, srs_id=srs.srs_id)
-    result = _insert_shape_and_fetch(gpkg, geom, fc.escaped_name)
+    result = _insert_shape_and_fetch(gpkg, geom, fc)
     assert len(result) == 1
-    _, line = result[0]
-    assert isinstance(line, MultiLineString)
-    assert line == geom
+    lines, _ = result[0]
+    assert isinstance(lines, MultiLineString)
+    assert lines == geom
     cursor = gpkg.connection.execute(
         SELECT_ST_FUNCS.format(fc.geometry_column_name, fc.escaped_name))
     assert cursor.fetchall() == [(0, 300000, 700000, 1, 4000000)]
@@ -658,12 +655,12 @@ def test_insert_polygon_m(setup_geopackage, add_index):
     _, gpkg, srs, fields = setup_geopackage
     fc = gpkg.create_feature_class(
         'SELECT', srs, fields=fields, shape_type=GeometryType.polygon,
-        spatial_index=add_index)
+        spatial_index=add_index, m_enabled=True)
     assert fc.has_spatial_index is add_index
     geom = PolygonM(rings, srs.srs_id)
-    result = _insert_shape_and_fetch(gpkg, geom, fc.escaped_name)
+    result = _insert_shape_and_fetch(gpkg, geom, fc)
     assert len(result) == 1
-    _, poly = result[0]
+    poly, _ = result[0]
     assert isinstance(poly, PolygonM)
     assert poly == geom
     cursor = gpkg.connection.execute(
@@ -726,10 +723,7 @@ def test_escaped_columns(setup_geopackage):
                             {example_dot.escaped_name})
                 VALUES (?, ?, ?, ?, ?)""", rows)
     # noinspection SqlNoDataSourceInspection
-    cursor = conn.execute(
-        f"""SELECT {select.escaped_name}, {union.escaped_name}, 
-                    {all_.escaped_name}, {example_dot.escaped_name}
-            FROM {fc.name}""")
+    cursor = fc.select(fields=(select, union, all_, example_dot), include_geometry=False)
     records = cursor.fetchall()
     assert len(records) == 2
     assert records[0] == (1, 'asdf', 'lmnop', ';;::;;;')
@@ -762,10 +756,7 @@ def test_escaped_table(setup_geopackage):
                             {union.escaped_name}, {all_.escaped_name})
                 VALUES (?, ?, ?, ?)""", rows)
     # noinspection SqlNoDataSourceInspection
-    cursor = conn.execute(
-        f"""SELECT {select.escaped_name}, {union.escaped_name}, 
-                    {all_.escaped_name}
-            FROM {fc.escaped_name}""")
+    cursor = fc.select(fields=(select, union, all_), include_geometry=False)
     records = cursor.fetchall()
     assert len(records) == 2
     assert records[0] == (1, 'asdf', 'lmnop')
@@ -774,6 +765,109 @@ def test_escaped_table(setup_geopackage):
         SELECT_ST_FUNCS.format(fc.geometry_column_name, fc.escaped_name))
     assert cursor.fetchall() == [(0, 1, 1, 2, 2), (0, 3, 3, 4, 4)]
 # End test_escaped_table function
+
+
+def test_validate_fields_feature_class(setup_geopackage):
+    """
+    Test validate fields on feature class
+    """
+    _, gpkg, srs, _ = setup_geopackage
+    name = 'VALIDATE_FIELDS_FC'
+    a = Field('a', SQLFieldType.integer)
+    b = Field('b', SQLFieldType.text, 20)
+    c = Field('c', SQLFieldType.text, 50)
+    fields = a, b, c
+    fc = gpkg.create_feature_class(name=name, srs=srs, fields=fields)
+    expected_names = ['fid', SHAPE, a.name, b.name, c.name]
+    assert fc.field_names == expected_names
+    fields = fc._validate_fields(fields=expected_names)
+    assert [f.name for f in fields] == [a.name, b.name, c.name]
+    fields = fc._validate_fields(fields=[n.upper() for n in expected_names])
+    assert [f.name for f in fields] == [a.name, b.name, c.name]
+    assert not fc._validate_fields(fields='d')
+    assert not fc._validate_fields(fields=1234)
+    assert not fc._validate_fields(fields=())
+    assert not fc._validate_fields(fields=(None, Ellipsis, 1234, object))
+# End test_validate_fields_feature_class function
+
+
+@mark.parametrize('names, include_primary, include_geometry, where_clause, expected', [
+    (('a', 'b', 'c'), False, True, '', ('', 'a', 'b', 'c')),
+    (('a', 'b', 'c'), True, True, '', ('', 'fid', 'a', 'b', 'c')),
+    ((), False, True, '', ('',)),
+    ((), True, True, '', ('', 'fid')),
+    (('a', 'b', 'c'), False, True, 'a = 10', ('', 'a', 'b', 'c')),
+    (('a', 'b', 'c'), True, True, "a = 20 AND c = 'asdf'", ('', 'fid', 'a', 'b', 'c')),
+    (('a', 'b', 'c'), False, False, '', ('a', 'b', 'c')),
+    (('a', 'b', 'c'), True, False, '', ('fid', 'a', 'b', 'c')),
+    ((), False, False, '', ('fid',)),
+    ((), True, False, '', ('fid',)),
+    (('a', 'b', 'c'), False, False, 'a = 10', ('a', 'b', 'c')),
+    (('a', 'b', 'c'), True, False, "a = 20 AND c = 'asdf'", ('fid', 'a', 'b', 'c')),
+])
+def test_select_feature_class(setup_geopackage, names, include_primary, include_geometry, where_clause, expected):
+    """
+    Test select method on feature class
+    """
+    _, gpkg, srs, _ = setup_geopackage
+    name = 'SELECT_FC'
+    a = Field('a', SQLFieldType.integer)
+    b = Field('b', SQLFieldType.text, 20)
+    c = Field('c', SQLFieldType.text, 50)
+    fields = a, b, c
+    fc = gpkg.create_feature_class(name=name, srs=srs, fields=fields)
+    cursor = fc.select(fields=names, include_primary=include_primary,
+                       include_geometry=include_geometry, where_clause=where_clause)
+    assert tuple(name for name, *_ in cursor.description) == expected
+    assert not cursor.fetchall()
+# End test_select_feature_class function
+
+
+def test_validate_fields_table(setup_geopackage):
+    """
+    Test validate fields method on table class
+    """
+    _, gpkg, _, _ = setup_geopackage
+    name = 'VALIDATE_FIELDS_TABLE'
+    a = Field('a', SQLFieldType.integer)
+    b = Field('b', SQLFieldType.text, 20)
+    c = Field('c', SQLFieldType.text, 50)
+    tbl = gpkg.create_table(name=name, fields=(a, b, c))
+    expected_names = ['fid', a.name, b.name, c.name]
+    assert tbl.field_names == expected_names
+    fields = tbl._validate_fields(fields=expected_names)
+    assert [f.name for f in fields] == [a.name, b.name, c.name]
+    fields = tbl._validate_fields(fields=[n.upper() for n in expected_names])
+    assert [f.name for f in fields] == [a.name, b.name, c.name]
+    assert not tbl._validate_fields(fields='d')
+    assert not tbl._validate_fields(fields=1234)
+    assert not tbl._validate_fields(fields=())
+    assert not tbl._validate_fields(fields=(None, Ellipsis, 1234, object))
+# End test_validate_fields_table function
+
+
+@mark.parametrize('names, include, where_clause, expected', [
+    (('a', 'b', 'c'), False, '', ('a', 'b', 'c')),
+    (('a', 'b', 'c'), True, '', ('fid', 'a', 'b', 'c')),
+    ((), False, '', ('fid',)),
+    ((), True, '', ('fid',)),
+    (('a', 'b', 'c'), False, 'a = 10', ('a', 'b', 'c')),
+    (('a', 'b', 'c'), True, "a = 20 AND c = 'asdf'", ('fid', 'a', 'b', 'c')),
+])
+def test_select_table(setup_geopackage, names, include, where_clause, expected):
+    """
+    Test select method on table class
+    """
+    _, gpkg, _, _ = setup_geopackage
+    name = 'SELECT_TABLE'
+    a = Field('a', SQLFieldType.integer)
+    b = Field('b', SQLFieldType.text, 20)
+    c = Field('c', SQLFieldType.text, 50)
+    tbl = gpkg.create_table(name=name, fields=(a, b, c))
+    cursor = tbl.select(fields=names, include_primary=include, where_clause=where_clause)
+    assert tuple(name for name, *_ in cursor.description) == expected
+    assert not cursor.fetchall()
+# End test_select_table function
 
 
 @mark.skipif(sys.platform != 'darwin', reason='will be different on windows')

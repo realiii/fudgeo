@@ -5,7 +5,7 @@ Polygons
 
 
 from struct import pack
-from typing import Any, ClassVar, Dict, List, TYPE_CHECKING
+from typing import Any, ClassVar, TYPE_CHECKING
 
 from fudgeo.constant import (
     COUNT_CODE, EMPTY, FOUR_D, THREE_D, TWO_D, WKB_MULTI_POLYGON_M_PRE,
@@ -15,12 +15,13 @@ from fudgeo.enumeration import EnvelopeCode
 from fudgeo.geometry.base import AbstractGeometry
 from fudgeo.geometry.point import Point, PointM, PointZ, PointZM
 from fudgeo.geometry.util import (
-    EMPTY_ENVELOPE, ENV_COORD, ENV_GEOM, Envelope, as_array, lazy_unpack,
+    EMPTY_ENVELOPE, ENV_COORD, ENV_GEOM, as_array, lazy_unpack,
     pack_coordinates, unpack_lines, unpack_polygons)
 
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from numpy import ndarray
+    from fudgeo.geometry.util import Envelope
 
 
 class BaseLinearRing(AbstractGeometry):
@@ -32,7 +33,7 @@ class BaseLinearRing(AbstractGeometry):
     _class: ClassVar[Any] = object
     _env_code: ClassVar[int] = EnvelopeCode.empty
 
-    def __init__(self, coordinates: List, srs_id: int) -> None:
+    def __init__(self, coordinates: list, srs_id: int) -> None:
         """
         Initialize the BaseLinearRing class
         """
@@ -60,7 +61,7 @@ class BaseLinearRing(AbstractGeometry):
     # End is_empty property
 
     @property
-    def points(self) -> List:
+    def points(self) -> list:
         """
         Points
         """
@@ -71,7 +72,7 @@ class BaseLinearRing(AbstractGeometry):
     # End points property
 
     @property
-    def envelope(self) -> Envelope:
+    def envelope(self) -> 'Envelope':
         """
         Envelope
         """
@@ -154,12 +155,12 @@ class BasePolygon(AbstractGeometry):
     _env_code: ClassVar[int] = EnvelopeCode.empty
     _wkb_prefix: ClassVar[bytes] = EMPTY
 
-    def __init__(self, coordinates: List[List], srs_id: int) -> None:
+    def __init__(self, coordinates: list[list], srs_id: int) -> None:
         """
         Initialize the BasePolygon class
         """
         super().__init__(srs_id=srs_id)
-        self._rings: List = self._make_rings(coordinates)
+        self._rings: list = self._make_rings(coordinates)
     # End init built-in
 
     def __eq__(self, other: Any) -> bool:
@@ -174,7 +175,7 @@ class BasePolygon(AbstractGeometry):
     # End eq built-in
 
     @property
-    def __geo_interface__(self) -> Dict:
+    def __geo_interface__(self) -> dict:
         """
         Geo Interface
         """
@@ -188,7 +189,7 @@ class BasePolygon(AbstractGeometry):
                     for ring in self.rings)}
     # End geo_interface property
 
-    def _make_rings(self, coordinates: List[List]) -> List:
+    def _make_rings(self, coordinates: list[list]) -> list:
         """
         Make Rings
         """
@@ -198,7 +199,7 @@ class BasePolygon(AbstractGeometry):
     # End _make_rings method
 
     @property
-    def rings(self) -> List:
+    def rings(self) -> list:
         """
         Rings
         """
@@ -221,7 +222,7 @@ class BasePolygon(AbstractGeometry):
     # End is_empty property
 
     @property
-    def envelope(self) -> Envelope:
+    def envelope(self) -> 'Envelope':
         """
         Envelope
         """
@@ -314,13 +315,13 @@ class BaseMultiPolygon(AbstractGeometry):
     _env_code: ClassVar[int] = EnvelopeCode.empty
     _wkb_prefix: ClassVar[bytes] = EMPTY
 
-    def __init__(self, coordinates: List[List[List]],
+    def __init__(self, coordinates: list[list[list]],
                  srs_id: int) -> None:
         """
         Initialize the BaseMultiPolygon class
         """
         super().__init__(srs_id=srs_id)
-        self._polygons: List = self._make_polygons(coordinates)
+        self._polygons: list = self._make_polygons(coordinates)
     # End init built-in
 
     def __eq__(self, other: Any) -> bool:
@@ -335,7 +336,7 @@ class BaseMultiPolygon(AbstractGeometry):
     # End eq built-in
 
     @property
-    def __geo_interface__(self) -> Dict:
+    def __geo_interface__(self) -> dict:
         """
         Geo Interface
         """
@@ -349,7 +350,7 @@ class BaseMultiPolygon(AbstractGeometry):
                     for ring in poly.rings) for poly in self.polygons)}
     # End geo_interface property
 
-    def _make_polygons(self, coordinates: List[List[List]]) -> List:
+    def _make_polygons(self, coordinates: list[list[list]]) -> list:
         """
         Make Polygons
         """
@@ -359,7 +360,7 @@ class BaseMultiPolygon(AbstractGeometry):
     # End _make_polygons method
 
     @property
-    def polygons(self) -> List:
+    def polygons(self) -> list:
         """
         Polygons
         """
@@ -381,7 +382,7 @@ class BaseMultiPolygon(AbstractGeometry):
     # End is_empty property
 
     @property
-    def envelope(self) -> Envelope:
+    def envelope(self) -> 'Envelope':
         """
         Envelope
         """

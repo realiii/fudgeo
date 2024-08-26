@@ -5,8 +5,9 @@ Base Classes
 
 
 from abc import abstractmethod
-from typing import List, Optional, Tuple
+from typing import Optional
 
+from fudgeo.alias import BOOL
 from fudgeo.geometry.util import EMPTY_ENVELOPE, Envelope, make_header
 
 
@@ -23,8 +24,8 @@ class AbstractGeometry:
         super().__init__()
         self.srs_id: int = srs_id
         self._env: Envelope = EMPTY_ENVELOPE
-        self._args: Optional[Tuple[memoryview, int]] = None
-        self._is_empty: Optional[bool] = None
+        self._args: Optional[tuple[memoryview, int]] = None
+        self._is_empty: BOOL = None
     # End init built-in
 
     @abstractmethod
@@ -37,7 +38,7 @@ class AbstractGeometry:
 
     @staticmethod
     def _join_geometries(ary: bytearray,
-                         geoms: List['AbstractGeometry']) -> bytearray:
+                         geoms: list['AbstractGeometry']) -> bytearray:
         """
         Join Geometries
         """
@@ -48,7 +49,7 @@ class AbstractGeometry:
 
     @property
     @abstractmethod
-    def is_empty(self) -> bool:
+    def is_empty(self) -> bool:  # pragma: no cover
         """
         Is Empty
         """
@@ -57,7 +58,7 @@ class AbstractGeometry:
 
     @property
     @abstractmethod
-    def envelope(self) -> Envelope:
+    def envelope(self) -> Envelope:  # pragma: no cover
         """
         Envelope
         """

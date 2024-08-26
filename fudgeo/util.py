@@ -6,12 +6,13 @@ Utility Functions
 
 from datetime import datetime, timedelta, timezone
 from re import IGNORECASE, compile as recompile
-from typing import Callable
+from typing import Callable, Match, Optional
 
 from fudgeo.sql import KEYWORDS
 
 
-NAME_MATCHER: Callable = recompile(r'^[A-Z]\w*$', IGNORECASE).match
+NAME_MATCHER: Callable[[str], Optional[Match[str]]] = (
+    recompile(r'^[A-Z]\w*$', IGNORECASE).match)
 
 
 def escape_name(name: str) -> str:
@@ -47,7 +48,7 @@ def convert_datetime(val: bytes) -> datetime:
             break
         except ValueError:
             pass
-    else:
+    else:  # pragma: no cover
         raise Exception(f"Could not split datetime: '{val}'")
     year, month, day = map(int, dt.split(dash))
     tm, *micro = tm.split(b'.')

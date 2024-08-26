@@ -77,7 +77,6 @@ either of these options are enabled, the geometry inserted into the
 Feature Class **must** include a value for the option specified.
 
 ```python
-from typing import Tuple
 from fudgeo.enumeration import GeometryType, SQLFieldType
 from fudgeo.geopkg import FeatureClass, Field, GeoPackage, SpatialReferenceSystem
 
@@ -99,7 +98,7 @@ SRS_WKT: str = (
 SRS: SpatialReferenceSystem = SpatialReferenceSystem(
     name='WGS_1984_UTM_Zone_23N', organization='EPSG',
     org_coord_sys_id=32623, definition=SRS_WKT)
-fields: Tuple[Field, ...] = (
+fields: tuple[Field, ...] = (
     Field('road_id', SQLFieldType.integer),
     Field('name', SQLFieldType.text, size=100),
     Field('begin_easting', SQLFieldType.double),
@@ -137,13 +136,12 @@ portion of the code is omitted...
 ```python
 from random import choice, randint
 from string import ascii_uppercase, digits
-from typing import List, Tuple
 
 from fudgeo.geometry import LineStringM
 from fudgeo.geopkg import GeoPackage
 
 # Generate some random points and attributes
-rows: List[Tuple[LineStringM, int, str, float, float, float, float, bool]] = []
+rows: list[tuple[LineStringM, int, str, float, float, float, float, bool]] = []
 for i in range(10000):
     name = ''.join(choice(ascii_uppercase + digits) for _ in range(10))
     road_id = randint(0, 1000)
@@ -171,68 +169,66 @@ of this package.
 
 
 ```python
-from typing import List, Tuple
 from fudgeo.geometry import LineStringZM, Point, Polygon
 
 # Point in WGS 84
 pt: Point = Point(x=-119, y=34)
 
 # Line with ZM Values for use with UTM Zone 23N (WGS 84)
-coords: List[Tuple[float, float, float, float]] = [
+coords: list[tuple[float, float, float, float]] = [
     (300000, 1, 10, 0), (300000, 4000000, 20, 1000),
     (700000, 4000000, 30, 2000), (700000, 1, 40, 3000)]
 line: LineStringZM = LineStringZM(coords, srs_id=32623)
 
 # list of rings where a ring is simply the list of points it contains.
-rings: List[List[Tuple[float, float]]] = [
+rings: list[list[tuple[float, float]]] = [
     [(300000, 1), (300000, 4000000), (700000, 4000000), (700000, 1), (300000, 1)]]
 poly: Polygon = Polygon(rings, srs_id=32623)
 ```
 
-### Select Features from GeoPackage (SQL)
+### Select Features from GeoPackage
 
-When selecting features from a GeoPackage feature class use SQL.  For 
-the most part (mainly simple geometries e.g. those without *Z* or *M*) this 
-can be done via a basic `SELECT` statement like:
+When selecting features from a GeoPackage feature class use SQL or use the
+helper method `select`.  
+
+For simple geometries (e.g. those without *Z* or *M*) this can be done via a 
+basic `SELECT` statement or the `select` method.
 
 ```python
+from fudgeo.geometry import Point
+from fudgeo.geopkg import FeatureClass, GeoPackage
+
 gpkg = GeoPackage(...)
+
+# NOTE for fudgeo version v0.8.0 and above use helper method
+fc = FeatureClass(geopackage=gpkg, name='point_fc')
+cursor = fc.select(fields=('example_id',), include_geometry=True)
+features: list[tuple[Point, int]] = cursor.fetchall()
+
+# NOTE for fudgeo prior to v0.8.0
 cursor = gpkg.connection.execute("""SELECT SHAPE, example_id FROM point_fc""")
-features = cursor.fetchall()
+features: list[tuple[Point, int]] = cursor.fetchall()
 ```
 
-This will return a list of tuples where each tuple contains a `Point`
-object and an integer for `example_id` field.
+When using SQL with extended geometry types (e.g. those with *Z* and/or *M*) 
+then ensure `SQLite` knows how to convert the geopackage stored geometry to a 
+`fudgeo` geometry by including the converter, this is done like so:
 
-When working with extended geometry types (those with *Z* and/or *M*) 
-then the approach is to ensure `SQLite` knows how to convert the 
-geopackage stored geometry to a `fudgeo` geometry, this is done like so:
 
 ```python
-from typing import List, Tuple
-from fudgeo.geometry import LineStringM
-from fudgeo.geopkg import GeoPackage
-
-gpkg: GeoPackage = GeoPackage('../data/example.gpkg')
-cursor = gpkg.connection.execute(
-    """SELECT SHAPE "[LineStringM]", road_id FROM test""")
-features: List[Tuple[LineStringM, int]] = cursor.fetchall()
-```
-
-or a little more general, accounting for extended geometry types and
-possibility of the geometry column being something other tha `SHAPE`:
-
-```python
-from typing import List, Tuple
 from fudgeo.geometry import LineStringM
 from fudgeo.geopkg import FeatureClass, GeoPackage
 
-gpkg: GeoPackage = GeoPackage('../data/example.gpkg')
-fc: FeatureClass = FeatureClass(geopackage=gpkg, name='road_l')
-cursor = gpkg.connection.execute(f"""
-    SELECT {fc.geometry_column_name} "[{fc.geometry_type}]", road_id 
-    FROM {fc.escaped_name}""")
-features: List[Tuple[LineStringM, int]] = cursor.fetchall()
+gpkg = GeoPackage('../data/example.gpkg')
+# NOTE for fudgeo version v0.8.0 and above use helper method
+fc = FeatureClass(geopackage=gpkg, name='test')
+cursor = fc.select(fields=('road_id',), include_geometry=True)
+features: list[tuple[LineStringM, int]] = cursor.fetchall()
+
+# NOTE for fudgeo prior to v0.8.0
+cursor = gpkg.connection.execute(
+    """SELECT SHAPE "[LineStringM]", road_id FROM test""")
+features: list[tuple[LineStringM, int]] = cursor.fetchall()
 ```
 
 
@@ -245,7 +241,6 @@ Spatial Indexes apply to individual feature classes.  A spatial index can be
 added at create time or added on an existing feature class.
 
 ```python
-from typing import Tuple
 from fudgeo.enumeration import SQLFieldType
 from fudgeo.geopkg import FeatureClass, Field, GeoPackage, SpatialReferenceSystem
 
@@ -267,7 +262,7 @@ SRS_WKT: str = (
 SRS: SpatialReferenceSystem = SpatialReferenceSystem(
     name='WGS_1984_UTM_Zone_23N', organization='EPSG',
     org_coord_sys_id=32623, definition=SRS_WKT)
-fields: Tuple[Field, ...] = (
+fields: tuple[Field, ...] = (
     Field('id', SQLFieldType.integer),
     Field('name', SQLFieldType.text, size=100))
 
@@ -421,6 +416,11 @@ Support provided for the following constraint types:
 [MIT](https://choosealicense.com/licenses/mit/)
 
 ## Release History
+
+### v0.8.0
+* drop support for Python 3.7 and 3.8
+* modernize type hinting
+* add `select` method to `FeatureClass` and `Table` objects
 
 ### v0.7.2
 * bump `user_version` to reflect adopted version 1.4.0 of OGC GeoPackage

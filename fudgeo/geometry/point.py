@@ -6,22 +6,25 @@ Points
 
 from math import isnan, nan
 from struct import pack, unpack
-from typing import Any, ClassVar, Dict, List, Optional, TYPE_CHECKING, Union
+from typing import Any, ClassVar, TYPE_CHECKING, Union
 
+from fudgeo.alias import BYTE_ARRAY, DOUBLE, QUADRUPLE, TRIPLE
 from fudgeo.constant import (
-    DOUBLE, EMPTY, FOUR_D, FOUR_D_PACK_CODE, FOUR_D_UNPACK_CODE, HEADER_OFFSET,
-    QUADRUPLE, THREE_D, THREE_D_PACK_CODE, THREE_D_UNPACK_CODE, TRIPLE, TWO_D,
-    TWO_D_PACK_CODE, TWO_D_UNPACK_CODE, WKB_MULTI_POINT_M_PRE,
-    WKB_MULTI_POINT_PRE, WKB_MULTI_POINT_ZM_PRE, WKB_MULTI_POINT_Z_PRE,
-    WKB_POINT_M_PRE, WKB_POINT_PRE, WKB_POINT_ZM_PRE, WKB_POINT_Z_PRE)
+    EMPTY, FOUR_D, FOUR_D_PACK_CODE, FOUR_D_UNPACK_CODE, HEADER_OFFSET, THREE_D,
+    THREE_D_PACK_CODE, THREE_D_UNPACK_CODE, TWO_D, TWO_D_PACK_CODE,
+    TWO_D_UNPACK_CODE, WKB_MULTI_POINT_M_PRE, WKB_MULTI_POINT_PRE,
+    WKB_MULTI_POINT_ZM_PRE, WKB_MULTI_POINT_Z_PRE, WKB_POINT_M_PRE,
+    WKB_POINT_PRE, WKB_POINT_ZM_PRE, WKB_POINT_Z_PRE)
 from fudgeo.enumeration import EnvelopeCode
 from fudgeo.geometry.base import AbstractGeometry
 from fudgeo.geometry.util import (
-    EMPTY_ENVELOPE, ENV_COORD, Envelope, as_array, lazy_unpack, make_header,
+    EMPTY_ENVELOPE, ENV_COORD, as_array, lazy_unpack, make_header,
     pack_coordinates, unpack_header, unpack_points)
 
-if TYPE_CHECKING:
+
+if TYPE_CHECKING:  # pragma: no cover
     from numpy import ndarray
+    from fudgeo.geometry.util import Envelope
 
 
 class Point(AbstractGeometry):
@@ -51,7 +54,7 @@ class Point(AbstractGeometry):
     # End eq built-in
 
     @property
-    def __geo_interface__(self) -> Dict[str, Union[str, DOUBLE]]:
+    def __geo_interface__(self) -> dict[str, Union[str, DOUBLE]]:
         """
         Geo Interface
         """
@@ -82,7 +85,7 @@ class Point(AbstractGeometry):
         return x, y
     # End _unpack method
 
-    def _to_wkb(self, ary: Optional[bytearray] = None) -> bytes:
+    def _to_wkb(self, ary: BYTE_ARRAY = None) -> bytes:
         """
         To WKB
         """
@@ -90,7 +93,7 @@ class Point(AbstractGeometry):
     # End _to_wkb method
 
     @property
-    def envelope(self) -> Envelope:
+    def envelope(self) -> 'Envelope':
         """
         Envelope
         """
@@ -164,7 +167,7 @@ class PointZ(AbstractGeometry):
     # End eq built-in
 
     @property
-    def __geo_interface__(self) -> Dict[str, Union[str, TRIPLE]]:
+    def __geo_interface__(self) -> dict[str, Union[str, TRIPLE]]:
         """
         Geo Interface
         """
@@ -196,7 +199,7 @@ class PointZ(AbstractGeometry):
         return x, y, z
     # End _unpack method
 
-    def _to_wkb(self, ary: Optional[bytearray] = None) -> bytes:
+    def _to_wkb(self, ary: BYTE_ARRAY = None) -> bytes:
         """
         To WKB
         """
@@ -204,7 +207,7 @@ class PointZ(AbstractGeometry):
     # End _to_wkb method
 
     @property
-    def envelope(self) -> Envelope:
+    def envelope(self) -> 'Envelope':
         """
         Envelope
         """
@@ -278,7 +281,7 @@ class PointM(AbstractGeometry):
     # End eq built-in
 
     @property
-    def __geo_interface__(self) -> Dict[str, Union[str, TRIPLE]]:
+    def __geo_interface__(self) -> dict[str, Union[str, TRIPLE]]:
         """
         Geo Interface
         """
@@ -309,7 +312,7 @@ class PointM(AbstractGeometry):
         return x, y, m
     # End _unpack method
 
-    def _to_wkb(self, ary: Optional[bytearray] = None) -> bytes:
+    def _to_wkb(self, ary: BYTE_ARRAY = None) -> bytes:
         """
         To WKB
         """
@@ -317,7 +320,7 @@ class PointM(AbstractGeometry):
     # End _to_wkb method
 
     @property
-    def envelope(self) -> Envelope:
+    def envelope(self) -> 'Envelope':
         """
         Envelope
         """
@@ -393,7 +396,7 @@ class PointZM(AbstractGeometry):
     # End eq built-in
 
     @property
-    def __geo_interface__(self) -> Dict[str, Union[str, QUADRUPLE]]:
+    def __geo_interface__(self) -> dict[str, Union[str, QUADRUPLE]]:
         """
         Geo Interface
         """
@@ -428,7 +431,7 @@ class PointZM(AbstractGeometry):
         return x, y, z, m
     # End _unpack method
 
-    def _to_wkb(self, ary: Optional[bytearray] = None) -> bytes:
+    def _to_wkb(self, ary: BYTE_ARRAY = None) -> bytes:
         """
         To WKB
         """
@@ -436,7 +439,7 @@ class PointZM(AbstractGeometry):
     # End _to_wkb method
 
     @property
-    def envelope(self) -> Envelope:
+    def envelope(self) -> 'Envelope':
         """
         Envelope
         """
@@ -447,6 +450,7 @@ class PointZM(AbstractGeometry):
         """
         To Geopackage
         """
+        # noinspection PyArgumentEqualDefault
         return (make_header(srs_id=self.srs_id,
                             is_empty=self.is_empty) + self._to_wkb(None))
     # End to_gpkg method
@@ -495,7 +499,7 @@ class BaseMultiPoint(AbstractGeometry):
     _has_z: ClassVar[bool] = False
     _wkb_prefix: ClassVar[bytes] = EMPTY
 
-    def __init__(self, coordinates: List, srs_id: int) -> None:
+    def __init__(self, coordinates: list, srs_id: int) -> None:
         """
         Initialize the BaseMultiPoint class
         """
@@ -515,7 +519,7 @@ class BaseMultiPoint(AbstractGeometry):
     # End eq built-in
 
     @property
-    def __geo_interface__(self) -> Dict:
+    def __geo_interface__(self) -> dict:
         """
         Geo Interface
         """
@@ -551,7 +555,7 @@ class BaseMultiPoint(AbstractGeometry):
     # End is_empty property
 
     @property
-    def points(self) -> List:
+    def points(self) -> list:
         """
         Points
         """
@@ -562,7 +566,7 @@ class BaseMultiPoint(AbstractGeometry):
     # End points property
 
     @property
-    def envelope(self) -> Envelope:
+    def envelope(self) -> 'Envelope':
         """
         Envelope
         """

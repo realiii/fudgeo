@@ -10,8 +10,9 @@ from pathlib import Path
 from sqlite3 import (
     PARSE_COLNAMES, PARSE_DECLTYPES, connect, register_adapter,
     register_converter)
-from typing import Dict, List, Optional, TYPE_CHECKING, Tuple, Type, Union
+from typing import Optional, TYPE_CHECKING, Type, Union
 
+from fudgeo.alias import FIELDS, FIELD_NAMES, INT, STRING
 from fudgeo.constant import COMMA_SPACE, GPKG_EXT, SHAPE
 from fudgeo.enumeration import DataType, GPKGFlavors, GeometryType, SQLFieldType
 from fudgeo.extension.metadata import (
@@ -37,12 +38,9 @@ from fudgeo.sql import (
 from fudgeo.util import convert_datetime, escape_name, now
 
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from sqlite3 import Connection, Cursor
     from fudgeo.geometry.base import AbstractGeometry
-
-
-FIELDS = Union[Tuple['Field', ...], List['Field']]
 
 
 def _adapt_geometry(val: 'AbstractGeometry') -> bytes:
@@ -260,7 +258,7 @@ class GeoPackage:
     # End create_feature_class method
 
     @property
-    def tables(self) -> Dict[str, 'Table']:
+    def tables(self) -> dict[str, 'Table']:
         """
         Tables in the GeoPackage
         """
@@ -269,7 +267,7 @@ class GeoPackage:
     # End tables property
 
     @property
-    def feature_classes(self) -> Dict[str, 'FeatureClass']:
+    def feature_classes(self) -> dict[str, 'FeatureClass']:
         """
         Feature Classes in the GeoPackage
         """
@@ -278,7 +276,7 @@ class GeoPackage:
     # End feature_classes property
 
     def _get_table_objects(self, cls: Type['BaseTable'],
-                           data_type: str) -> Dict[str, 'BaseTable']:
+                           data_type: str) -> dict[str, 'BaseTable']:
         """
         Get Table Objects
         """
@@ -375,13 +373,13 @@ class BaseTable:
         cursor = self.geopackage.connection.execute(
             SELECT_PRIMARY_KEY.format(self.name, SQLFieldType.integer))
         result = cursor.fetchone()
-        if not result:
+        if not result:  # pragma: no cover
             return
         return Field(*result)
     # End primary_key_field property
 
     @property
-    def fields(self) -> List['Field']:
+    def fields(self) -> list['Field']:
         """
         Fields
         """
@@ -392,12 +390,66 @@ class BaseTable:
     # End fields property
 
     @property
-    def field_names(self) -> List[str]:
+    def field_names(self) -> list[str]:
         """
         Field Names
         """
         return [f.name for f in self.fields]
     # End field_names property
+
+    def _remove_special(self, fields: list['Field']) -> list['Field']:
+        """
+        Remove Special Fields
+        """
+        key_field = self.primary_key_field
+        if key_field:
+            while key_field in fields:
+                fields.remove(key_field)
+        return fields
+    # End _remove_special method
+
+    def _validate_fields(self, fields: Union[FIELDS, FIELD_NAMES]) -> list['Field']:
+        """
+        Validate Input Fields
+        """
+        keepers = []
+        field_lookup = {f.name.casefold(): f for f in self.fields}
+        if not isinstance(fields, (list, tuple)):
+            fields = [fields]
+        for f in fields:
+            if not isinstance(f, (Field, str)):
+                continue
+            name = getattr(f, 'name', f).casefold()
+            field = field_lookup.get(name)
+            if field is None:
+                continue
+            keepers.append(field)
+        return self._remove_special(keepers)
+    # End _validate_fields method
+
+    def _execute_select(self, field_names: str, where_clause: str,
+                        limit: INT) -> 'Cursor':
+        """
+        Builds the SELECT statement and Executes, returning a cursor
+        """
+        # noinspection SqlNoDataSourceInspection
+        sql = f"""SELECT {field_names} FROM {self.escaped_name}"""
+        if where_clause:
+            sql = f"""{sql} WHERE {where_clause}"""
+        if limit and limit > 0:
+            sql = f"""{sql} LIMIT {limit}"""
+        return self.geopackage.connection.execute(sql)
+    # End _execute_select method
+
+    def _include_primary(self, fields: list['Field']) -> list['Field']:
+        """
+        Include Primary Field
+        """
+        key_field = self.primary_key_field
+        if key_field:
+            fields = [key_field, *fields]
+        return fields
+    # End _include_primary method
 # End BaseTable class
 
 
@@ -448,6 +500,28 @@ class Table(BaseTable):
                        delete_metadata=self.geopackage.is_metadata_enabled,
                        delete_schema=self.geopackage.is_schema_enabled)
     # End drop method
+
+    def select(self, fields: Union[FIELDS, FIELD_NAMES] = (),
+               where_clause: str = '', include_primary: bool = False,
+               limit: INT = None) -> 'Cursor':
+        """
+        Builds a SELECT statement from fields, where clause, and options.
+        Returns a cursor for the SELECT statement.
+
+        The fail-over SELECT statement will return ROWID, this happens when
+        no (valid) fields / field names provided and no primary key included
+        or there is no primary key.
+        """
+        fields = self._validate_fields(fields)
+        if include_primary:
+            fields = self._include_primary(fields)
+        if not fields:
+            field_names = 'ROWID'
+        else:
+            field_names = COMMA_SPACE.join(f.escaped_name for f in fields)
+        return self._execute_select(
+            field_names=field_names, where_clause=where_clause, limit=limit)
+    # End select method
 # End Table class
 
 
@@ -538,7 +612,7 @@ class FeatureClass(BaseTable):
     # End drop method
 
     @staticmethod
-    def _check_result(cursor: 'Cursor') -> Optional[str]:
+    def _check_result(cursor: 'Cursor') -> STRING:
         """
         Check Result
         """
@@ -552,7 +626,7 @@ class FeatureClass(BaseTable):
     # End _check_result method
 
     @property
-    def geometry_column_name(self) -> Optional[str]:
+    def geometry_column_name(self) -> STRING:
         """
         Geometry Column Name
         """
@@ -562,7 +636,7 @@ class FeatureClass(BaseTable):
     # End geometry_column_name property
 
     @property
-    def geometry_type(self) -> Optional[str]:
+    def geometry_type(self) -> STRING:
         """
         Geometry Type
         """
@@ -603,7 +677,7 @@ class FeatureClass(BaseTable):
     # End has_m property
 
     @property
-    def spatial_index_name(self) -> Optional[str]:
+    def spatial_index_name(self) -> STRING:
         """
         Spatial Index Name (escaped) if present, None otherwise
         """
@@ -631,7 +705,7 @@ class FeatureClass(BaseTable):
     # End has_spatial_index property
 
     @property
-    def extent(self) -> Tuple[float, float, float, float]:
+    def extent(self) -> tuple[float, float, float, float]:
         """
         Extent property
         """
@@ -645,7 +719,7 @@ class FeatureClass(BaseTable):
         return result
 
     @extent.setter
-    def extent(self, value: Tuple[float, float, float, float]) -> None:
+    def extent(self, value: tuple[float, float, float, float]) -> None:
         if not isinstance(value, (tuple, list)):  # pragma: nocover
             raise ValueError('Please supply a tuple or list of values')
         if not len(value) == 4:  # pragma: nocover
@@ -653,6 +727,44 @@ class FeatureClass(BaseTable):
         with self.geopackage.connection as conn:
             conn.execute(UPDATE_EXTENT, tuple([*value, self.name]))
     # End extent property
+
+    def _remove_special(self, fields: list['Field']) -> list['Field']:
+        """
+        Remove Special Fields
+        """
+        fields = super()._remove_special(fields)
+        geom_name = (self.geometry_column_name or '').casefold()
+        if geom_name:
+            fields = [f for f in fields if f.name.casefold() != geom_name]
+        return fields
+    # End _remove_special method
+
+    def select(self, fields: Union[FIELDS, FIELD_NAMES] = (),
+               where_clause: str = '', include_geometry: bool = True,
+               include_primary: bool = False, limit: INT = None) -> 'Cursor':
+        """
+        Builds a SELECT statement from fields, where clause, and options.
+        Returns a cursor for the SELECT statement.
+
+        The fail-over SELECT statement will return ROWID, this happens when
+        no (valid) fields / field names provided, no primary key included
+        or there is no primary key, and no geometry included.
+        """
+        fields = self._validate_fields(fields)
+        if include_primary:
+            fields = self._include_primary(fields)
+        field_names = COMMA_SPACE.join(f.escaped_name for f in fields)
+        if include_geometry:
+            geom = f'{self.geometry_column_name} "[{self.geometry_type}]"'
+            if field_names:
+                field_names = f'{geom}{COMMA_SPACE}{field_names}'
+            else:
+                field_names = geom
+        if not field_names:
+            field_names = 'ROWID'
+        return self._execute_select(
+            field_names=field_names, where_clause=where_clause, limit=limit)
+    # End select method
 # End FeatureClass class
 
 
@@ -662,7 +774,7 @@ class SpatialReferenceSystem:
     """
     def __init__(self, name: str, organization: str, org_coord_sys_id: int,
                  definition: str, description: str = '',
-                 srs_id: Optional[int] = None) -> None:
+                 srs_id: INT = None) -> None:
         """
         Initialize the SpatialReferenceSystem class
         """
@@ -687,7 +799,7 @@ class SpatialReferenceSystem:
         self._srs_id = value
     # End srs_id property
 
-    def as_record(self) -> Tuple[str, int, str, int, str, str]:
+    def as_record(self) -> tuple[str, int, str, int, str, str]:
         """
         Record of the Spatial Reference System
         """
@@ -701,24 +813,15 @@ class Field:
     """
     Field Object for GeoPackage
     """
-    def __init__(self, name: str, data_type: str,
-                 size: Optional[int] = None) -> None:
+    def __init__(self, name: str, data_type: str, size: INT = None) -> None:
         """
         Initialize the Field class
         """
         super().__init__()
         self.name: str = name
         self.data_type: str = data_type
-        self.size: Optional[int] = size
+        self.size: INT = size
     # End init built-in
-
-    @property
-    def escaped_name(self) -> str:
-        """
-        Escaped Name, only adds quotes if needed
-        """
-        return escape_name(self.name)
-    # End escaped_name property
 
     def __repr__(self) -> str:
         """
@@ -729,6 +832,23 @@ class Field:
             return f'{self.escaped_name} {self.data_type}{self.size}'
         return f'{self.escaped_name} {self.data_type}'
     # End repr built-in
+
+    def __eq__(self, other: 'Field') -> bool:
+        """
+        Equality Implementation
+        """
+        if not isinstance(other, Field):
+            return NotImplemented
+        return repr(self).casefold() == repr(other).casefold()
+    # End eq built-int
+
+    @property
+    def escaped_name(self) -> str:
+        """
+        Escaped Name, only adds quotes if needed
+        """
+        return escape_name(self.name)
+    # End escaped_name property
 # End Field class
 
 
