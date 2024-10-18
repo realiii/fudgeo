@@ -638,7 +638,7 @@ def test_insert_and_update_lines_zm(setup_geopackage, add_index):
     geom = LineStringZM(coords, srs_id=srs.srs_id)
     gpkg.connection.execute(f"""
         UPDATE {fc.escaped_name} 
-        SET {SHAPE} = ? 
+        SET {fc.geometry_column_name} = ? 
         WHERE {fc.primary_key_field.name} = ?""", (geom, primary))
 
     cursor = fc.select(include_primary=True)
