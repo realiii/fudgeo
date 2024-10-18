@@ -614,6 +614,46 @@ def test_insert_lines_zm(setup_geopackage, add_index):
 @mark.parametrize('add_index', [
     False, True
 ])
+def test_insert_and_update_lines_zm(setup_geopackage, add_index):
+    """
+    Test insert a line with ZM an then update the geometry
+    """
+    _, gpkg, srs, fields = setup_geopackage
+    fc = gpkg.create_feature_class(
+        'SELECT', srs, fields=fields, shape_type=GeometryType.linestring,
+        z_enabled=True, m_enabled=True, spatial_index=add_index)
+    assert fc.has_spatial_index is add_index
+    coords = [(300000, 1, 10, 0), (300000, 4000000, 20, 1000),
+              (700000, 4000000, 30, 2000), (700000, 1, 40, 3000)]
+    geom = LineStringZM(coords, srs_id=srs.srs_id)
+    result = _insert_shape_and_fetch(gpkg, geom, fc)
+    assert len(result) == 1
+    line, primary = result[0]
+    assert isinstance(line, LineStringZM)
+    assert line == geom
+    assert primary == 1
+
+    coords = [(321000, 123, 101, 0), (321000, 4560000, 202, 1111),
+              (789000, 4000000, 303, 2222), (789000, 1, 404, 3333)]
+    geom = LineStringZM(coords, srs_id=srs.srs_id)
+    gpkg.connection.execute(f"""
+        UPDATE {fc.escaped_name} 
+        SET {SHAPE} = ? 
+        WHERE {fc.primary_key_field.name} = ?""", (geom, primary))
+
+    cursor = fc.select(include_primary=True)
+    result = cursor.fetchall()
+    assert len(result) == 1
+    line, primary = result[0]
+    assert isinstance(line, LineStringZM)
+    assert line == geom
+    assert primary == 1
+# End test_insert_and_update_lines_zm function
+
+
+@mark.parametrize('add_index', [
+    False, True
+])
 def test_insert_multi_lines(setup_geopackage, add_index):
     """
     Test insert multi lines
