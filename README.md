@@ -418,6 +418,10 @@ Support provided for the following constraint types:
 
 ## Release History
 
+### v0.8.1
+* add support for creating feature classes with a geometry column name other than `SHAPE`
+* ensure support for Python 3.13 and update documentation / configuration
+
 ### v0.8.0
 * drop support for Python 3.7 and 3.8
 * modernize type hinting
