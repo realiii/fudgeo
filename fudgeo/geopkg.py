@@ -35,7 +35,7 @@ from fudgeo.sql import (
     SELECT_COUNT, SELECT_EXTENT, SELECT_GEOMETRY_COLUMN, SELECT_GEOMETRY_TYPE,
     SELECT_HAS_ZM, SELECT_PRIMARY_KEY, SELECT_SRS, SELECT_TABLES_BY_TYPE,
     TABLE_EXISTS, UPDATE_EXTENT)
-from fudgeo.util import convert_datetime, escape_name, now
+from fudgeo.util import check_geometry_name, convert_datetime, escape_name, now
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -234,7 +234,8 @@ class GeoPackage:
                              z_enabled: bool = False, m_enabled: bool = False,
                              fields: FIELDS = (), description: str = '',
                              overwrite: bool = False,
-                             spatial_index: bool = False) -> 'FeatureClass':
+                             spatial_index: bool = False,
+                             geom_name: str = SHAPE) -> 'FeatureClass':
         """
         Creates a feature class in the GeoPackage per the options given.
         """
@@ -243,7 +244,7 @@ class GeoPackage:
             geopackage=self, name=name, shape_type=shape_type, srs=srs,
             z_enabled=z_enabled, m_enabled=m_enabled, fields=fields,
             description=description, overwrite=overwrite,
-            spatial_index=spatial_index)
+            spatial_index=spatial_index, geom_name=geom_name)
     # End create_feature_class method
 
     def create_table(self, name: str, fields: FIELDS = (),
@@ -566,13 +567,15 @@ class FeatureClass(BaseTable):
                srs: 'SpatialReferenceSystem', z_enabled: bool = False,
                m_enabled: bool = False, fields: FIELDS = (),
                description: str = '', overwrite: bool = False,
-               spatial_index: bool = False) -> 'FeatureClass':
+               spatial_index: bool = False,
+               geom_name: str = SHAPE) -> 'FeatureClass':
         """
         Create Feature Class
         """
         cols = cls._column_names(fields)
         with geopackage.connection as conn:
             escaped_name = escape_name(name)
+            geom_name = check_geometry_name(geom_name)
             has_contents = has_ogr_contents(conn)
             if overwrite:
                 current_name = cls._find_geometry_column_name(geopackage, name)
