@@ -639,7 +639,7 @@ def test_insert_and_update_lines_zm(setup_geopackage, add_index):
     gpkg.connection.execute(f"""
         UPDATE {fc.escaped_name} 
         SET {fc.geometry_column_name} = ? 
-        WHERE {fc.primary_key_field.name} = ?""", (geom, primary))
+        WHERE {fc.primary_key_field.escaped_name} = ?""", (geom, primary))
 
     cursor = fc.select(include_primary=True)
     result = cursor.fetchall()
