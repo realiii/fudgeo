@@ -11,7 +11,7 @@ from pytest import mark
 from fudgeo.geometry import LineString, Point, Polygon
 
 
-@mark.skipif(version_info[:2] != (3, 11), reason='threshold based on 3.11')
+@mark.skipif(version_info[:2] < (3, 11), reason='threshold based on 3.11')
 @mark.parametrize('scale, geom_type, expected', [
     (1, Point, 0.025),
     (1, LineString, 0.0025),

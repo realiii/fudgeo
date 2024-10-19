@@ -70,7 +70,8 @@ Use the `create_feature_class` method of a GeoPackage to make
 a new feature class.  Feature classes require a name and a Spatial 
 Reference, the name must follow SQLite naming requirements.  Each
 feature class is defined with `fid` and `SHAPE` fields, additional
-fields can be defined during creation.
+fields can be defined during creation.  `SHAPE` is the default geometry
+column name however it can be specified during feature class creation.
 
 A Feature Class can be created with *Z* or *M* (or both) enabled. If 
 either of these options are enabled, the geometry inserted into the 
