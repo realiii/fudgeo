@@ -74,10 +74,10 @@ def example1(tmp_path, random_utm_coordinates) -> GeoPackage:
         records.append((line, 12.3))
     with pkg.connection as conn:
         conn.executemany(f"""
-            INSERT INTO {roads.name} (SHAPE, overhead_clearance) 
+            INSERT INTO {roads.name} ({roads.geometry_column_name}, overhead_clearance) 
             VALUES (?, ?)""", records)
         conn.executemany(f"""
-            INSERT INTO {bridge.name} (SHAPE, overhead_clearance) 
+            INSERT INTO {bridge.name} ({bridge.geometry_column_name}, overhead_clearance) 
             VALUES (?, ?)""", records)
     metadata = pkg.metadata
     uri = 'https://www.isotc211.org/2005/gmd'
@@ -117,7 +117,7 @@ def example2(tmp_path, random_utm_coordinates) -> GeoPackage:
                         i // 100, easting + northing))
     with pkg.connection as conn:
         conn.executemany(f"""
-            INSERT INTO {poi.name} (SHAPE, category, point)
+            INSERT INTO {poi.name} ({poi.geometry_column_name}, category, point)
             VALUES (?, ?, ?)""", records)
     metadata = pkg.metadata
     uri = 'https://schemas.opengis.net/iso/19139/'

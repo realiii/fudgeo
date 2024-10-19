@@ -19,10 +19,28 @@ def escape_name(name: str) -> str:
     """
     Escape Name
     """
-    if name.upper() in KEYWORDS or not NAME_MATCHER(name):
+    if _is_invalid_name(name):
         name = f'"{name}"'
     return name
 # End escape_name function
+
+
+def _is_invalid_name(name: str) -> bool:
+    """
+    Is invalid name
+    """
+    return name.upper() in KEYWORDS or not NAME_MATCHER(name)
+# End _is_invalid_name function
+
+
+def check_geometry_name(name: str) -> str:
+    """
+    Check geometry name
+    """
+    if _is_invalid_name(name):
+        raise ValueError(f'Invalid field name for geometry column: {name}')
+    return name
+# End check_geometry_name function
 
 
 def now() -> str:
