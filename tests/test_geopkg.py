@@ -651,6 +651,46 @@ def test_insert_and_update_lines_zm(setup_geopackage, add_index):
 # End test_insert_and_update_lines_zm function
 
 
+@mark.parametrize('geom_name, add_index, is_error', [
+    ('geom', False, False),
+    ('geom', True, False),
+    ('GeOmEtRy', False, False),
+    ('GeOmEtRy', True, False),
+    ('aa bb', False, True),
+    ('cc-dd', True, True),
+])
+def test_non_standard_geom_name(setup_geopackage, geom_name, add_index, is_error):
+    """
+    Test non-standard geometry column name
+    """
+    _, gpkg, srs, fields = setup_geopackage
+    tbl = 'SELECT'
+    kwargs = dict(
+        name=tbl, srs=srs, fields=fields,
+        shape_type=GeometryType.linestring,
+        z_enabled=True, m_enabled=True, spatial_index=add_index,
+        geom_name=geom_name)
+    if is_error:
+        with raises(ValueError):
+            gpkg.create_feature_class(**kwargs)
+        return
+    fc = gpkg.create_feature_class(**kwargs)
+    assert fc.has_spatial_index is add_index
+    assert fc.geometry_column_name == geom_name
+    if add_index:
+        assert fc.spatial_index_name == f'rtree_{tbl}_{geom_name}'
+    coords = [(300000, 1, 10, 0), (300000, 4000000, 20, 1000),
+              (700000, 4000000, 30, 2000), (700000, 1, 40, 3000)]
+    geom = LineStringZM(coords, srs_id=srs.srs_id)
+    result = _insert_shape_and_fetch(gpkg, geom, fc)
+    assert len(result) == 1
+    line, primary = result[0]
+    assert isinstance(line, LineStringZM)
+    assert line == geom
+    assert primary == 1
+# End test_non_standard_geom_name function
+
+
 @mark.parametrize('add_index', [
     False, True
 ])
