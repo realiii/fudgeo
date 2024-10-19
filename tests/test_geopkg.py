@@ -12,20 +12,20 @@ from string import ascii_uppercase, digits
 
 from pytest import mark, raises
 
+from fudgeo.constant import SHAPE
 from fudgeo.enumeration import GeometryType, SQLFieldType
 from fudgeo.geometry import (
     LineString, LineStringM, LineStringZ, LineStringZM, MultiLineString,
     MultiPoint, MultiPolygon, Point, Polygon, PolygonM)
 from fudgeo.geopkg import (
     FeatureClass, Field, GeoPackage, SpatialReferenceSystem, Table)
-from fudgeo.constant import SHAPE
 from fudgeo.extension.ogr import has_ogr_contents
 from fudgeo.sql import SELECT_SRS
 from tests.crs import WGS_1984_UTM_Zone_23N
 
 # noinspection SqlNoDataSourceInspection
 INSERT_ROWS = """
-    INSERT INTO {} (SHAPE, "int.fld", text_fld, test_fld_size, test_bool) 
+    INSERT INTO {} ({}, "int.fld", text_fld, test_fld_size, test_bool) 
     VALUES (?, ?, ?, ?, ?)
 """
 # noinspection SqlNoDataSourceInspection
@@ -33,7 +33,7 @@ SELECT_ST_FUNCS = """SELECT ST_IsEmpty({0}), ST_MinX({0}), ST_MaxX({0}), ST_MinY
 # noinspection SqlNoDataSourceInspection,SqlResolve
 SELECT_RTREE = """SELECT * FROM rtree_{0}_{1} ORDER BY 1"""
 # noinspection SqlNoDataSourceInspection
-INSERT_SHAPE = """INSERT INTO {} (SHAPE) VALUES (?)"""
+INSERT_SHAPE = """INSERT INTO {} ({}) VALUES (?)"""
 
 
 def random_points_and_attrs(count, srs_id):
@@ -372,7 +372,7 @@ def test_insert_point_rows(setup_geopackage, name, add_index):
     count = 10000
     rows = random_points_and_attrs(count, srs.srs_id)
     with gpkg.connection as conn:
-        conn.executemany(INSERT_ROWS.format(fc.escaped_name), rows)
+        conn.executemany(INSERT_ROWS.format(fc.escaped_name, fc.geometry_column_name), rows)
     assert fc.count == count
     # noinspection SqlNoDataSourceInspection
     cursor = fc.select(limit=10)
@@ -385,7 +385,7 @@ def test_insert_point_rows(setup_geopackage, name, add_index):
     if not add_index:
         assert fc.add_spatial_index()
     cursor = gpkg.connection.execute(f"""
-        SELECT COUNT(1) AS C FROM "rtree_{name}_{SHAPE}"
+        SELECT COUNT(1) AS C FROM "rtree_{name}_{fc.geometry_column_name}"
     """)
     assert cursor.fetchone() == (count,)
 # End test_insert_point_rows function
@@ -393,7 +393,7 @@ def test_insert_point_rows(setup_geopackage, name, add_index):
 
 def _insert_shape_and_fetch(gpkg, geom, fc):
     with gpkg.connection as conn:
-        conn.execute(INSERT_SHAPE.format(fc.escaped_name), (geom,))
+        conn.execute(INSERT_SHAPE.format(fc.escaped_name, fc.geometry_column_name), (geom,))
         cursor = fc.select(include_primary=True)
         return cursor.fetchall()
 
@@ -758,7 +758,7 @@ def test_escaped_columns(setup_geopackage):
     with fc.geopackage.connection as conn:
         # noinspection SqlNoDataSourceInspection
         conn.executemany(
-            f"""INSERT INTO {fc.name} (SHAPE, {select.escaped_name}, 
+            f"""INSERT INTO {fc.name} ({fc.geometry_column_name}, {select.escaped_name}, 
                             {union.escaped_name}, {all_.escaped_name}, 
                             {example_dot.escaped_name})
                 VALUES (?, ?, ?, ?, ?)""", rows)
@@ -792,7 +792,7 @@ def test_escaped_table(setup_geopackage):
     with fc.geopackage.connection as conn:
         # noinspection SqlNoDataSourceInspection
         conn.executemany(
-            f"""INSERT INTO {fc.escaped_name} (SHAPE, {select.escaped_name}, 
+            f"""INSERT INTO {fc.escaped_name} ({fc.geometry_column_name}, {select.escaped_name}, 
                             {union.escaped_name}, {all_.escaped_name})
                 VALUES (?, ?, ?, ?)""", rows)
     # noinspection SqlNoDataSourceInspection
