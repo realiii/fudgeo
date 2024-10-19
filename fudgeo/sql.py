@@ -132,7 +132,7 @@ INSERT_GPKG_GEOM_COL: str = """
 CREATE_FEATURE_TABLE: str = """
     CREATE TABLE {name} (
         fid INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, 
-        SHAPE {feature_type}{other_fields})
+        {geom_name} {feature_type}{other_fields})
 """
 
 

@@ -586,13 +586,14 @@ class FeatureClass(BaseTable):
                     delete_metadata=geopackage.is_metadata_enabled,
                     delete_schema=geopackage.is_schema_enabled)
             conn.execute(CREATE_FEATURE_TABLE.format(
-                name=escaped_name, feature_type=shape_type, other_fields=cols))
+                name=escaped_name, geom_name=geom_name,
+                feature_type=shape_type, other_fields=cols))
             if not geopackage.check_srs_exists(srs.srs_id):
                 conn.execute(INSERT_GPKG_SRS, srs.as_record())
             conn.execute(INSERT_GPKG_CONTENTS_SHORT, (
                 name, DataType.features, name, description, now(), srs.srs_id))
             conn.execute(INSERT_GPKG_GEOM_COL,
-                         (name, SHAPE, shape_type, srs.srs_id,
+                         (name, geom_name, shape_type, srs.srs_id,
                           int(z_enabled), int(m_enabled)))
             if has_contents:
                 add_ogr_contents(conn, name=name, escaped_name=escaped_name)
