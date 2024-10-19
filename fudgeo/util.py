@@ -33,6 +33,16 @@ def _is_invalid_name(name: str) -> bool:
 # End _is_invalid_name function
 
 
+def check_geometry_name(name: str) -> str:
+    """
+    Check geometry name
+    """
+    if _is_invalid_name(name):
+        raise ValueError(f'Invalid field name for geometry column: {name}')
+    return name
+# End check_geometry_name function
+
+
 def now() -> str:
     """
     Formatted Now
