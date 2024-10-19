@@ -575,12 +575,13 @@ class FeatureClass(BaseTable):
             escaped_name = escape_name(name)
             has_contents = has_ogr_contents(conn)
             if overwrite:
-                geom_name = cls._find_geometry_column_name(geopackage, name)
-                cls._drop(conn=conn, sql=REMOVE_FEATURE_CLASS,
-                          name=name, escaped_name=escaped_name,
-                          geom_name=geom_name, delete_ogr_contents=has_contents,
-                          delete_metadata=geopackage.is_metadata_enabled,
-                          delete_schema=geopackage.is_schema_enabled)
+                current_name = cls._find_geometry_column_name(geopackage, name)
+                cls._drop(
+                    conn=conn, sql=REMOVE_FEATURE_CLASS, name=name,
+                    escaped_name=escaped_name, geom_name=current_name,
+                    delete_ogr_contents=has_contents,
+                    delete_metadata=geopackage.is_metadata_enabled,
+                    delete_schema=geopackage.is_schema_enabled)
             conn.execute(CREATE_FEATURE_TABLE.format(
                 name=escaped_name, feature_type=shape_type, other_fields=cols))
             if not geopackage.check_srs_exists(srs.srs_id):
