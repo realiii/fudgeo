@@ -15,7 +15,7 @@ For details on OGC GeoPackages, please see the [OGC web page](http://www.geopack
 
 ## Python Compatibility
 
-The `fudgeo` library is compatible with Python 3.7 to 3.12.  Developed and 
+The `fudgeo` library is compatible with Python 3.9 to 3.13.  Developed and 
 tested on **macOS** and **Windows**, should be fine on **Linux** too.
 
 
@@ -54,7 +54,7 @@ and a **WGS 84** entry.
 The definition of the WGS84 entry is flexible - meaning that the 
 *WKT for WGS84* can be setup per the users liking. As an example, 
 use with Esri's ArcGIS means either using the *EPSG WKT* or the *ESRI WKT*. By
-default the *ESRI WKT* is used - However, if *EPSG WKT* is desired, you
+default, the *ESRI WKT* is used - However, if *EPSG WKT* is desired, you
 may provide a ``flavor`` parameter to the create method specifying EPSG.
 
 ```python
@@ -414,9 +414,13 @@ Support provided for the following constraint types:
 
 ## License
 
-[MIT](https://choosealicense.com/licenses/mit/)
+[MIT](https://raw.githubusercontent.com/realiii/fudgeo/refs/heads/develop/LICENSE)
 
 ## Release History
+
+### v0.8.2
+* documentation edits
+* copyright bump
 
 ### v0.8.1
 * add support for creating feature classes with a geometry column name other than `SHAPE`
