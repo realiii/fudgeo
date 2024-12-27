@@ -54,7 +54,7 @@ and a **WGS 84** entry.
 The definition of the WGS84 entry is flexible - meaning that the 
 *WKT for WGS84* can be setup per the users liking. As an example, 
 use with Esri's ArcGIS means either using the *EPSG WKT* or the *ESRI WKT*. By
-default the *ESRI WKT* is used - However, if *EPSG WKT* is desired, you
+default, the *ESRI WKT* is used - However, if *EPSG WKT* is desired, you
 may provide a ``flavor`` parameter to the create method specifying EPSG.
 
 ```python
