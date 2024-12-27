@@ -1,6 +1,6 @@
 [project]
 name = "fudgeo"
-version = "0.8.1"
+version = "0.8.2"
 description = """\
     GeoPackage support from Python.  fudgeo is a lightweight package \
     for creating OGC GeoPackages, Feature Classes, and Tables.  Easily \
@@ -8,7 +8,7 @@ description = """\
     and Tables using regular Python objects and SQLite syntax.\
     """
 readme = "README.md"
-authors = [{ name = "Integrated Informatics Inc.", email = "contact@integrated-informatics.com" }]
+authors = [{ name = "Integrated Informatics (USA) Inc.", email = "contact@integrated-informatics.com" }]
 license = { file = "LICENSE" }
 classifiers = [
     "Programming Language :: Python",
