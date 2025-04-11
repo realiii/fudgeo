@@ -224,6 +224,13 @@ SELECT_GEOMETRY_TYPE: str = """
 """
 
 
+SELECT_DESCRIPTION: str = """
+    SELECT DESCRIPTION
+    FROM gpkg_contents
+    WHERE lower(table_name) = lower(?)
+"""
+
+
 UPDATE_EXTENT: str = """    
     UPDATE gpkg_contents 
     SET min_x = ?, min_y = ?, max_x = ?, max_y = ? 

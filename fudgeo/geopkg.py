@@ -16,6 +16,7 @@ from numpy import int16, int32, int64, int8, uint16, uint32, uint64, uint8
 
 from fudgeo.alias import FIELDS, FIELD_NAMES, INT, STRING
 from fudgeo.constant import COMMA_SPACE, GPKG_EXT, SHAPE
+from fudgeo.context import ExecuteMany
 from fudgeo.enumeration import DataType, GPKGFlavors, GeometryType, SQLFieldType
 from fudgeo.extension.metadata import (
     Metadata, add_metadata_extension, has_metadata_extension)
@@ -34,9 +35,9 @@ from fudgeo.sql import (
     DEFAULT_EPSG_RECS, DEFAULT_ESRI_RECS, DELETE_DATA_COLUMNS,
     DELETE_METADATA_REFERENCE, DELETE_OGR_CONTENTS, INSERT_GPKG_CONTENTS_SHORT,
     INSERT_GPKG_GEOM_COL, INSERT_GPKG_SRS, REMOVE_FEATURE_CLASS, REMOVE_TABLE,
-    SELECT_COUNT, SELECT_EXTENT, SELECT_GEOMETRY_COLUMN, SELECT_GEOMETRY_TYPE,
-    SELECT_HAS_ZM, SELECT_PRIMARY_KEY, SELECT_SRS, SELECT_TABLES_BY_TYPE,
-    TABLE_EXISTS, UPDATE_EXTENT)
+    SELECT_COUNT, SELECT_DESCRIPTION, SELECT_EXTENT, SELECT_GEOMETRY_COLUMN,
+    SELECT_GEOMETRY_TYPE, SELECT_HAS_ZM, SELECT_PRIMARY_KEY, SELECT_SRS,
+    SELECT_TABLES_BY_TYPE, TABLE_EXISTS, UPDATE_EXTENT)
 from fudgeo.util import check_geometry_name, convert_datetime, escape_name, now
 
 
@@ -248,7 +249,7 @@ class GeoPackage:
         """
         if not fields:
             fields = ()
-        if not overwrite and self._check_table_exists(name):
+        if not overwrite and self.exists(name):
             raise ValueError(f'Table {name} already exists in {self._path}')
         return fields
     # End _validate_inputs method
@@ -432,6 +433,30 @@ class BaseTable:
         return [f.name for f in self.fields]
     # End field_names property
 
+    @property
+    def description(self) -> STRING:
+        """
+        Description
+        """
+        cursor = self.geopackage.connection.execute(
+            SELECT_DESCRIPTION, (self.name,))
+        return self._check_result(cursor)
+    # End description property
+
+    @staticmethod
+    def _check_result(cursor: 'Cursor') -> STRING:
+        """
+        Check Result
+        """
+        result = cursor.fetchone()
+        if not result:
+            return
+        if None in result:
+            return
+        value, = result
+        return value
+    # End _check_result method
+
     def _remove_special(self, fields: list['Field']) -> list['Field']:
         """
         Remove Special Fields
@@ -485,6 +510,29 @@ class BaseTable:
             fields = [key_field, *fields]
         return fields
     # End _include_primary method
+
+    @staticmethod
+    def _validate_overwrite(geopackage: GeoPackage, name: str,
+                            overwrite: bool) -> None:
+        """
+        Validate Overwrite
+        """
+        if not overwrite and geopackage.exists(table_name=name):
+            raise ValueError(
+                f'Table {name} already exists in {geopackage.path}')
+    # End _validate_overwrite method
+
+    @staticmethod
+    def _validate_same(source: 'BaseTable', target: 'BaseTable') -> None:
+        """
+        Validate Same Table
+        """
+        if source.name.casefold() != target.name.casefold():
+            return
+        if not source.geopackage.path.samefile(target.geopackage.path):
+            return
+        raise ValueError(f'Cannot copy table {source.name} to itself')
+    # End _validate_same method
 # End BaseTable class
 
 
@@ -505,6 +553,7 @@ class Table(BaseTable):
         """
         Create a regular non-spatial table in the geopackage
         """
+        cls._validate_overwrite(geopackage, name, overwrite)
         cols = cls._column_names(fields)
         with geopackage.connection as conn:
             escaped_name = escape_name(name)
@@ -535,6 +584,47 @@ class Table(BaseTable):
                        delete_metadata=self.geopackage.is_metadata_enabled,
                        delete_schema=self.geopackage.is_schema_enabled)
     # End drop method
+
+    def copy(self, name: str, description: str = '',
+             where_clause: str = '', overwrite: bool = False,
+             geopackage: Optional[GeoPackage] = None) -> 'Table':
+        """
+        Copy the structure and content of a table.  Create a new table or
+        overwrite an existing.  Use a where clause to limit the records.
+        Output table can be in a different geopackage.
+        """
+        if not geopackage:
+            geopackage = self.geopackage
+        self._validate_same(source=self, target=Table(geopackage, name=name))
+        self._validate_overwrite(geopackage, name, overwrite)
+        target = self.create(
+            geopackage=geopackage, name=name,
+            fields=self._remove_special(self.fields),
+            description=description or self.description, overwrite=overwrite)
+        insert_sql, select_sql = self._make_copy_sql(target, where_clause)
+        cursor = self.geopackage.connection.execute(select_sql)
+        with target.geopackage.connection as connection:
+            while records := cursor.fetchmany(100_000):
+                connection.executemany(insert_sql, records)
+        return target
+    # End copy method
+
+    def _make_copy_sql(self, target: 'Table', where_clause: str) \
+            -> tuple[str, str]:
+        """
+        Make Copy SQL, INSERT and SELECT statements
+        """
+        fields = self._remove_special(self.fields)
+        columns = COMMA_SPACE.join([f.escaped_name for f in fields])
+        # noinspection SqlNoDataSourceInspection
+        select_sql = f"""SELECT {columns} FROM {self.escaped_name}"""
+        if where_clause:
+            select_sql = f"""{select_sql} WHERE {where_clause}"""
+        # noinspection SqlNoDataSourceInspection
+        insert_sql = f"""INSERT INTO {target.escaped_name}({columns}) 
+                         VALUES ({COMMA_SPACE.join('?' * len(fields))})"""
+        return insert_sql, select_sql
+    # End _make_copy_sql method
 
     def select(self, fields: Union[FIELDS, FIELD_NAMES] = (),
                where_clause: str = '', include_primary: bool = False,
@@ -606,6 +696,7 @@ class FeatureClass(BaseTable):
         """
         Create Feature Class
         """
+        cls._validate_overwrite(geopackage, name, overwrite)
         cols = cls._column_names(fields)
         with geopackage.connection as conn:
             escaped_name = escape_name(name)
@@ -650,20 +741,6 @@ class FeatureClass(BaseTable):
                        delete_schema=self.geopackage.is_schema_enabled)
     # End drop method
 
-    @staticmethod
-    def _check_result(cursor: 'Cursor') -> STRING:
-        """
-        Check Result
-        """
-        result = cursor.fetchone()
-        if not result:
-            return
-        if None in result:
-            return
-        value, = result
-        return value
-    # End _check_result method
-
     @property
     def geometry_column_name(self) -> STRING:
         """
@@ -683,6 +760,16 @@ class FeatureClass(BaseTable):
             SELECT_GEOMETRY_TYPE, (self.name,))
         return self._check_result(cursor)
     # End geometry_type property
+
+    @property
+    def shape_type(self) -> STRING:
+        """
+        Shape Type
+        """
+        if not (geom_type := self.geometry_type):
+            return
+        return geom_type.upper().rstrip('ZM')
+    # End shape_type property
 
     @property
     def spatial_reference_system(self) -> 'SpatialReferenceSystem':
@@ -777,6 +864,66 @@ class FeatureClass(BaseTable):
             fields = [f for f in fields if f.name.casefold() != geom_name]
         return fields
     # End _remove_special method
+
+    def copy(self, name: str, description: str = '',
+             where_clause: str = '', overwrite: bool = False,
+             geopackage: Optional[GeoPackage] = None,
+             geom_name: STRING = None) -> 'FeatureClass':
+        """
+        Copy the structure and content of a feature class.  Create a new
+        feature class or overwrite an existing.  Use a where clause to limit
+        the features.  Output feature class can be in a different geopackage.
+        """
+        if not geopackage:
+            geopackage = self.geopackage
+        self._validate_same(
+            source=self, target=FeatureClass(geopackage, name=name))
+        self._validate_overwrite(geopackage, name, overwrite)
+        target = self.create(
+            geopackage=geopackage, name=name, shape_type=self.shape_type,
+            srs=self.spatial_reference_system,
+            fields=self._remove_special(self.fields),
+            description=description or self.description, overwrite=overwrite,
+            z_enabled=self.has_z, m_enabled=self.has_m,
+            spatial_index=self.has_spatial_index,
+            geom_name=geom_name or self.geometry_column_name)
+        insert_sql, select_sql = self._make_copy_sql(target, where_clause)
+        cursor = self.geopackage.connection.execute(select_sql)
+        with (target.geopackage.connection as connection,
+              ExecuteMany(connection=connection, table=target) as executor):
+            while features := cursor.fetchmany(100_000):
+                executor(sql=insert_sql, data=features)
+            target.extent = self.extent
+        return target
+    # End copy method
+
+    def _make_copy_sql(self, target: 'FeatureClass', where_clause: str) \
+            -> tuple[str, str]:
+        """
+        Make Copy SQL, INSERT and SELECT statements
+        """
+        target_geom = target.geometry_column_name
+        source_geom = f'{self.geometry_column_name} "[{self.geometry_type}]"'
+        fields = self._remove_special(self.fields)
+        columns = COMMA_SPACE.join([f.escaped_name for f in fields])
+        if columns:
+            # noinspection SqlNoDataSourceInspection
+            select_sql = f"""SELECT {source_geom}{COMMA_SPACE}{columns} 
+                             FROM {self.escaped_name}"""
+            # noinspection SqlNoDataSourceInspection
+            insert_sql = f"""
+                INSERT INTO {target.escaped_name}({target_geom}{COMMA_SPACE}{columns}) 
+                VALUES ({COMMA_SPACE.join('?' * (len(fields) + 1))})"""
+        else:
+            # noinspection SqlNoDataSourceInspection
+            select_sql = f"""SELECT {source_geom} FROM {self.escaped_name}"""
+            # noinspection SqlNoDataSourceInspection
+            insert_sql = f"""INSERT INTO {target.escaped_name}({target_geom}) 
+                             VALUES (?)"""
+        if where_clause:
+            select_sql = f"""{select_sql} WHERE {where_clause}"""
+        return insert_sql, select_sql
+    # End _make_copy_sql method
 
     def select(self, fields: Union[FIELDS, FIELD_NAMES] = (),
                where_clause: str = '', include_geometry: bool = True,
