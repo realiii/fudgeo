@@ -317,9 +317,9 @@ def test_create_feature_class_options(setup_geopackage, name, geom, has_z, has_m
     """
     Test creating feature classes with different shape options
     """
-    _, gpkg, srs, fields = setup_geopackage
+    _, gpkg, srs, flds = setup_geopackage
     fc = gpkg.create_feature_class(
-        name, shape_type=geom, srs=srs, fields=fields,
+        name, shape_type=geom, srs=srs, fields=flds,
         m_enabled=has_m, z_enabled=has_z)
     assert isinstance(fc, FeatureClass)
     assert fc.count == 0
@@ -335,10 +335,10 @@ def test_select_srs(setup_geopackage):
     """
     Test select srs
     """
-    _, gpkg, srs, fields = setup_geopackage
+    _, gpkg, srs, flds = setup_geopackage
     name = 'SELECT'
     fc = gpkg.create_feature_class(
-        name, shape_type=GeometryType.polygon, srs=srs, fields=fields)
+        name, shape_type=GeometryType.polygon, srs=srs, fields=flds)
     assert isinstance(fc, FeatureClass)
     conn = gpkg.connection
     cursor = conn.execute(SELECT_SRS, (name,))
@@ -367,9 +367,9 @@ def test_insert_point_rows(setup_geopackage, name, add_index):
     """
     Test Insert Point Rows
     """
-    _, gpkg, srs, fields = setup_geopackage
+    _, gpkg, srs, flds = setup_geopackage
     fc = gpkg.create_feature_class(
-        name, srs, fields=fields, shape_type=GeometryType.point,
+        name, srs, fields=flds, shape_type=GeometryType.point,
         spatial_index=add_index)
     assert fc.has_spatial_index is add_index
     assert isinstance(fc, FeatureClass)
@@ -414,9 +414,9 @@ def test_insert_poly(setup_geopackage, rings, add_index):
     """
     Test create a feature class and insert a polygon
     """
-    _, gpkg, srs, fields = setup_geopackage
+    _, gpkg, srs, flds = setup_geopackage
     fc = gpkg.create_feature_class(
-        'SELECT', srs, fields=fields, shape_type=GeometryType.polygon,
+        'SELECT', srs, fields=flds, shape_type=GeometryType.polygon,
         spatial_index=add_index)
     assert fc.has_spatial_index is add_index
     geom = Polygon(rings, srs.srs_id)
@@ -442,9 +442,9 @@ def test_insert_multi_poly(setup_geopackage, add_index):
     """
     Test create a feature class with "multi polygons"
     """
-    _, gpkg, srs, fields = setup_geopackage
+    _, gpkg, srs, flds = setup_geopackage
     fc = gpkg.create_feature_class(
-        'SELECT', srs, fields=fields, shape_type=GeometryType.multi_polygon,
+        'SELECT', srs, fields=flds, shape_type=GeometryType.multi_polygon,
         spatial_index=add_index)
     assert fc.has_spatial_index is add_index
     polys = [[[(300000, 1), (300000, 4000000), (700000, 4000000), (700000, 1),
@@ -474,9 +474,9 @@ def test_insert_lines(setup_geopackage, add_index):
     """
     Test insert a line
     """
-    _, gpkg, srs, fields = setup_geopackage
+    _, gpkg, srs, flds = setup_geopackage
     fc = gpkg.create_feature_class(
-        'SELECT', srs, fields=fields, shape_type=GeometryType.linestring,
+        'SELECT', srs, fields=flds, shape_type=GeometryType.linestring,
         spatial_index=add_index)
     assert fc.has_spatial_index is add_index
     coords = [(300000, 1), (300000, 4000000), (700000, 4000000), (700000, 1)]
@@ -503,9 +503,9 @@ def test_insert_multi_point(setup_geopackage, add_index):
     """
     Test insert a multi point
     """
-    _, gpkg, srs, fields = setup_geopackage
+    _, gpkg, srs, flds = setup_geopackage
     fc = gpkg.create_feature_class(
-        'SELECT', srs, fields=fields, shape_type=GeometryType.multi_point,
+        'SELECT', srs, fields=flds, shape_type=GeometryType.multi_point,
         spatial_index=add_index)
     assert fc.has_spatial_index is add_index
     multipoints = [(300000, 1), (700000, 4000000)]
@@ -532,9 +532,9 @@ def test_insert_lines_z(setup_geopackage, add_index):
     """
     Test insert a line with Z
     """
-    _, gpkg, srs, fields = setup_geopackage
+    _, gpkg, srs, flds = setup_geopackage
     fc = gpkg.create_feature_class(
-        'SELECT', srs, fields=fields, shape_type=GeometryType.linestring,
+        'SELECT', srs, fields=flds, shape_type=GeometryType.linestring,
         z_enabled=True, spatial_index=add_index)
     assert fc.has_spatial_index is add_index
     coords = [(300000, 1, 10), (300000, 4000000, 20), (700000, 4000000, 30),
@@ -562,9 +562,9 @@ def test_insert_lines_m(setup_geopackage, add_index):
     """
     Test insert a line with M
     """
-    _, gpkg, srs, fields = setup_geopackage
+    _, gpkg, srs, flds = setup_geopackage
     fc = gpkg.create_feature_class(
-        'SELECT', srs, fields=fields, shape_type=GeometryType.linestring,
+        'SELECT', srs, fields=flds, shape_type=GeometryType.linestring,
         m_enabled=True, spatial_index=add_index)
     assert fc.has_spatial_index is add_index
     coords = [(300000, 1, 10), (300000, 4000000, 20), (700000, 4000000, 30),
@@ -592,9 +592,9 @@ def test_insert_lines_zm(setup_geopackage, add_index):
     """
     Test insert a line with ZM
     """
-    _, gpkg, srs, fields = setup_geopackage
+    _, gpkg, srs, flds = setup_geopackage
     fc = gpkg.create_feature_class(
-        'SELECT', srs, fields=fields, shape_type=GeometryType.linestring,
+        'SELECT', srs, fields=flds, shape_type=GeometryType.linestring,
         z_enabled=True, m_enabled=True, spatial_index=add_index)
     assert fc.has_spatial_index is add_index
     coords = [(300000, 1, 10, 0), (300000, 4000000, 20, 1000),
@@ -622,9 +622,9 @@ def test_insert_and_update_lines_zm(setup_geopackage, add_index):
     """
     Test insert a line with ZM an then update the geometry
     """
-    _, gpkg, srs, fields = setup_geopackage
+    _, gpkg, srs, flds = setup_geopackage
     fc = gpkg.create_feature_class(
-        'SELECT', srs, fields=fields, shape_type=GeometryType.linestring,
+        'SELECT', srs, fields=flds, shape_type=GeometryType.linestring,
         z_enabled=True, m_enabled=True, spatial_index=add_index)
     assert fc.has_spatial_index is add_index
     coords = [(300000, 1, 10, 0), (300000, 4000000, 20, 1000),
@@ -667,10 +667,10 @@ def test_non_standard_geom_name(setup_geopackage, geom_name, add_index, is_error
     """
     Test non-standard geometry column name
     """
-    _, gpkg, srs, fields = setup_geopackage
+    _, gpkg, srs, flds = setup_geopackage
     tbl = 'SELECT'
     kwargs = dict(
-        name=tbl, srs=srs, fields=fields,
+        name=tbl, srs=srs, fields=flds,
         shape_type=GeometryType.linestring,
         z_enabled=True, m_enabled=True, spatial_index=add_index,
         geom_name=geom_name)
@@ -702,9 +702,9 @@ def test_insert_multi_lines(setup_geopackage, add_index):
     """
     Test insert multi lines
     """
-    _, gpkg, srs, fields = setup_geopackage
+    _, gpkg, srs, flds = setup_geopackage
     fc = gpkg.create_feature_class(
-        'SELECT', srs, fields=fields,
+        'SELECT', srs, fields=flds,
         shape_type=GeometryType.multi_linestring,
         z_enabled=False, m_enabled=False, spatial_index=add_index)
     assert fc.has_spatial_index is add_index
@@ -736,9 +736,9 @@ def test_insert_polygon_m(setup_geopackage, add_index):
     """
     rings = [[(0, 0, 0), (0, 1, 1), (1, 1, 1), (1, 0, 1), (0, 0, 0)],
               [(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]]
-    _, gpkg, srs, fields = setup_geopackage
+    _, gpkg, srs, flds = setup_geopackage
     fc = gpkg.create_feature_class(
-        'SELECT', srs, fields=fields, shape_type=GeometryType.polygon,
+        'SELECT', srs, fields=flds, shape_type=GeometryType.polygon,
         spatial_index=add_index, m_enabled=True)
     assert fc.has_spatial_index is add_index
     geom = PolygonM(rings, srs.srs_id)
@@ -860,14 +860,14 @@ def test_validate_fields_feature_class(setup_geopackage):
     a = Field('a', SQLFieldType.integer)
     b = Field('b', SQLFieldType.text, 20)
     c = Field('c', SQLFieldType.text, 50)
-    fields = a, b, c
-    fc = gpkg.create_feature_class(name=name, srs=srs, fields=fields)
+    flds = a, b, c
+    fc = gpkg.create_feature_class(name=name, srs=srs, fields=flds)
     expected_names = ['fid', SHAPE, a.name, b.name, c.name]
     assert fc.field_names == expected_names
-    fields = fc._validate_fields(fields=expected_names)
-    assert [f.name for f in fields] == [a.name, b.name, c.name]
-    fields = fc._validate_fields(fields=[n.upper() for n in expected_names])
-    assert [f.name for f in fields] == [a.name, b.name, c.name]
+    flds = fc._validate_fields(fields=expected_names)
+    assert [f.name for f in flds] == [a.name, b.name, c.name]
+    flds = fc._validate_fields(fields=[n.upper() for n in expected_names])
+    assert [f.name for f in flds] == [a.name, b.name, c.name]
     assert not fc._validate_fields(fields='d')
     assert not fc._validate_fields(fields=1234)
     assert not fc._validate_fields(fields=())
@@ -919,10 +919,10 @@ def test_validate_fields_table(setup_geopackage):
     tbl = gpkg.create_table(name=name, fields=(a, b, c))
     expected_names = ['fid', a.name, b.name, c.name]
     assert tbl.field_names == expected_names
-    fields = tbl._validate_fields(fields=expected_names)
-    assert [f.name for f in fields] == [a.name, b.name, c.name]
-    fields = tbl._validate_fields(fields=[n.upper() for n in expected_names])
-    assert [f.name for f in fields] == [a.name, b.name, c.name]
+    flds = tbl._validate_fields(fields=expected_names)
+    assert [f.name for f in flds] == [a.name, b.name, c.name]
+    flds = tbl._validate_fields(fields=[n.upper() for n in expected_names])
+    assert [f.name for f in flds] == [a.name, b.name, c.name]
     assert not tbl._validate_fields(fields='d')
     assert not tbl._validate_fields(fields=1234)
     assert not tbl._validate_fields(fields=())
