@@ -720,6 +720,16 @@ class FeatureClass(BaseTable):
     # End geometry_type property
 
     @property
+    def shape_type(self) -> STRING:
+        """
+        Shape Type
+        """
+        if not (geom_type := self.geometry_type):
+            return
+        return geom_type.upper().rstrip('ZM')
+    # End shape_type property
+
+    @property
     def spatial_reference_system(self) -> 'SpatialReferenceSystem':
         """
         Spatial Reference System
