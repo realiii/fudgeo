@@ -377,6 +377,7 @@ class BaseTable:
         return escape_name(self.name)
     # End escaped_name property
 
+    @property
     def exists(self) -> bool:
         """
         True if the Table exists, False otherwise.
@@ -384,7 +385,7 @@ class BaseTable:
         if not self.geopackage:
             return False
         return self.geopackage.exists(self.name)
-    # End exists method
+    # End exists property
 
     @property
     def primary_key_field(self) -> Optional['Field']:

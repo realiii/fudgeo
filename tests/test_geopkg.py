@@ -981,10 +981,10 @@ def test_exists(tmp_path, fields):
     assert not geo.exists(None)
 
     tbl = Table(geopackage=None, name=name)
-    assert not tbl.exists()
+    assert not tbl.exists
 
     tbl = geo.create_table(name, fields)
-    assert tbl.exists()
+    assert tbl.exists
 # End test_exists function
 
 
