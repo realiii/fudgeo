@@ -111,7 +111,7 @@ class BaseLineString(AbstractGeometry):
         """
         if self._env is not EMPTY_ENVELOPE:
             return self._env
-        env = ENV_COORD[self._env_code](self.coordinates)
+        env = ENV_COORD[self._env_code](self.srs_id, self.coordinates)
         self._env = env
         return env
     # End envelope property

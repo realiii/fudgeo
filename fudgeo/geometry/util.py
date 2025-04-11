@@ -8,7 +8,7 @@ from functools import lru_cache
 from math import nan
 # noinspection PyPep8Naming
 from struct import error as StructError, pack, unpack
-from typing import Any, Callable, Union
+from typing import Any, Callable, TYPE_CHECKING, Union
 
 from numpy import array, frombuffer, ndarray
 from bottleneck import nanmax, nanmin
@@ -18,6 +18,10 @@ from fudgeo.constant import (
     COUNT_CODE, EMPTY, ENVELOPE_COUNT, ENVELOPE_OFFSET, GP_MAGIC, HEADER_CODE,
     HEADER_OFFSET, POINT_PREFIX_ZM)
 from fudgeo.enumeration import EnvelopeCode
+
+
+if TYPE_CHECKING:  # pragma: no cover
+    from fudgeo.geometry.polygon import Polygon
 
 
 def as_array(coordinates: Any) -> ndarray:
@@ -34,10 +38,12 @@ class Envelope:
     """
     Envelope
     """
-    __slots__ = ['_code', '_min_x', '_max_x', '_min_y', '_max_y',
+    __slots__ = ['_code', '_srs_id',
+                 '_min_x', '_max_x', '_min_y', '_max_y',
                  '_min_z', '_max_z', '_min_m', '_max_m']
 
-    def __init__(self, code: int, min_x: float, max_x: float,
+    def __init__(self, code: int, srs_id: int,
+                 min_x: float, max_x: float,
                  min_y: float, max_y: float,
                  min_z: float = nan, max_z: float = nan,
                  min_m: float = nan, max_m: float = nan) -> None:
@@ -46,6 +52,7 @@ class Envelope:
         """
         super().__init__()
         self._code: int = code
+        self._srs_id: int = srs_id
         self._min_x: float = min_x
         self._max_x: float = max_x
         self._min_y: float = min_y
@@ -60,11 +67,12 @@ class Envelope:
         """
         String Representation
         """
+        codes = f'code={self.code}, srs_id={self.srs_id}'
         x = f'min_x={self.min_x}, max_x={self.max_x}'
         y = f'min_y={self.min_y}, max_y={self.max_y}'
         z = f'min_z={self.min_z}, max_z={self.max_z}'
         m = f'min_m={self.min_m}, max_m={self.max_m}'
-        return f'Envelope(code={self.code}, {x}, {y}, {z}, {m})'
+        return f'Envelope({codes}, {x}, {y}, {z}, {m})'
     # End repr built-in
 
     def __eq__(self, other: 'Envelope') -> bool:
@@ -92,6 +100,14 @@ class Envelope:
         return same_m and same_z
     # End eq built-in
 
+    def _has_valid_code(self) -> bool:
+        """
+        Has Valid Code
+        """
+        return self.code in {EnvelopeCode.xy, EnvelopeCode.xyz,
+                             EnvelopeCode.xym, EnvelopeCode.xyzm}
+    # End _has_valid_code method
+
     @property
     def bounding_box(self) -> tuple[float, float, float, float]:
         """
@@ -104,10 +120,9 @@ class Envelope:
         """
         To WKB
         """
-        code = self.code
-        if code not in {EnvelopeCode.xy, EnvelopeCode.xyz,
-                        EnvelopeCode.xym, EnvelopeCode.xyzm}:
+        if not self._has_valid_code():
             return EnvelopeCode.empty, EMPTY
+        code = self.code
         values = self.min_x, self.max_x, self.min_y, self.max_y
         if code == EnvelopeCode.xy:
             pass
@@ -120,6 +135,19 @@ class Envelope:
         return code, pack(f'<{ENVELOPE_COUNT[code]}d', *values)
     # End to_wkb method
 
+    def as_polygon(self) -> 'Polygon':
+        """
+        As Polygon, returns a Polygon of the envelope, ignores M and Z values
+        since we do not have actual M and Z values at the XY locations.
+        """
+        from fudgeo.geometry.polygon import Polygon
+        if not self._has_valid_code():
+            return Polygon(coordinates=[], srs_id=self.srs_id)
+        coords = [(self.min_x, self.min_y), (self.min_x, self.max_y),
+                  (self.max_x, self.max_y), (self.max_x, self.min_y)]
+        return Polygon(coordinates=[[*coords, coords[0]]], srs_id=self.srs_id)
+    # End as_polygon method
+
     @property
     def code(self) -> int:
         """
@@ -127,6 +155,14 @@ class Envelope:
         """
         return self._code
     # End code property
+
+    @property
+    def srs_id(self) -> int:
+        """
+        Spatial Reference System Identifier
+        """
+        return self._srs_id
+    # End srs_id property
 
     @property
     def min_x(self) -> float:
@@ -194,7 +230,8 @@ class Envelope:
 # End Envelope class
 
 
-EMPTY_ENVELOPE = Envelope(code=0, min_x=nan, max_x=nan, min_y=nan, max_y=nan)
+EMPTY_ENVELOPE: Envelope = Envelope(
+    code=0, srs_id=0, min_x=nan, max_x=nan, min_y=nan, max_y=nan)
 
 
 def lazy_unpack(cls: Any, value: Union[bytes, bytearray],
@@ -209,7 +246,7 @@ def lazy_unpack(cls: Any, value: Union[bytes, bytearray],
     if is_empty:
         return obj
     view = memoryview(value)
-    obj._env = unpack_envelope(code=env_code, view=view[:offset])
+    obj._env = unpack_envelope(code=env_code, srs_id=srs_id, view=view[:offset])
     obj._args = view[offset:], dimension
     return obj
 # End lazy_unpack function
@@ -339,7 +376,7 @@ def unpack_header(view: Union[bytes, memoryview]) -> tuple[int, int, int, bool]:
 # End unpack_header function
 
 
-def unpack_envelope(code: int, view: memoryview) -> Envelope:
+def unpack_envelope(code: int, srs_id: int, view: memoryview) -> Envelope:
     """
     Unpack Envelope
 
@@ -368,7 +405,8 @@ def unpack_envelope(code: int, view: memoryview) -> Envelope:
     elif code == EnvelopeCode.xyzm:
         min_x, max_x, min_y, max_y, min_z, max_z, min_m, max_m = values
     return Envelope(
-        code=code, min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y,
+        code=code, srs_id=srs_id,
+        min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y,
         min_z=min_z, max_z=max_z, min_m=min_m, max_m=max_m)
 # End unpack_envelope function
 
@@ -384,7 +422,10 @@ def envelope_from_geometries(geoms: GEOMS) -> Envelope:
         env = geom.envelope
         xs.extend((env.min_x, env.max_x))
         ys.extend((env.min_y, env.max_y))
-    return _envelope_xy(xs=array(xs, dtype=float), ys=array(ys, dtype=float))
+    geom, *_ = geoms
+    return _envelope_xy(
+        srs_id=geom.srs_id, xs=array(xs, dtype=float),
+        ys=array(ys, dtype=float))
 # End envelope_from_geometries function
 
 
@@ -400,9 +441,10 @@ def envelope_from_geometries_z(geoms: GEOMS_Z) -> Envelope:
         xs.extend((env.min_x, env.max_x))
         ys.extend((env.min_y, env.max_y))
         zs.extend((env.min_z, env.max_z))
+    geom, *_ = geoms
     return _envelope_xyz(
-        xs=array(xs, dtype=float), ys=array(ys, dtype=float),
-        zs=array(zs, dtype=float))
+        srs_id=geom.srs_id, xs=array(xs, dtype=float),
+        ys=array(ys, dtype=float), zs=array(zs, dtype=float))
 # End envelope_from_geometries_z function
 
 
@@ -418,9 +460,10 @@ def envelope_from_geometries_m(geoms: GEOMS_M) -> Envelope:
         xs.extend((env.min_x, env.max_x))
         ys.extend((env.min_y, env.max_y))
         ms.extend((env.min_m, env.max_m))
+    geom, *_ = geoms
     return _envelope_xym(
-        xs=array(xs, dtype=float), ys=array(ys, dtype=float),
-        ms=array(ms, dtype=float))
+        srs_id=geom.srs_id, xs=array(xs, dtype=float),
+        ys=array(ys, dtype=float), ms=array(ms, dtype=float))
 # End envelope_from_geometries_m function
 
 
@@ -437,94 +480,99 @@ def envelope_from_geometries_zm(geoms: GEOMS_ZM) -> Envelope:
         ys.extend((env.min_y, env.max_y))
         zs.extend((env.min_z, env.max_z))
         ms.extend((env.min_m, env.max_m))
+    geom, *_ = geoms
     return _envelope_xyzm(
-        xs=array(xs, dtype=float), ys=array(ys, dtype=float),
-        zs=array(zs, dtype=float), ms=array(ms, dtype=float))
+        srs_id=geom.srs_id, xs=array(xs, dtype=float),
+        ys=array(ys, dtype=float), zs=array(zs, dtype=float),
+        ms=array(ms, dtype=float))
 # End envelope_from_geometries_zm function
 
 
-def envelope_from_coordinates(coordinates: ndarray) -> Envelope:
+def envelope_from_coordinates(srs_id: int, coordinates: ndarray) -> Envelope:
     """
     Envelope from Coordinates
     """
     if not len(coordinates):
         return EMPTY_ENVELOPE
-    return _envelope_xy(xs=coordinates[:, 0], ys=coordinates[:, 1])
+    return _envelope_xy(
+        srs_id=srs_id, xs=coordinates[:, 0], ys=coordinates[:, 1])
 # End envelope_from_coordinates function
 
 
-def envelope_from_coordinates_z(coordinates: ndarray) -> Envelope:
+def envelope_from_coordinates_z(srs_id: int, coordinates: ndarray) -> Envelope:
     """
     Envelope from Coordinates with Z
     """
     if not len(coordinates):
         return EMPTY_ENVELOPE
     return _envelope_xyz(
-        xs=coordinates[:, 0], ys=coordinates[:, 1], zs=coordinates[:, 2])
+        srs_id=srs_id, xs=coordinates[:, 0], ys=coordinates[:, 1],
+        zs=coordinates[:, 2])
 # End envelope_from_coordinates_z function
 
 
-def envelope_from_coordinates_m(coordinates: ndarray) -> Envelope:
+def envelope_from_coordinates_m(srs_id: int, coordinates: ndarray) -> Envelope:
     """
     Envelope from Coordinates with M
     """
     if not len(coordinates):
         return EMPTY_ENVELOPE
     return _envelope_xym(
-        xs=coordinates[:, 0], ys=coordinates[:, 1], ms=coordinates[:, 2])
+        srs_id=srs_id, xs=coordinates[:, 0], ys=coordinates[:, 1],
+        ms=coordinates[:, 2])
 # End envelope_from_coordinates_m function
 
 
-def envelope_from_coordinates_zm(coordinates: ndarray) -> Envelope:
+def envelope_from_coordinates_zm(srs_id: int, coordinates: ndarray) -> Envelope:
     """
     Envelope from Coordinates with ZM
     """
     if not len(coordinates):
         return EMPTY_ENVELOPE
     return _envelope_xyzm(
-        xs=coordinates[:, 0], ys=coordinates[:, 1],
+        srs_id=srs_id, xs=coordinates[:, 0], ys=coordinates[:, 1],
         zs=coordinates[:, 2], ms=coordinates[:, 3])
 # End envelope_from_coordinates_zm function
 
 
-def _envelope_xy(xs: ndarray, ys: ndarray) -> Envelope:
+def _envelope_xy(srs_id: int, xs: ndarray, ys: ndarray) -> Envelope:
     """
     Envelope XY
     """
     min_x, max_x = nanmin(xs), nanmax(xs)
     min_y, max_y = nanmin(ys), nanmax(ys)
-    return Envelope(code=EnvelopeCode.xy,
+    return Envelope(code=EnvelopeCode.xy, srs_id=srs_id,
                     min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y)
 # End _envelope_xy function
 
 
-def _envelope_xyz(xs: ndarray, ys: ndarray, zs: ndarray) -> Envelope:
+def _envelope_xyz(srs_id: int, xs: ndarray, ys: ndarray, zs: ndarray) -> Envelope:
     """
     Envelope XYZ
     """
     min_x, max_x = nanmin(xs), nanmax(xs)
     min_y, max_y = nanmin(ys), nanmax(ys)
     min_z, max_z = nanmin(zs), nanmax(zs)
-    return Envelope(code=EnvelopeCode.xyz,
+    return Envelope(code=EnvelopeCode.xyz, srs_id=srs_id,
                     min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y,
                     min_z=min_z, max_z=max_z)
 # End _envelope_xyz function
 
 
-def _envelope_xym(xs: ndarray, ys: ndarray, ms: ndarray) -> Envelope:
+def _envelope_xym(srs_id: int, xs: ndarray, ys: ndarray, ms: ndarray) -> Envelope:
     """
     Envelope XYM
     """
     min_x, max_x = nanmin(xs), nanmax(xs)
     min_y, max_y = nanmin(ys), nanmax(ys)
     min_m, max_m = nanmin(ms), nanmax(ms)
-    return Envelope(code=EnvelopeCode.xym,
+    return Envelope(code=EnvelopeCode.xym, srs_id=srs_id,
                     min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y,
                     min_m=min_m, max_m=max_m)
 # End _envelope_xym function
 
 
-def _envelope_xyzm(xs: ndarray, ys: ndarray,
+def _envelope_xyzm(srs_id: int, xs: ndarray, ys: ndarray,
                    zs: ndarray, ms: ndarray) -> Envelope:
     """
     Envelope XYZM
@@ -533,7 +581,7 @@ def _envelope_xyzm(xs: ndarray, ys: ndarray,
     min_y, max_y = nanmin(ys), nanmax(ys)
     min_z, max_z = nanmin(zs), nanmax(zs)
     min_m, max_m = nanmin(ms), nanmax(ms)
-    return Envelope(code=EnvelopeCode.xyzm,
+    return Envelope(code=EnvelopeCode.xyzm, srs_id=srs_id,
                     min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y,
                     min_z=min_z, max_z=max_z, min_m=min_m, max_m=max_m)
 # End _envelope_xyzm function
@@ -548,7 +596,7 @@ ENV_GEOM: dict[int, Callable[[Union[GEOMS, GEOMS_Z, GEOMS_M, GEOMS_ZM]], Envelop
 }
 
 
-ENV_COORD: dict[int, Callable[[ndarray], Envelope]] = {
+ENV_COORD: dict[int, Callable[[int, ndarray], Envelope]] = {
     EnvelopeCode.empty: lambda _: EMPTY_ENVELOPE,
     EnvelopeCode.xy: envelope_from_coordinates,
     EnvelopeCode.xyz: envelope_from_coordinates_z,

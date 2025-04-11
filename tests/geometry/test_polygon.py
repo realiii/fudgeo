@@ -92,10 +92,10 @@ def test_empty_multi_polygon(cls, wkb, data):
 
 
 @mark.parametrize('cls, values, env_code, wkb_func, env', [
-    (LinearRing, [(0, 0), (1, 1), (2, 0), (0, 0)], 1, _linear_ring_to_wkb, Envelope(code=1, min_x=0, max_x=2, min_y=0, max_y=1)),
-    (LinearRingZ, [(0, 0, 0), (1, 1, 1), (2, 0, 2), (0, 0, 0)], 2, _linear_ring_z_to_wkb, Envelope(code=2, min_x=0, max_x=2, min_y=0, max_y=1, min_z=0, max_z=2)),
-    (LinearRingM, [(0, 0, 0), (1, 1, 1), (2, 0, 2), (0, 0, 0)], 3, _linear_ring_m_to_wkb, Envelope(code=3, min_x=0, max_x=2, min_y=0, max_y=1, min_m=0, max_m=2)),
-    (LinearRingZM, [(0, 0, 0, 0), (1, 1, 1, 1), (2, 0, 2, 0), (0, 0, 0, 0)], 4, _linear_ring_zm_to_wkb, Envelope(code=4, min_x=0, max_x=2, min_y=0, max_y=1, min_z=0, max_z=2, min_m=0, max_m=1)),
+    (LinearRing, [(0, 0), (1, 1), (2, 0), (0, 0)], 1, _linear_ring_to_wkb, Envelope(code=1, srs_id=-1, min_x=0, max_x=2, min_y=0, max_y=1)),
+    (LinearRingZ, [(0, 0, 0), (1, 1, 1), (2, 0, 2), (0, 0, 0)], 2, _linear_ring_z_to_wkb, Envelope(code=2, srs_id=-1, min_x=0, max_x=2, min_y=0, max_y=1, min_z=0, max_z=2)),
+    (LinearRingM, [(0, 0, 0), (1, 1, 1), (2, 0, 2), (0, 0, 0)], 3, _linear_ring_m_to_wkb, Envelope(code=3, srs_id=-1, min_x=0, max_x=2, min_y=0, max_y=1, min_m=0, max_m=2)),
+    (LinearRingZM, [(0, 0, 0, 0), (1, 1, 1, 1), (2, 0, 2, 0), (0, 0, 0, 0)], 4, _linear_ring_zm_to_wkb, Envelope(code=4, srs_id=-1, min_x=0, max_x=2, min_y=0, max_y=1, min_z=0, max_z=2, min_m=0, max_m=1)),
 ])
 def test_linear_ring(cls, values, env_code, wkb_func, env):
     """
@@ -116,13 +116,13 @@ def test_linear_ring(cls, values, env_code, wkb_func, env):
 
 @mark.parametrize('cls, values, env_code, wkb_func, env', [
     (Polygon, [[(0, 0), (0, 1), (1, 1), (1, 0), (0, 0)], [(5, 5), (5, 15), (15, 15), (15, 5), (5, 5)]],
-     1, point_lists_to_wkb_polygon, Envelope(code=1, min_x=0, max_x=15, min_y=0, max_y=15)),
+     1, point_lists_to_wkb_polygon, Envelope(code=1, srs_id=-1, min_x=0, max_x=15, min_y=0, max_y=15)),
     (PolygonZ, [[(0, 0, 0), (0, 1, 1), (1, 1, 1), (1, 0, 1), (0, 0, 0)], [(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]],
-     2, point_lists_z_to_wkb_polygon_z, Envelope(code=2, min_x=0, max_x=15, min_y=0, max_y=15, min_z=0, max_z=20)),
+     2, point_lists_z_to_wkb_polygon_z, Envelope(code=2, srs_id=-1, min_x=0, max_x=15, min_y=0, max_y=15, min_z=0, max_z=20)),
     (PolygonM, [[(0, 0, 0), (0, 1, 1), (1, 1, 1), (1, 0, 1), (0, 0, 0)], [(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]],
-     3, point_lists_m_to_wkb_polygon_m, Envelope(code=3, min_x=0, max_x=15, min_y=0, max_y=15, min_m=0, max_m=20)),
+     3, point_lists_m_to_wkb_polygon_m, Envelope(code=3, srs_id=-1, min_x=0, max_x=15, min_y=0, max_y=15, min_m=0, max_m=20)),
     (PolygonZM, [[(0, 0, 0, 0), (0, 1, 1, 10), (1, 1, 1, 20), (1, 0, 1, 30), (0, 0, 0, 40)], [(5, 5, 5, 50), (5, 15, 10, 60), (15, 15, 15, 70), (15, 5, 20, 80), (5, 5, 5, 90)]],
-     4, point_lists_zm_to_wkb_polygon_zm, Envelope(code=4, min_x=0, max_x=15, min_y=0, max_y=15, min_z=0, max_z=20, min_m=0, max_m=90)),
+     4, point_lists_zm_to_wkb_polygon_zm, Envelope(code=4, srs_id=-1, min_x=0, max_x=15, min_y=0, max_y=15, min_z=0, max_z=20, min_m=0, max_m=90)),
 ])
 def test_polygon(header, cls, values, env_code, wkb_func, env):
     """
@@ -150,13 +150,13 @@ def test_polygon(header, cls, values, env_code, wkb_func, env):
 
 @mark.parametrize('cls, values, env_code, wkb_func, env', [
     (MultiPolygon, [[[(0, 0), (0, 1), (1, 1), (1, 0), (0, 0)]], [[(5, 5), (5, 15), (15, 15), (15, 5), (5, 5)]], [[(7, 7), (7, 17), (17, 17), (7, 7)]]],
-     1, point_lists_to_wkb_multipolygon, Envelope(code=1, min_x=0, max_x=17, min_y=0, max_y=17)),
+     1, point_lists_to_wkb_multipolygon, Envelope(code=1, srs_id=-1, min_x=0, max_x=17, min_y=0, max_y=17)),
     (MultiPolygonZ, [[[(0, 0, 0), (0, 1, 1), (1, 1, 1), (1, 0, 1), (0, 0, 0)]], [[(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]]],
-     2, point_lists_z_to_wkb_multipolygon_z, Envelope(code=2, min_x=0, max_x=15, min_y=0, max_y=15, min_z=0, max_z=20)),
+     2, point_lists_z_to_wkb_multipolygon_z, Envelope(code=2, srs_id=-1, min_x=0, max_x=15, min_y=0, max_y=15, min_z=0, max_z=20)),
     (MultiPolygonM, [[[(0, 0, 0), (0, 1, 1), (1, 1, 1), (1, 0, 1), (0, 0, 0)]], [[(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]]],
-     3, point_lists_m_to_wkb_multipolygon_m, Envelope(code=3, min_x=0, max_x=15, min_y=0, max_y=15, min_m=0, max_m=20)),
+     3, point_lists_m_to_wkb_multipolygon_m, Envelope(code=3, srs_id=-1, min_x=0, max_x=15, min_y=0, max_y=15, min_m=0, max_m=20)),
     (MultiPolygonZM, [[[(0, 0, 0, 10), (0, 1, 1, 20), (1, 1, 1, 30), (1, 0, 1, 40), (0, 0, 0, 50)]], [[(5, 5, 5, 60), (5, 15, 10, 70), (15, 15, 15, 80), (15, 5, 20, 90), (5, 5, 5, 100)]]],
-     4, point_lists_zm_to_wkb_multipolygon_zm, Envelope(code=4, min_x=0, max_x=15, min_y=0, max_y=15, min_z=0, max_z=20, min_m=10, max_m=100)),
+     4, point_lists_zm_to_wkb_multipolygon_zm, Envelope(code=4, srs_id=-1, min_x=0, max_x=15, min_y=0, max_y=15, min_z=0, max_z=20, min_m=10, max_m=100)),
 ])
 def test_multi_polygon(header, cls, values, env_code, wkb_func, env):
     """
