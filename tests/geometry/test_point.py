@@ -147,6 +147,7 @@ def test_multi_point(header, cls, values, wkb_func, env_code, env):
     assert geo['type'] == 'MultiPoint'
     assert geo['coordinates'] == tuple(values)
     assert geo['bbox'] == env.bounding_box
+    assert sum(1 for _ in pts) == len(values)
 # End test_multi_point function
 
 

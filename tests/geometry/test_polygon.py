@@ -111,6 +111,7 @@ def test_linear_ring(cls, values, env_code, wkb_func, env):
     assert wkb == wkb_func(values)
     assert not ring.is_empty
     assert ring.envelope == env
+    assert sum(1 for _ in ring) == len(values)
 # End test_linear_ring function
 
 
@@ -145,6 +146,7 @@ def test_polygon(header, cls, values, env_code, wkb_func, env):
     assert geo['type'] == 'Polygon'
     assert geo['coordinates'] == tuple(tuple(v) for v in values)
     assert geo['bbox'] == env.bounding_box
+    assert sum(1 for _ in poly) == len(values)
 # End test_polygon function
 
 
@@ -179,6 +181,7 @@ def test_multi_polygon(header, cls, values, env_code, wkb_func, env):
     assert geo['type'] == 'MultiPolygon'
     assert geo['coordinates'] == tuple(tuple(tuple(v) for v in vs) for vs in values)
     assert geo['bbox'] == env.bounding_box
+    assert sum(1 for _ in multi) == len(values)
 # End test_multi_polygon function
 
 

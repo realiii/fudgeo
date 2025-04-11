@@ -122,6 +122,7 @@ def test_line_string(header, cls, values, env_code, wkb_func, gpkg_func, env):
     assert geo['type'] == 'LineString'
     assert geo['coordinates'] == tuple(values)
     assert geo['bbox'] == env.bounding_box
+    assert sum(1 for _ in line) == len(values)
 # End test_line_string function
 
 
@@ -178,6 +179,7 @@ def test_multi_line_string(header, cls, values, env_code, wkb_func, env):
     assert geo['type'] == 'MultiLineString'
     assert geo['coordinates'] == tuple(tuple(v) for v in values)
     assert geo['bbox'] == env.bounding_box
+    assert sum(1 for _ in multi) == len(values)
 # End test_multi_line_string function
 
 

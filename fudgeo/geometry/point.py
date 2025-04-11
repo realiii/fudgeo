@@ -6,7 +6,7 @@ Points
 
 from math import isnan, nan
 from struct import pack, unpack
-from typing import Any, ClassVar, TYPE_CHECKING, Union
+from typing import Any, ClassVar, Iterator, TYPE_CHECKING, Union
 
 from fudgeo.alias import BYTE_ARRAY, DOUBLE, QUADRUPLE, TRIPLE
 from fudgeo.constant import (
@@ -517,6 +517,13 @@ class BaseMultiPoint(AbstractGeometry):
             return False
         return self.points == other.points
     # End eq built-in
+
+    def __iter__(self) -> Iterator:
+        """
+        Iteration
+        """
+        return iter(self.points)
+    # End iter built-in
 
     @property
     def __geo_interface__(self) -> dict:
