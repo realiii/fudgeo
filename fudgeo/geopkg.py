@@ -34,9 +34,9 @@ from fudgeo.sql import (
     DEFAULT_EPSG_RECS, DEFAULT_ESRI_RECS, DELETE_DATA_COLUMNS,
     DELETE_METADATA_REFERENCE, DELETE_OGR_CONTENTS, INSERT_GPKG_CONTENTS_SHORT,
     INSERT_GPKG_GEOM_COL, INSERT_GPKG_SRS, REMOVE_FEATURE_CLASS, REMOVE_TABLE,
-    SELECT_COUNT, SELECT_EXTENT, SELECT_GEOMETRY_COLUMN, SELECT_GEOMETRY_TYPE,
-    SELECT_HAS_ZM, SELECT_PRIMARY_KEY, SELECT_SRS, SELECT_TABLES_BY_TYPE,
-    TABLE_EXISTS, UPDATE_EXTENT)
+    SELECT_COUNT, SELECT_DESCRIPTION, SELECT_EXTENT, SELECT_GEOMETRY_COLUMN,
+    SELECT_GEOMETRY_TYPE, SELECT_HAS_ZM, SELECT_PRIMARY_KEY, SELECT_SRS,
+    SELECT_TABLES_BY_TYPE, TABLE_EXISTS, UPDATE_EXTENT)
 from fudgeo.util import check_geometry_name, convert_datetime, escape_name, now
 
 
@@ -432,6 +432,30 @@ class BaseTable:
         return [f.name for f in self.fields]
     # End field_names property
 
+    @property
+    def description(self) -> STRING:
+        """
+        Description
+        """
+        cursor = self.geopackage.connection.execute(
+            SELECT_DESCRIPTION, (self.name,))
+        return self._check_result(cursor)
+    # End description property
+
+    @staticmethod
+    def _check_result(cursor: 'Cursor') -> STRING:
+        """
+        Check Result
+        """
+        result = cursor.fetchone()
+        if not result:
+            return
+        if None in result:
+            return
+        value, = result
+        return value
+    # End _check_result method
+
     def _remove_special(self, fields: list['Field']) -> list['Field']:
         """
         Remove Special Fields
@@ -655,20 +679,6 @@ class FeatureClass(BaseTable):
                        delete_metadata=self.geopackage.is_metadata_enabled,
                        delete_schema=self.geopackage.is_schema_enabled)
     # End drop method
-
-    @staticmethod
-    def _check_result(cursor: 'Cursor') -> STRING:
-        """
-        Check Result
-        """
-        result = cursor.fetchone()
-        if not result:
-            return
-        if None in result:
-            return
-        value, = result
-        return value
-    # End _check_result method
 
     @property
     def geometry_column_name(self) -> STRING:
