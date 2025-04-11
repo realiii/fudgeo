@@ -509,6 +509,29 @@ class BaseTable:
             fields = [key_field, *fields]
         return fields
     # End _include_primary method
+
+    @staticmethod
+    def _validate_overwrite(geopackage: GeoPackage, name: str,
+                            overwrite: bool) -> None:
+        """
+        Validate Overwrite
+        """
+        if not overwrite and geopackage.exists(table_name=name):
+            raise ValueError(
+                f'Table {name} already exists in {geopackage.path}')
+    # End _validate_overwrite method
+
+    @staticmethod
+    def _validate_same(source: 'BaseTable', target: 'BaseTable') -> None:
+        """
+        Validate Same Table
+        """
+        if source.name.casefold() != target.name.casefold():
+            return
+        if not source.geopackage.path.samefile(target.geopackage.path):
+            return
+        raise ValueError(f'Cannot copy table {source.name} to itself')
+    # End _validate_same method
 # End BaseTable class
 
 
@@ -529,9 +552,7 @@ class Table(BaseTable):
         """
         Create a regular non-spatial table in the geopackage
         """
-        if not overwrite and geopackage.exists(table_name=name):
-            raise ValueError(
-                f'Table {name} already exists in {geopackage.path}')
+        cls._validate_overwrite(geopackage, name, overwrite)
         cols = cls._column_names(fields)
         with geopackage.connection as conn:
             escaped_name = escape_name(name)
@@ -633,9 +654,7 @@ class FeatureClass(BaseTable):
         """
         Create Feature Class
         """
-        if not overwrite and geopackage.exists(table_name=name):
-            raise ValueError(
-                f'Table {name} already exists in {geopackage.path}')
+        cls._validate_overwrite(geopackage, name, overwrite)
         cols = cls._column_names(fields)
         with geopackage.connection as conn:
             escaped_name = escape_name(name)
