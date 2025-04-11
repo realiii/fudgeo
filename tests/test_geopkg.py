@@ -993,5 +993,113 @@ def test_exists(tmp_path, fields):
 # End test_exists function
 
 
-if __name__ == '__main__':
+def test_copy_table(setup_geopackage):
+    """
+    Test copy method for Table
+    """
+    _, gpkg, _, flds = setup_geopackage
+    another_name = 'another_table'
+    gpkg.create_table(another_name, fields=flds)
+    name = 'source_tbl'
+    tbl = gpkg.create_table(name, fields=flds)
+    assert isinstance(tbl, Table)
+    count = 1000
+    rows = random_points_and_attrs(count, 4326)
+    rows = [row[1:] for row in rows]
+    with gpkg.connection as conn:
+        conn.executemany(INSERT_ROWS.format(tbl.escaped_name), rows)
+    assert tbl.count == count
+
+    with raises(ValueError):
+        tbl.copy(another_name)
+    with raises(ValueError):
+        tbl.copy(name)
+
+    result = tbl.copy(another_name, overwrite=True)
+    assert isinstance(result, Table)
+    assert result.count == count
+
+    desc = 'The quick brown fox'
+    sql = f'{tbl.primary_key_field.escaped_name} > 500'
+    result = tbl.copy(another_name, description=desc, where_clause=sql, overwrite=True)
+    assert isinstance(result, Table)
+    assert result.exists
+    assert result.description == desc
+    assert result.count == 500
+# End test_copy_table function
+
+
+@mark.parametrize('name, count, sql, sub_count', [
+    ('areacode_a', 325, """STATE = 'TX'""", 27),
+    ('detail_l', 14_640, """Type = 1""", 12_633),
+    ('places_p', 2176, """ST = 'TN'""", 427),
+])
+def test_copy_feature_class(setup_geopackage, data_path, name, count, sql, sub_count):
+    """
+    Test copy method for Feature Class
+    """
+    _, target_gpkg, _, _ = setup_geopackage
+    path = data_path / 'copy.gpkg'
+    assert path.is_file()
+    source_gpkg = GeoPackage(path)
+
+    fc = FeatureClass(geopackage=source_gpkg, name=name)
+    assert fc.exists
+    assert fc.count == count
+
+    with raises(ValueError):
+        fc.copy(name)
+
+    desc = 'The quick brown fox'
+    result = fc.copy(
+        name=f'{name}_copy', geopackage=target_gpkg, description=desc,
+        geom_name=SHAPE)
+    assert isinstance(result, FeatureClass)
+    assert result.exists
+    assert result.count == count
+    assert result.geometry_column_name == SHAPE
+
+    desc = 'The quick brown fox'
+    result = fc.copy(
+        name=f'{name}_copy', geopackage=target_gpkg, description=desc,
+        geom_name=SHAPE, where_clause=sql, overwrite=True)
+    assert isinstance(result, FeatureClass)
+    assert result.exists
+    assert result.count == sub_count
+    assert result.geometry_column_name == SHAPE
+# End test_copy_feature_class function
+
+
+def test_copy_feature_class_narrow(setup_geopackage, data_path):
+    """
+    Test copy method for narrow Feature Class (only has fid and geometry)
+    """
+    count = 325
+    _, target_gpkg, _, _ = setup_geopackage
+    path = data_path / 'copy.gpkg'
+    assert path.is_file()
+    source_gpkg = GeoPackage(path)
+
+    fc = FeatureClass(geopackage=source_gpkg, name='areacode_narrow_a')
+    assert fc.exists
+    assert fc.count == count
+
+    result = fc.copy(name=fc.name, geopackage=target_gpkg, geom_name=SHAPE)
+    assert isinstance(result, FeatureClass)
+    assert result.exists
+    assert result.count == count
+    assert result.geometry_column_name == SHAPE
+
+    sql = f"""{fc.primary_key_field.escaped_name} <= 100"""
+    result = fc.copy(name=fc.name, where_clause=sql,
+                     geopackage=target_gpkg, geom_name=SHAPE, overwrite=True)
+    assert isinstance(result, FeatureClass)
+    assert result.exists
+    assert result.count == 100
+    assert result.geometry_column_name == SHAPE
+
+# End test_copy_feature_class function
+
+
+if __name__ == '__main__':  # pragma: no cover
     pass
