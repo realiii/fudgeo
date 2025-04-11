@@ -505,6 +505,9 @@ class Table(BaseTable):
         """
         Create a regular non-spatial table in the geopackage
         """
+        if not overwrite and geopackage.exists(table_name=name):
+            raise ValueError(
+                f'Table {name} already exists in {geopackage.path}')
         cols = cls._column_names(fields)
         with geopackage.connection as conn:
             escaped_name = escape_name(name)
@@ -606,6 +609,9 @@ class FeatureClass(BaseTable):
         """
         Create Feature Class
         """
+        if not overwrite and geopackage.exists(table_name=name):
+            raise ValueError(
+                f'Table {name} already exists in {geopackage.path}')
         cols = cls._column_names(fields)
         with geopackage.connection as conn:
             escaped_name = escape_name(name)
