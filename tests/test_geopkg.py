@@ -158,6 +158,7 @@ def test_create_table_drop_table(tmp_path, fields, name, ogr_contents, has_table
     table = geo.create_table(name, fields)
     assert isinstance(table, Table)
     tbl = geo.create_table(name, fields, overwrite=True)
+    assert tbl.exists()
     assert table.count == 0
     # noinspection SqlNoDataSourceInspection
     sql = """SELECT count(type) AS C FROM sqlite_master WHERE type = 'trigger'"""
@@ -166,6 +167,7 @@ def test_create_table_drop_table(tmp_path, fields, name, ogr_contents, has_table
     assert count == trigger_count
     tbl.drop()
     assert not geo._check_table_exists(name)
+    assert not table.exists()
     cursor = conn.execute(sql)
     count, = cursor.fetchone()
     assert count == 0
@@ -256,6 +258,7 @@ def test_create_feature_drop_feature(tmp_path, fields, name, ogr_contents, has_t
         assert fc.has_spatial_index
     assert isinstance(fc, FeatureClass)
     fc = geo.create_feature_class(name, srs=srs, fields=fields, overwrite=True, spatial_index=add_index)
+    assert fc.exists()
     assert fc.count == 0
     # noinspection SqlNoDataSourceInspection
     sql = """SELECT count(type) AS C FROM sqlite_master WHERE type = 'trigger'"""
@@ -264,6 +267,7 @@ def test_create_feature_drop_feature(tmp_path, fields, name, ogr_contents, has_t
     assert count == trigger_count
     fc.drop()
     assert not geo._check_table_exists(name)
+    assert not fc.exists()
     cursor = conn.execute(sql)
     count, = cursor.fetchone()
     assert count == 0
@@ -962,6 +966,26 @@ def test_representation():
     tbl = Table(gpkg, '/some/path/to/geopackage.gpkg')
     assert repr(tbl) == "Table(geopackage=GeoPackage(path=PosixPath('/some/path/to/geopackage.gpkg')), name='/some/path/to/geopackage.gpkg')"
 # End test_representation function
+
+
+def test_exists(tmp_path, fields):
+    """
+    Test exists methods
+    """
+    name = 'example'
+    path = tmp_path / 'tbl_exists'
+
+    assert not GeoPackage(path).exists('asdf')
+
+    geo = GeoPackage.create(path)
+    assert not geo.exists(None)
+
+    tbl = Table(geopackage=None, name=name)
+    assert not tbl.exists()
+
+    tbl = geo.create_table(name, fields)
+    assert tbl.exists()
+# End test_exists function
 
 
 if __name__ == '__main__':

@@ -217,6 +217,17 @@ class GeoPackage:
         return bool(cursor.fetchall())
     # End _check_table_exists method
 
+    def exists(self, table_name: str) -> bool:
+        """
+        Check if the table exists in the GeoPackage
+        """
+        if not table_name:
+            return False
+        if not self.path.is_file():
+            return False
+        return self._check_table_exists(table_name)
+    # End exists method
+
     def _validate_inputs(self, fields: FIELDS, name: str,
                          overwrite: bool) -> FIELDS:
         """
@@ -365,6 +376,15 @@ class BaseTable:
         """
         return escape_name(self.name)
     # End escaped_name property
+
+    def exists(self) -> bool:
+        """
+        True if the Table exists, False otherwise.
+        """
+        if not self.geopackage:
+            return False
+        return self.geopackage.exists(self.name)
+    # End exists method
 
     @property
     def primary_key_field(self) -> Optional['Field']:
