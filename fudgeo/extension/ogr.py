@@ -16,6 +16,9 @@ if TYPE_CHECKING:  # pragma: no cover
     from sqlite3 import Connection
 
 
+OGR_CONTENTS: str = 'gpkg_ogr_contents'
+
+
 def has_ogr_contents(conn: 'Connection') -> bool:
     """
     Has gpkg_ogr_contents table
