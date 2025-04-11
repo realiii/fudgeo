@@ -158,7 +158,7 @@ def test_create_table_drop_table(tmp_path, fields, name, ogr_contents, has_table
     table = geo.create_table(name, fields)
     assert isinstance(table, Table)
     tbl = geo.create_table(name, fields, overwrite=True)
-    assert tbl.exists()
+    assert tbl.exists
     assert table.count == 0
     # noinspection SqlNoDataSourceInspection
     sql = """SELECT count(type) AS C FROM sqlite_master WHERE type = 'trigger'"""
@@ -167,7 +167,7 @@ def test_create_table_drop_table(tmp_path, fields, name, ogr_contents, has_table
     assert count == trigger_count
     tbl.drop()
     assert not geo._check_table_exists(name)
-    assert not table.exists()
+    assert not table.exists
     cursor = conn.execute(sql)
     count, = cursor.fetchone()
     assert count == 0
@@ -258,7 +258,7 @@ def test_create_feature_drop_feature(tmp_path, fields, name, ogr_contents, has_t
         assert fc.has_spatial_index
     assert isinstance(fc, FeatureClass)
     fc = geo.create_feature_class(name, srs=srs, fields=fields, overwrite=True, spatial_index=add_index)
-    assert fc.exists()
+    assert fc.exists
     assert fc.count == 0
     # noinspection SqlNoDataSourceInspection
     sql = """SELECT count(type) AS C FROM sqlite_master WHERE type = 'trigger'"""
@@ -267,7 +267,7 @@ def test_create_feature_drop_feature(tmp_path, fields, name, ogr_contents, has_t
     assert count == trigger_count
     fc.drop()
     assert not geo._check_table_exists(name)
-    assert not fc.exists()
+    assert not fc.exists
     cursor = conn.execute(sql)
     count, = cursor.fetchone()
     assert count == 0
