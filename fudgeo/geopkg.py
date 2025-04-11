@@ -16,6 +16,7 @@ from numpy import int16, int32, int64, int8, uint16, uint32, uint64, uint8
 
 from fudgeo.alias import FIELDS, FIELD_NAMES, INT, STRING
 from fudgeo.constant import COMMA_SPACE, GPKG_EXT, SHAPE
+from fudgeo.context import ExecuteMany
 from fudgeo.enumeration import DataType, GPKGFlavors, GeometryType, SQLFieldType
 from fudgeo.extension.metadata import (
     Metadata, add_metadata_extension, has_metadata_extension)
@@ -863,6 +864,66 @@ class FeatureClass(BaseTable):
             fields = [f for f in fields if f.name.casefold() != geom_name]
         return fields
     # End _remove_special method
+
+    def copy(self, name: str, description: str = '',
+             where_clause: str = '', overwrite: bool = False,
+             geopackage: Optional[GeoPackage] = None,
+             geom_name: STRING = None) -> 'FeatureClass':
+        """
+        Copy the structure and content of a feature class.  Create a new
+        feature class or overwrite an existing.  Use a where clause to limit
+        the features.  Output feature class can be in a different geopackage.
+        """
+        if not geopackage:
+            geopackage = self.geopackage
+        self._validate_same(
+            source=self, target=FeatureClass(geopackage, name=name))
+        self._validate_overwrite(geopackage, name, overwrite)
+        target = self.create(
+            geopackage=geopackage, name=name, shape_type=self.shape_type,
+            srs=self.spatial_reference_system,
+            fields=self._remove_special(self.fields),
+            description=description or self.description, overwrite=overwrite,
+            z_enabled=self.has_z, m_enabled=self.has_m,
+            spatial_index=self.has_spatial_index,
+            geom_name=geom_name or self.geometry_column_name)
+        insert_sql, select_sql = self._make_copy_sql(target, where_clause)
+        cursor = self.geopackage.connection.execute(select_sql)
+        with (target.geopackage.connection as connection,
+              ExecuteMany(connection=connection, table=target) as executor):
+            while features := cursor.fetchmany(100_000):
+                executor(sql=insert_sql, data=features)
+            target.extent = self.extent
+        return target
+    # End copy method
+
+    def _make_copy_sql(self, target: 'FeatureClass', where_clause: str) \
+            -> tuple[str, str]:
+        """
+        Make Copy SQL, INSERT and SELECT statements
+        """
+        target_geom = target.geometry_column_name
+        source_geom = f'{self.geometry_column_name} "[{self.geometry_type}]"'
+        fields = self._remove_special(self.fields)
+        columns = COMMA_SPACE.join([f.escaped_name for f in fields])
+        if columns:
+            # noinspection SqlNoDataSourceInspection
+            select_sql = f"""SELECT {source_geom}{COMMA_SPACE}{columns} 
+                             FROM {self.escaped_name}"""
+            # noinspection SqlNoDataSourceInspection
+            insert_sql = f"""
+                INSERT INTO {target.escaped_name}({target_geom}{COMMA_SPACE}{columns}) 
+                VALUES ({COMMA_SPACE.join('?' * (len(fields) + 1))})"""
+        else:
+            # noinspection SqlNoDataSourceInspection
+            select_sql = f"""SELECT {source_geom} FROM {self.escaped_name}"""
+            # noinspection SqlNoDataSourceInspection
+            insert_sql = f"""INSERT INTO {target.escaped_name}({target_geom}) 
+                             VALUES (?)"""
+        if where_clause:
+            select_sql = f"""{select_sql} WHERE {where_clause}"""
+        return insert_sql, select_sql
+    # End _make_copy_sql method
 
     def select(self, fields: Union[FIELDS, FIELD_NAMES] = (),
                where_clause: str = '', include_geometry: bool = True,
