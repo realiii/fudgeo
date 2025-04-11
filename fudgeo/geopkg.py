@@ -248,7 +248,7 @@ class GeoPackage:
         """
         if not fields:
             fields = ()
-        if not overwrite and self._check_table_exists(name):
+        if not overwrite and self.exists(name):
             raise ValueError(f'Table {name} already exists in {self._path}')
         return fields
     # End _validate_inputs method
