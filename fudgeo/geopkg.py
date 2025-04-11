@@ -584,6 +584,47 @@ class Table(BaseTable):
                        delete_schema=self.geopackage.is_schema_enabled)
     # End drop method
 
+    def copy(self, name: str, description: str = '',
+             where_clause: str = '', overwrite: bool = False,
+             geopackage: Optional[GeoPackage] = None) -> 'Table':
+        """
+        Copy the structure and content of a table.  Create a new table or
+        overwrite an existing.  Use a where clause to limit the records.
+        Output table can be in a different geopackage.
+        """
+        if not geopackage:
+            geopackage = self.geopackage
+        self._validate_same(source=self, target=Table(geopackage, name=name))
+        self._validate_overwrite(geopackage, name, overwrite)
+        target = self.create(
+            geopackage=geopackage, name=name,
+            fields=self._remove_special(self.fields),
+            description=description or self.description, overwrite=overwrite)
+        insert_sql, select_sql = self._make_copy_sql(target, where_clause)
+        cursor = self.geopackage.connection.execute(select_sql)
+        with target.geopackage.connection as connection:
+            while records := cursor.fetchmany(100_000):
+                connection.executemany(insert_sql, records)
+        return target
+    # End copy method
+
+    def _make_copy_sql(self, target: 'Table', where_clause: str) \
+            -> tuple[str, str]:
+        """
+        Make Copy SQL, INSERT and SELECT statements
+        """
+        fields = self._remove_special(self.fields)
+        columns = COMMA_SPACE.join([f.escaped_name for f in fields])
+        # noinspection SqlNoDataSourceInspection
+        select_sql = f"""SELECT {columns} FROM {self.escaped_name}"""
+        if where_clause:
+            select_sql = f"""{select_sql} WHERE {where_clause}"""
+        # noinspection SqlNoDataSourceInspection
+        insert_sql = f"""INSERT INTO {target.escaped_name}({columns}) 
+                         VALUES ({COMMA_SPACE.join('?' * len(fields))})"""
+        return insert_sql, select_sql
+    # End _make_copy_sql method
+
     def select(self, fields: Union[FIELDS, FIELD_NAMES] = (),
                where_clause: str = '', include_primary: bool = False,
                limit: INT = None) -> 'Cursor':
