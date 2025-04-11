@@ -12,6 +12,8 @@ from sqlite3 import (
     register_converter)
 from typing import Optional, TYPE_CHECKING, Type, Union
 
+from numpy import int16, int32, int64, int8, uint16, uint32, uint64, uint8
+
 from fudgeo.alias import FIELDS, FIELD_NAMES, INT, STRING
 from fudgeo.constant import COMMA_SPACE, GPKG_EXT, SHAPE
 from fudgeo.enumeration import DataType, GPKGFlavors, GeometryType, SQLFieldType
@@ -67,6 +69,16 @@ def _register_geometry() -> None:
 # End _register_geometry function
 
 
+def _register_numpy_integers() -> None:
+    """
+    Register numpy integers
+    """
+    for int_type in (int8, int16, int32, int64,
+                     uint8, uint16, uint32, uint64):
+        register_adapter(int_type, int)
+# End _register_numpy_integers function
+
+
 def _add_st_functions(conn: 'Connection') -> None:
     """
     Add ST Functions
@@ -115,6 +127,7 @@ class GeoPackage:
                 detect_types=PARSE_DECLTYPES | PARSE_COLNAMES)
             self._conn.execute("""PRAGMA foreign_keys = true""")
             _register_geometry()
+            _register_numpy_integers()
             _add_st_functions(self._conn)
             register_converter('timestamp', convert_datetime)
             register_converter('datetime', convert_datetime)
