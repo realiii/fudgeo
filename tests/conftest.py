@@ -4,6 +4,7 @@ Fixtures
 """
 
 
+from pathlib import Path
 from random import randint
 
 from pytest import fixture
@@ -69,6 +70,15 @@ def random_utm_coordinates():
     northings = [randint(0, 4000000) for _ in range(count)]
     return eastings, northings
 # End random_utm_coordinates function
+
+
+@fixture(scope='session')
+def data_path():
+    """
+    Data Path
+    """
+    return Path(__file__).parent.parent.joinpath('data')
+# End data_path function
 
 
 if __name__ == '__main__':  # pragma: no cover

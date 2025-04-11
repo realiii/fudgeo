@@ -24,9 +24,14 @@ from fudgeo.sql import SELECT_SRS
 from tests.crs import WGS_1984_UTM_Zone_23N
 
 # noinspection SqlNoDataSourceInspection
-INSERT_ROWS = """
+INSERT_POINTS = """
     INSERT INTO {} ({}, "int.fld", text_fld, test_fld_size, test_bool) 
     VALUES (?, ?, ?, ?, ?)
+"""
+# noinspection SqlNoDataSourceInspection
+INSERT_ROWS = """
+    INSERT INTO {} ("int.fld", text_fld, test_fld_size, test_bool) 
+    VALUES (?, ?, ?, ?)
 """
 # noinspection SqlNoDataSourceInspection
 SELECT_ST_FUNCS = """SELECT ST_IsEmpty({0}), ST_MinX({0}), ST_MaxX({0}), ST_MinY({0}), ST_MaxY({0}) FROM {1}"""
@@ -376,7 +381,7 @@ def test_insert_point_rows(setup_geopackage, name, add_index):
     count = 10000
     rows = random_points_and_attrs(count, srs.srs_id)
     with gpkg.connection as conn:
-        conn.executemany(INSERT_ROWS.format(fc.escaped_name, fc.geometry_column_name), rows)
+        conn.executemany(INSERT_POINTS.format(fc.escaped_name, fc.geometry_column_name), rows)
     assert fc.count == count
     # noinspection SqlNoDataSourceInspection
     cursor = fc.select(limit=10)
