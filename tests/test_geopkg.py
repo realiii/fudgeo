@@ -1097,8 +1097,45 @@ def test_copy_feature_class_narrow(setup_geopackage, data_path):
     assert result.exists
     assert result.count == 100
     assert result.geometry_column_name == SHAPE
+# End test_copy_feature_class_narrow function
 
-# End test_copy_feature_class function
+
+def test_table_add_drop_fields(setup_geopackage):
+    """
+    Test add / drop fields on a Table
+    """
+    _, gpkg, _, flds = setup_geopackage
+    name = 'source_tbl'
+    tbl = gpkg.create_table(name, fields=flds)
+    assert isinstance(tbl, Table)
+    count = 1000
+    rows = random_points_and_attrs(count, 4326)
+    rows = [row[1:] for row in rows]
+    with gpkg.connection as conn:
+        conn.executemany(INSERT_ROWS.format(tbl.escaped_name), rows)
+    assert tbl.count == count
+    assert not tbl.add_fields(fields=flds)
+
+    fld = Field('a', SQLFieldType.integer)
+    assert tbl.add_fields(fields=fld)
+    assert 'a' in tbl.field_names
+
+    flds = fld, Field('b', SQLFieldType.text, 20), Field('c', SQLFieldType.real)
+    assert tbl.add_fields(fields=flds)
+    assert 'b' in tbl.field_names
+    assert 'c' in tbl.field_names
+
+    fld = Field('d', SQLFieldType.text, 20)
+    assert not tbl.drop_fields(fields=fld)
+    assert not tbl.drop_fields(fields=[fld])
+
+    assert tbl.drop_fields(fields=flds)
+    assert 'a' not in tbl.field_names
+    assert 'b' not in tbl.field_names
+    assert 'c' not in tbl.field_names
+
+    assert not tbl.drop_fields(fields=tbl.primary_key_field)
+# End test_table_add_drop_fields function
 
 
 if __name__ == '__main__':  # pragma: no cover

@@ -32,6 +32,10 @@ KEYWORDS: set[str] = {
 ROOT: str = 'https://www.geopackage.org/spec131/'
 
 
+ADD_COLUMN: str = """ALTER TABLE {} ADD COLUMN {}"""
+DROP_COLUMN: str = """ALTER TABLE {} DROP COLUMN {}"""
+
+
 INSERT_GPKG_CONTENTS_SHORT: str = """
     INSERT INTO gpkg_contents (
         table_name, data_type, identifier, description, last_change, srs_id) 

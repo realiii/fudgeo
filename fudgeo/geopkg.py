@@ -31,13 +31,14 @@ from fudgeo.geometry import (
     MultiPolygonZ, MultiPolygonZM, Point, PointM, PointZ, PointZM, Polygon,
     PolygonM, PolygonZ, PolygonZM)
 from fudgeo.sql import (
-    CHECK_SRS_EXISTS, CREATE_FEATURE_TABLE, CREATE_OGR_CONTENTS, CREATE_TABLE,
-    DEFAULT_EPSG_RECS, DEFAULT_ESRI_RECS, DELETE_DATA_COLUMNS,
-    DELETE_METADATA_REFERENCE, DELETE_OGR_CONTENTS, INSERT_GPKG_CONTENTS_SHORT,
-    INSERT_GPKG_GEOM_COL, INSERT_GPKG_SRS, REMOVE_FEATURE_CLASS, REMOVE_TABLE,
-    SELECT_COUNT, SELECT_DESCRIPTION, SELECT_EXTENT, SELECT_GEOMETRY_COLUMN,
-    SELECT_GEOMETRY_TYPE, SELECT_HAS_ZM, SELECT_PRIMARY_KEY, SELECT_SRS,
-    SELECT_TABLES_BY_TYPE, TABLE_EXISTS, UPDATE_EXTENT)
+    ADD_COLUMN, CHECK_SRS_EXISTS, CREATE_FEATURE_TABLE, CREATE_OGR_CONTENTS,
+    CREATE_TABLE, DEFAULT_EPSG_RECS, DEFAULT_ESRI_RECS, DELETE_DATA_COLUMNS,
+    DELETE_METADATA_REFERENCE, DELETE_OGR_CONTENTS, DROP_COLUMN,
+    INSERT_GPKG_CONTENTS_SHORT, INSERT_GPKG_GEOM_COL, INSERT_GPKG_SRS,
+    REMOVE_FEATURE_CLASS, REMOVE_TABLE, SELECT_COUNT, SELECT_DESCRIPTION,
+    SELECT_EXTENT, SELECT_GEOMETRY_COLUMN, SELECT_GEOMETRY_TYPE, SELECT_HAS_ZM,
+    SELECT_PRIMARY_KEY, SELECT_SRS, SELECT_TABLES_BY_TYPE, TABLE_EXISTS,
+    UPDATE_EXTENT)
 from fudgeo.util import check_geometry_name, convert_datetime, escape_name, now
 
 
@@ -347,14 +348,14 @@ class BaseTable:
     # End init built-in
 
     @staticmethod
-    def _column_names(fields: FIELDS) -> str:
+    def _column_names_types(fields: FIELDS) -> str:
         """
-        Column Names
+        Column Names and Types
         """
         if not fields:
             return ''
         return f'{COMMA_SPACE}{COMMA_SPACE.join(repr(f) for f in fields)}'
-    # End _column_names method
+    # End _column_names_types method
 
     @staticmethod
     def _drop(conn: 'Connection', sql: str, name: str, escaped_name: str,
@@ -371,77 +372,6 @@ class BaseTable:
         if delete_schema:
             conn.execute(DELETE_DATA_COLUMNS.format(name))
     # End _drop method
-
-    @property
-    def count(self) -> int:
-        """
-        Number of records
-        """
-        cursor = self.geopackage.connection.execute(
-            SELECT_COUNT.format(self.escaped_name))
-        count, = cursor.fetchone()
-        return count
-    # End count property
-
-    @property
-    def escaped_name(self) -> str:
-        """
-        Escaped Name
-        """
-        return escape_name(self.name)
-    # End escaped_name property
-
-    @property
-    def exists(self) -> bool:
-        """
-        True if the Table exists, False otherwise.
-        """
-        if not self.geopackage:
-            return False
-        return self.geopackage.exists(self.name)
-    # End exists property
-
-    @property
-    def primary_key_field(self) -> Optional['Field']:
-        """
-        Primary Key Field
-        """
-        cursor = self.geopackage.connection.execute(
-            SELECT_PRIMARY_KEY.format(self.name, SQLFieldType.integer))
-        result = cursor.fetchone()
-        if not result:  # pragma: no cover
-            return
-        return Field(*result)
-    # End primary_key_field property
-
-    @property
-    def fields(self) -> list['Field']:
-        """
-        Fields
-        """
-        cursor = self.geopackage.connection.execute(
-            f"""PRAGMA table_info({self.escaped_name})""")
-        return [Field(name=name, data_type=type_)
-                for _, name, type_, _, _, _ in cursor.fetchall()]
-    # End fields property
-
-    @property
-    def field_names(self) -> list[str]:
-        """
-        Field Names
-        """
-        return [f.name for f in self.fields]
-    # End field_names property
-
-    @property
-    def description(self) -> STRING:
-        """
-        Description
-        """
-        cursor = self.geopackage.connection.execute(
-            SELECT_DESCRIPTION, (self.name,))
-        return self._check_result(cursor)
-    # End description property
 
     @staticmethod
     def _check_result(cursor: 'Cursor') -> STRING:
@@ -533,6 +463,113 @@ class BaseTable:
             return
         raise ValueError(f'Cannot copy table {source.name} to itself')
     # End _validate_same method
+
+    @property
+    def count(self) -> int:
+        """
+        Number of records
+        """
+        cursor = self.geopackage.connection.execute(
+            SELECT_COUNT.format(self.escaped_name))
+        count, = cursor.fetchone()
+        return count
+    # End count property
+
+    @property
+    def escaped_name(self) -> str:
+        """
+        Escaped Name
+        """
+        return escape_name(self.name)
+    # End escaped_name property
+
+    @property
+    def exists(self) -> bool:
+        """
+        True if the Table exists, False otherwise.
+        """
+        if not self.geopackage:
+            return False
+        return self.geopackage.exists(self.name)
+    # End exists property
+
+    @property
+    def primary_key_field(self) -> Optional['Field']:
+        """
+        Primary Key Field
+        """
+        cursor = self.geopackage.connection.execute(
+            SELECT_PRIMARY_KEY.format(self.name, SQLFieldType.integer))
+        result = cursor.fetchone()
+        if not result:  # pragma: no cover
+            return
+        return Field(*result)
+    # End primary_key_field property
+
+    @property
+    def fields(self) -> list['Field']:
+        """
+        Fields
+        """
+        cursor = self.geopackage.connection.execute(
+            f"""PRAGMA table_info({self.escaped_name})""")
+        return [Field(name=name, data_type=type_)
+                for _, name, type_, _, _, _ in cursor.fetchall()]
+    # End fields property
+
+    @property
+    def field_names(self) -> list[str]:
+        """
+        Field Names
+        """
+        return [f.name for f in self.fields]
+    # End field_names property
+
+    def add_fields(self, fields: FIELDS) -> bool:
+        """
+        Add Fields, requires field objects for full definition, does not
+        support overwrite of existing fields.
+        """
+        if not isinstance(fields, (list, tuple)):
+            fields = [fields]
+        names = {n.casefold() for n in self.field_names}
+        names.update([f.escaped_name.casefold() for f in self.fields])
+        fields = [f for f in fields if
+                  f.name.casefold() not in names and
+                  f.escaped_name.casefold() not in names]
+        if not fields:
+            return False
+        with self.geopackage.connection as conn:
+            for field in fields:
+                conn.execute(ADD_COLUMN.format(
+                    self.escaped_name, repr(field)))
+        return True
+    # End add_fields method
+
+    def drop_fields(self, fields: Union[FIELDS, FIELD_NAMES]) -> bool:
+        """
+        Drop Fields, can use field objects or field names.  Special fields
+        cannot be removed using this method.  Removing fields which participate
+        in indexes or foreign keys etc. may raise an exception.
+        """
+        if not (fields := self._validate_fields(fields)):
+            return False
+        with self.geopackage.connection as conn:
+            for field in fields:
+                conn.execute(DROP_COLUMN.format(
+                    self.escaped_name, field.escaped_name))
+        return True
+    # End drop_fields method
+
+    @property
+    def description(self) -> STRING:
+        """
+        Description
+        """
+        cursor = self.geopackage.connection.execute(
+            SELECT_DESCRIPTION, (self.name,))
+        return self._check_result(cursor)
+    # End description property
 # End BaseTable class
 
 
@@ -547,6 +584,23 @@ class Table(BaseTable):
         return f'Table(geopackage={self.geopackage!r}, name={self.name!r})'
     # End repr built-in
 
+    def _make_copy_sql(self, target: 'Table', where_clause: str) \
+            -> tuple[str, str]:
+        """
+        Make Copy SQL, INSERT and SELECT statements
+        """
+        fields = self._remove_special(self.fields)
+        columns = COMMA_SPACE.join([f.escaped_name for f in fields])
+        # noinspection SqlNoDataSourceInspection
+        select_sql = f"""SELECT {columns} FROM {self.escaped_name}"""
+        if where_clause:
+            select_sql = f"""{select_sql} WHERE {where_clause}"""
+        # noinspection SqlNoDataSourceInspection
+        insert_sql = f"""INSERT INTO {target.escaped_name}({columns}) 
+                         VALUES ({COMMA_SPACE.join('?' * len(fields))})"""
+        return insert_sql, select_sql
+    # End _make_copy_sql method
+
     @classmethod
     def create(cls, geopackage: GeoPackage, name: str, fields: FIELDS,
                description: str = '', overwrite: bool = False) -> 'Table':
@@ -554,7 +608,7 @@ class Table(BaseTable):
         Create a regular non-spatial table in the geopackage
         """
         cls._validate_overwrite(geopackage, name, overwrite)
-        cols = cls._column_names(fields)
+        cols = cls._column_names_types(fields)
         with geopackage.connection as conn:
             escaped_name = escape_name(name)
             has_contents = has_ogr_contents(conn)
@@ -609,23 +663,6 @@ class Table(BaseTable):
         return target
     # End copy method
 
-    def _make_copy_sql(self, target: 'Table', where_clause: str) \
-            -> tuple[str, str]:
-        """
-        Make Copy SQL, INSERT and SELECT statements
-        """
-        fields = self._remove_special(self.fields)
-        columns = COMMA_SPACE.join([f.escaped_name for f in fields])
-        # noinspection SqlNoDataSourceInspection
-        select_sql = f"""SELECT {columns} FROM {self.escaped_name}"""
-        if where_clause:
-            select_sql = f"""{select_sql} WHERE {where_clause}"""
-        # noinspection SqlNoDataSourceInspection
-        insert_sql = f"""INSERT INTO {target.escaped_name}({columns}) 
-                         VALUES ({COMMA_SPACE.join('?' * len(fields))})"""
-        return insert_sql, select_sql
-    # End _make_copy_sql method
-
     def select(self, fields: Union[FIELDS, FIELD_NAMES] = (),
                where_clause: str = '', include_primary: bool = False,
                limit: INT = None) -> 'Cursor':
@@ -675,6 +712,53 @@ class FeatureClass(BaseTable):
         return existing.geometry_column_name
     # End _find_geometry_column_name method
 
+    @property
+    def _spatial_index_name(self) -> str:
+        """
+        Spatial Index Name
+        """
+        return f'rtree_{self.name}_{self.geometry_column_name}'
+    # End _spatial_index_name property
+
+    def _remove_special(self, fields: list['Field']) -> list['Field']:
+        """
+        Remove Special Fields
+        """
+        fields = super()._remove_special(fields)
+        geom_name = (self.geometry_column_name or '').casefold()
+        if geom_name:
+            fields = [f for f in fields if f.name.casefold() != geom_name]
+        return fields
+    # End _remove_special method
+
+    def _make_copy_sql(self, target: 'FeatureClass', where_clause: str) \
+            -> tuple[str, str]:
+        """
+        Make Copy SQL, INSERT and SELECT statements
+        """
+        target_geom = target.geometry_column_name
+        source_geom = f'{self.geometry_column_name} "[{self.geometry_type}]"'
+        fields = self._remove_special(self.fields)
+        columns = COMMA_SPACE.join([f.escaped_name for f in fields])
+        if columns:
+            # noinspection SqlNoDataSourceInspection
+            select_sql = f"""SELECT {source_geom}{COMMA_SPACE}{columns} 
+                             FROM {self.escaped_name}"""
+            # noinspection SqlNoDataSourceInspection
+            insert_sql = f"""
+                INSERT INTO {target.escaped_name}({target_geom}{COMMA_SPACE}{columns}) 
+                VALUES ({COMMA_SPACE.join('?' * (len(fields) + 1))})"""
+        else:
+            # noinspection SqlNoDataSourceInspection
+            select_sql = f"""SELECT {source_geom} FROM {self.escaped_name}"""
+            # noinspection SqlNoDataSourceInspection
+            insert_sql = f"""INSERT INTO {target.escaped_name}({target_geom}) 
+                             VALUES (?)"""
+        if where_clause:
+            select_sql = f"""{select_sql} WHERE {where_clause}"""
+        return insert_sql, select_sql
+    # End _make_copy_sql method
+
     def add_spatial_index(self) -> bool:
         """
         Add Spatial Index if does not already exist
@@ -697,7 +781,7 @@ class FeatureClass(BaseTable):
         Create Feature Class
         """
         cls._validate_overwrite(geopackage, name, overwrite)
-        cols = cls._column_names(fields)
+        cols = cls._column_names_types(fields)
         with geopackage.connection as conn:
             escaped_name = escape_name(name)
             geom_name = check_geometry_name(geom_name)
@@ -813,14 +897,6 @@ class FeatureClass(BaseTable):
     # End spatial_index_name property
 
     @property
-    def _spatial_index_name(self) -> str:
-        """
-        Spatial Index Name
-        """
-        return f'rtree_{self.name}_{self.geometry_column_name}'
-    # End _spatial_index_name property
-
-    @property
     def has_spatial_index(self) -> bool:
         """
         Has Spatial Index
@@ -854,17 +930,6 @@ class FeatureClass(BaseTable):
             conn.execute(UPDATE_EXTENT, tuple([*value, self.name]))
     # End extent property
 
-    def _remove_special(self, fields: list['Field']) -> list['Field']:
-        """
-        Remove Special Fields
-        """
-        fields = super()._remove_special(fields)
-        geom_name = (self.geometry_column_name or '').casefold()
-        if geom_name:
-            fields = [f for f in fields if f.name.casefold() != geom_name]
-        return fields
-    # End _remove_special method
-
     def copy(self, name: str, description: str = '',
              where_clause: str = '', overwrite: bool = False,
              geopackage: Optional[GeoPackage] = None,
@@ -896,34 +961,6 @@ class FeatureClass(BaseTable):
             target.extent = self.extent
         return target
     # End copy method
-
-    def _make_copy_sql(self, target: 'FeatureClass', where_clause: str) \
-            -> tuple[str, str]:
-        """
-        Make Copy SQL, INSERT and SELECT statements
-        """
-        target_geom = target.geometry_column_name
-        source_geom = f'{self.geometry_column_name} "[{self.geometry_type}]"'
-        fields = self._remove_special(self.fields)
-        columns = COMMA_SPACE.join([f.escaped_name for f in fields])
-        if columns:
-            # noinspection SqlNoDataSourceInspection
-            select_sql = f"""SELECT {source_geom}{COMMA_SPACE}{columns} 
-                             FROM {self.escaped_name}"""
-            # noinspection SqlNoDataSourceInspection
-            insert_sql = f"""
-                INSERT INTO {target.escaped_name}({target_geom}{COMMA_SPACE}{columns}) 
-                VALUES ({COMMA_SPACE.join('?' * (len(fields) + 1))})"""
-        else:
-            # noinspection SqlNoDataSourceInspection
-            select_sql = f"""SELECT {source_geom} FROM {self.escaped_name}"""
-            # noinspection SqlNoDataSourceInspection
-            insert_sql = f"""INSERT INTO {target.escaped_name}({target_geom}) 
-                             VALUES (?)"""
-        if where_clause:
-            select_sql = f"""{select_sql} WHERE {where_clause}"""
-        return insert_sql, select_sql
-    # End _make_copy_sql method
 
     def select(self, fields: Union[FIELDS, FIELD_NAMES] = (),
                where_clause: str = '', include_geometry: bool = True,
