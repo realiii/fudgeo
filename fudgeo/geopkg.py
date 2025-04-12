@@ -347,14 +347,14 @@ class BaseTable:
     # End init built-in
 
     @staticmethod
-    def _column_names(fields: FIELDS) -> str:
+    def _column_names_types(fields: FIELDS) -> str:
         """
-        Column Names
+        Column Names and Types
         """
         if not fields:
             return ''
         return f'{COMMA_SPACE}{COMMA_SPACE.join(repr(f) for f in fields)}'
-    # End _column_names method
+    # End _column_names_types method
 
     @staticmethod
     def _drop(conn: 'Connection', sql: str, name: str, escaped_name: str,
@@ -554,7 +554,7 @@ class Table(BaseTable):
         Create a regular non-spatial table in the geopackage
         """
         cls._validate_overwrite(geopackage, name, overwrite)
-        cols = cls._column_names(fields)
+        cols = cls._column_names_types(fields)
         with geopackage.connection as conn:
             escaped_name = escape_name(name)
             has_contents = has_ogr_contents(conn)
@@ -697,7 +697,7 @@ class FeatureClass(BaseTable):
         Create Feature Class
         """
         cls._validate_overwrite(geopackage, name, overwrite)
-        cols = cls._column_names(fields)
+        cols = cls._column_names_types(fields)
         with geopackage.connection as conn:
             escaped_name = escape_name(name)
             geom_name = check_geometry_name(geom_name)
