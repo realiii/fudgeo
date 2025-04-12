@@ -31,13 +31,14 @@ from fudgeo.geometry import (
     MultiPolygonZ, MultiPolygonZM, Point, PointM, PointZ, PointZM, Polygon,
     PolygonM, PolygonZ, PolygonZM)
 from fudgeo.sql import (
-    CHECK_SRS_EXISTS, CREATE_FEATURE_TABLE, CREATE_OGR_CONTENTS, CREATE_TABLE,
-    DEFAULT_EPSG_RECS, DEFAULT_ESRI_RECS, DELETE_DATA_COLUMNS,
-    DELETE_METADATA_REFERENCE, DELETE_OGR_CONTENTS, INSERT_GPKG_CONTENTS_SHORT,
-    INSERT_GPKG_GEOM_COL, INSERT_GPKG_SRS, REMOVE_FEATURE_CLASS, REMOVE_TABLE,
-    SELECT_COUNT, SELECT_DESCRIPTION, SELECT_EXTENT, SELECT_GEOMETRY_COLUMN,
-    SELECT_GEOMETRY_TYPE, SELECT_HAS_ZM, SELECT_PRIMARY_KEY, SELECT_SRS,
-    SELECT_TABLES_BY_TYPE, TABLE_EXISTS, UPDATE_EXTENT)
+    ADD_COLUMN, CHECK_SRS_EXISTS, CREATE_FEATURE_TABLE, CREATE_OGR_CONTENTS,
+    CREATE_TABLE, DEFAULT_EPSG_RECS, DEFAULT_ESRI_RECS, DELETE_DATA_COLUMNS,
+    DELETE_METADATA_REFERENCE, DELETE_OGR_CONTENTS, DROP_COLUMN,
+    INSERT_GPKG_CONTENTS_SHORT, INSERT_GPKG_GEOM_COL, INSERT_GPKG_SRS,
+    REMOVE_FEATURE_CLASS, REMOVE_TABLE, SELECT_COUNT, SELECT_DESCRIPTION,
+    SELECT_EXTENT, SELECT_GEOMETRY_COLUMN, SELECT_GEOMETRY_TYPE, SELECT_HAS_ZM,
+    SELECT_PRIMARY_KEY, SELECT_SRS, SELECT_TABLES_BY_TYPE, TABLE_EXISTS,
+    UPDATE_EXTENT)
 from fudgeo.util import check_geometry_name, convert_datetime, escape_name, now
 
 
@@ -523,6 +524,42 @@ class BaseTable:
         """
         return [f.name for f in self.fields]
     # End field_names property
+
+    def add_fields(self, fields: FIELDS) -> bool:
+        """
+        Add Fields, requires field objects for full definition, does not
+        support overwrite of existing fields.
+        """
+        if not isinstance(fields, (list, tuple)):
+            fields = [fields]
+        names = {n.casefold() for n in self.field_names}
+        names.update([f.escaped_name.casefold() for f in self.fields])
+        fields = [f for f in fields if
+                  f.name.casefold() not in names and
+                  f.escaped_name.casefold() not in names]
+        if not fields:
+            return False
+        with self.geopackage.connection as conn:
+            for field in fields:
+                conn.execute(ADD_COLUMN.format(
+                    self.escaped_name, repr(field)))
+        return True
+    # End add_fields method
+
+    def drop_fields(self, fields: Union[FIELDS, FIELD_NAMES]) -> bool:
+        """
+        Drop Fields, can use field objects or field names.  Special fields
+        cannot be removed using this method.  Removing fields which participate
+        in indexes or foreign keys etc. may raise an exception.
+        """
+        if not (fields := self._validate_fields(fields)):
+            return False
+        with self.geopackage.connection as conn:
+            for field in fields:
+                conn.execute(DROP_COLUMN.format(
+                    self.escaped_name, field.escaped_name))
+        return True
+    # End drop_fields method
 
     @property
     def description(self) -> STRING:
