@@ -1097,8 +1097,7 @@ def test_copy_feature_class_narrow(setup_geopackage, data_path):
     assert result.exists
     assert result.count == 100
     assert result.geometry_column_name == SHAPE
-
-# End test_copy_feature_class function
+# End test_copy_feature_class_narrow function
 
 
 if __name__ == '__main__':  # pragma: no cover
