@@ -481,6 +481,7 @@ def test_insert_multi_poly(setup_geopackage, add_index):
     fc = gpkg.create_feature_class(
         'SELECT', srs, fields=flds, shape_type=GeometryType.multi_polygon,
         spatial_index=add_index)
+    assert fc.is_multi_part
     assert fc.has_spatial_index is add_index
     polys = [[[(300000, 1), (300000, 4000000), (700000, 4000000), (700000, 1),
                (300000, 1)]],
@@ -542,6 +543,7 @@ def test_insert_multi_point(setup_geopackage, add_index):
     fc = gpkg.create_feature_class(
         'SELECT', srs, fields=flds, shape_type=GeometryType.multi_point,
         spatial_index=add_index)
+    assert fc.is_multi_part
     assert fc.has_spatial_index is add_index
     multipoints = [(300000, 1), (700000, 4000000)]
     geom = MultiPoint(multipoints, srs_id=srs.srs_id)
@@ -742,6 +744,7 @@ def test_insert_multi_lines(setup_geopackage, add_index):
         'SELECT', srs, fields=flds,
         shape_type=GeometryType.multi_linestring,
         z_enabled=False, m_enabled=False, spatial_index=add_index)
+    assert fc.is_multi_part
     assert fc.has_spatial_index is add_index
     coords = [[(300000, 1), (300000, 4000000), (700000, 4000000), (700000, 1)],
               [(600000, 100000), (600000, 3900000), (400000, 3900000),

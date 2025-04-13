@@ -893,6 +893,16 @@ class FeatureClass(BaseTable):
     # End shape_type property
 
     @property
+    def is_multi_part(self) -> bool:
+        """
+        Is Multi Part Geometry
+        """
+        return self.shape_type in {
+            GeometryType.multi_point, GeometryType.multi_linestring,
+            GeometryType.multi_polygon}
+    # End is_multi_part property
+
+    @property
     def spatial_reference_system(self) -> 'SpatialReferenceSystem':
         """
         Spatial Reference System
