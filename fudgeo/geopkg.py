@@ -985,6 +985,10 @@ class FeatureClass(BaseTable):
         Copy the structure and content of a feature class.  Create a new
         feature class or overwrite an existing.  Use a where clause to limit
         the features.  Output feature class can be in a different geopackage.
+
+        When a feature class has a custom SRS and copying from one geopackage
+        to another geopackage there is a possibility that the embedded SRS ID
+        of the geometry will be incorrect in the target geopackage.
         """
         insert_sql, select_sql, target = self._shared_create_steps(
             name=name, description=description, where_clause=where_clause,
