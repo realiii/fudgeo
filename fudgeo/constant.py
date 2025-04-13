@@ -12,6 +12,7 @@ from fudgeo.enumeration import EnvelopeCode
 COMMA_SPACE: str = ', '
 GPKG_EXT: str = '.gpkg'
 SHAPE: str = 'SHAPE'
+FETCH_SIZE: int = 100_000
 
 WGS84: int = 4326
 

@@ -228,6 +228,36 @@ def test_create_feature_class(tmp_path, fields, name, ogr_contents, trigger_coun
 # End test_create_feature_class function
 
 
+def test_spatial_reference_equal():
+    """
+    Test spatial references equal
+    """
+    srs1 = SpatialReferenceSystem(
+        'WGS_1984_UTM_Zone_23N', 'EPSG', 32623, WGS_1984_UTM_Zone_23N)
+    srs2 = SpatialReferenceSystem(
+        'WGS_1984_UTM_Zone_23N', 'EPSG', 32623, WGS_1984_UTM_Zone_23N)
+    srs3 = SpatialReferenceSystem(
+        'Different_Name', 'EPSG', 32623, WGS_1984_UTM_Zone_23N)
+    assert id(srs1) != id(srs2)
+    assert srs1 == srs1
+    assert srs1 == srs2
+    assert srs1 == srs3
+# End test_spatial_reference_equal function
+
+
+def test_spatial_references(setup_geopackage):
+    """
+    Test spatial references equal
+    """
+    _, gpkg, srs, _ = setup_geopackage
+    references = gpkg.spatial_references
+    assert len(references) == 2
+    assert 4326 in references
+    assert srs.srs_id in references
+    assert srs == references[srs.srs_id]
+# End test_spatial_references function
+
+
 @mark.parametrize('name, ogr_contents, has_table, trigger_count, add_index', [
     ('ASDF', True, True, 2, False),
     ('ASDF', False, False, 0, False),
@@ -451,6 +481,7 @@ def test_insert_multi_poly(setup_geopackage, add_index):
     fc = gpkg.create_feature_class(
         'SELECT', srs, fields=flds, shape_type=GeometryType.multi_polygon,
         spatial_index=add_index)
+    assert fc.is_multi_part
     assert fc.has_spatial_index is add_index
     polys = [[[(300000, 1), (300000, 4000000), (700000, 4000000), (700000, 1),
                (300000, 1)]],
@@ -512,6 +543,7 @@ def test_insert_multi_point(setup_geopackage, add_index):
     fc = gpkg.create_feature_class(
         'SELECT', srs, fields=flds, shape_type=GeometryType.multi_point,
         spatial_index=add_index)
+    assert fc.is_multi_part
     assert fc.has_spatial_index is add_index
     multipoints = [(300000, 1), (700000, 4000000)]
     geom = MultiPoint(multipoints, srs_id=srs.srs_id)
@@ -712,6 +744,7 @@ def test_insert_multi_lines(setup_geopackage, add_index):
         'SELECT', srs, fields=flds,
         shape_type=GeometryType.multi_linestring,
         z_enabled=False, m_enabled=False, spatial_index=add_index)
+    assert fc.is_multi_part
     assert fc.has_spatial_index is add_index
     coords = [[(300000, 1), (300000, 4000000), (700000, 4000000), (700000, 1)],
               [(600000, 100000), (600000, 3900000), (400000, 3900000),
@@ -1098,6 +1131,35 @@ def test_copy_feature_class_narrow(setup_geopackage, data_path):
     assert result.count == 100
     assert result.geometry_column_name == SHAPE
 # End test_copy_feature_class_narrow function
+
+
+@mark.parametrize('name, count, out_count', [
+    ('areacode_a', 325, 4826),
+    ('areacode_narrow_a', 325, 4826),
+    ('detail_l', 14_640, 14_640),
+    ('places_p', 2176, 2176),
+])
+def test_explode_feature_class(setup_geopackage, data_path, name, count, out_count):
+    """
+    Test explode method for Feature Class
+    """
+    _, target_gpkg, _, _ = setup_geopackage
+    path = data_path / 'copy.gpkg'
+    assert path.is_file()
+    source_gpkg = GeoPackage(path)
+
+    fc = FeatureClass(geopackage=source_gpkg, name=name)
+    assert fc.exists
+    assert fc.count == count
+
+    with raises(ValueError):
+        fc.explode(name)
+
+    result = fc.explode(name=f'{name}_single', geopackage=target_gpkg)
+    assert isinstance(result, FeatureClass)
+    assert result.exists
+    assert result.count == out_count
+# End test_explode_feature_class function
 
 
 def test_table_add_drop_fields(setup_geopackage):
