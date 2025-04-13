@@ -771,6 +771,31 @@ class FeatureClass(BaseTable):
         return insert_sql, select_sql
     # End _make_copy_sql method
 
+    def _shared_create_steps(self, name: str, description: str = '',
+                             where_clause: str = '', overwrite: bool = False,
+                             geopackage: Optional[GeoPackage] = None,
+                             geom_name: STRING = None) \
+            -> tuple[str, str, 'FeatureClass']:
+        """
+        Shared Steps for Creating a Feature Class during Copy / Explode
+        """
+        if not geopackage:
+            geopackage = self.geopackage
+        self._validate_same(
+            source=self, target=FeatureClass(geopackage, name=name))
+        self._validate_overwrite(geopackage, name=name, overwrite=overwrite)
+        target = self.create(
+            geopackage=geopackage, name=name, shape_type=self.shape_type,
+            srs=self.spatial_reference_system,
+            fields=self._remove_special(self.fields),
+            description=description or self.description, overwrite=overwrite,
+            z_enabled=self.has_z, m_enabled=self.has_m,
+            spatial_index=self.has_spatial_index,
+            geom_name=geom_name or self.geometry_column_name)
+        insert_sql, select_sql = self._make_copy_sql(target, where_clause)
+        return insert_sql, select_sql, target
+    # End _shared_create_steps method
+
     def add_spatial_index(self) -> bool:
         """
         Add Spatial Index if does not already exist
@@ -951,20 +976,9 @@ class FeatureClass(BaseTable):
         feature class or overwrite an existing.  Use a where clause to limit
         the features.  Output feature class can be in a different geopackage.
         """
-        if not geopackage:
-            geopackage = self.geopackage
-        self._validate_same(
-            source=self, target=FeatureClass(geopackage, name=name))
-        self._validate_overwrite(geopackage, name, overwrite)
-        target = self.create(
-            geopackage=geopackage, name=name, shape_type=self.shape_type,
-            srs=self.spatial_reference_system,
-            fields=self._remove_special(self.fields),
-            description=description or self.description, overwrite=overwrite,
-            z_enabled=self.has_z, m_enabled=self.has_m,
-            spatial_index=self.has_spatial_index,
-            geom_name=geom_name or self.geometry_column_name)
-        insert_sql, select_sql = self._make_copy_sql(target, where_clause)
+        insert_sql, select_sql, target = self._shared_create_steps(
+            name=name, description=description, where_clause=where_clause,
+            overwrite=overwrite, geopackage=geopackage, geom_name=geom_name)
         cursor = self.geopackage.connection.execute(select_sql)
         with (target.geopackage.connection as connection,
               ExecuteMany(connection=connection, table=target) as executor):
