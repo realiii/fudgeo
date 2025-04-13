@@ -300,8 +300,8 @@ class GeoPackage:
         """
         Tables in the GeoPackage
         """
-        # noinspection PyTypeChecker
-        return self._get_table_objects(Table, DataType.attributes)
+        return self._get_table_objects(
+            Table, data_type=DataType.attributes)
     # End tables property
 
     @property
@@ -309,8 +309,8 @@ class GeoPackage:
         """
         Feature Classes in the GeoPackage
         """
-        # noinspection PyTypeChecker
-        return self._get_table_objects(FeatureClass, DataType.features)
+        return self._get_table_objects(
+            FeatureClass, data_type=DataType.features)
     # End feature_classes property
 
     def _get_table_objects(self, cls: Type['BaseTable'],
@@ -618,7 +618,7 @@ class Table(BaseTable):
         """
         Create a regular non-spatial table in the geopackage
         """
-        cls._validate_overwrite(geopackage, name, overwrite)
+        cls._validate_overwrite(geopackage, name=name, overwrite=overwrite)
         cols = cls._column_names_types(fields)
         with geopackage.connection as conn:
             escaped_name = escape_name(name)
@@ -661,7 +661,7 @@ class Table(BaseTable):
         if not geopackage:
             geopackage = self.geopackage
         self._validate_same(source=self, target=Table(geopackage, name=name))
-        self._validate_overwrite(geopackage, name, overwrite)
+        self._validate_overwrite(geopackage, name=name, overwrite=overwrite)
         target = self.create(
             geopackage=geopackage, name=name,
             fields=self._remove_special(self.fields),
@@ -791,7 +791,7 @@ class FeatureClass(BaseTable):
         """
         Create Feature Class
         """
-        cls._validate_overwrite(geopackage, name, overwrite)
+        cls._validate_overwrite(geopackage, name=name, overwrite=overwrite)
         cols = cls._column_names_types(fields)
         with geopackage.connection as conn:
             escaped_name = escape_name(name)
