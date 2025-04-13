@@ -228,6 +228,23 @@ def test_create_feature_class(tmp_path, fields, name, ogr_contents, trigger_coun
 # End test_create_feature_class function
 
 
+def test_spatial_reference_equal():
+    """
+    Test spatial references equal
+    """
+    srs1 = SpatialReferenceSystem(
+        'WGS_1984_UTM_Zone_23N', 'EPSG', 32623, WGS_1984_UTM_Zone_23N)
+    srs2 = SpatialReferenceSystem(
+        'WGS_1984_UTM_Zone_23N', 'EPSG', 32623, WGS_1984_UTM_Zone_23N)
+    srs3 = SpatialReferenceSystem(
+        'Different_Name', 'EPSG', 32623, WGS_1984_UTM_Zone_23N)
+    assert id(srs1) != id(srs2)
+    assert srs1 == srs1
+    assert srs1 == srs2
+    assert srs1 == srs3
+# End test_create_feature_class function
+
+
 @mark.parametrize('name, ogr_contents, has_table, trigger_count, add_index', [
     ('ASDF', True, True, 2, False),
     ('ASDF', False, False, 0, False),

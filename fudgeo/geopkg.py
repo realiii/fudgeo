@@ -5,6 +5,7 @@ Geopackage
 
 
 from math import nan
+from operator import itemgetter
 from os import PathLike
 from pathlib import Path
 from sqlite3 import (
@@ -1009,6 +1010,16 @@ class SpatialReferenceSystem:
         self.definition: str = definition
         self.description: str = description
     # End init built-in
+
+    def __eq__(self, other: 'SpatialReferenceSystem') -> bool:
+        """
+        Equals
+        """
+        if not isinstance(other, SpatialReferenceSystem):
+            return NotImplemented
+        getter = itemgetter(*(1, 2, 3, 4))
+        return getter(self.as_record()) == getter(other.as_record())
+    # End eq built-in
 
     @property
     def srs_id(self) -> int:
