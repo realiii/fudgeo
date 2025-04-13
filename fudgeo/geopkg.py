@@ -4,6 +4,7 @@ Geopackage
 """
 
 
+from abc import abstractmethod
 from math import nan
 from operator import itemgetter
 from os import PathLike
@@ -16,7 +17,7 @@ from typing import Optional, TYPE_CHECKING, Type, Union
 from numpy import int16, int32, int64, int8, uint16, uint32, uint64, uint8
 
 from fudgeo.alias import FIELDS, FIELD_NAMES, INT, STRING
-from fudgeo.constant import COMMA_SPACE, FETCH_SIZE, GPKG_EXT, SHAPE
+from fudgeo.constant import COMMA_SPACE, FETCH_SIZE, GPKG_EXT, MEMORY, SHAPE
 from fudgeo.context import ExecuteMany
 from fudgeo.enumeration import DataType, GPKGFlavors, GeometryType, SQLFieldType
 from fudgeo.extension.metadata import (
@@ -91,25 +92,18 @@ def _add_st_functions(conn: 'Connection') -> None:
 # End _add_st_functions function
 
 
-class GeoPackage:
+class AbstractGeoPackage:
     """
-    GeoPackage
+    Abstract GeoPackage
     """
     def __init__(self, path: Union[PathLike, str]) -> None:
         """
-        Initialize the GeoPackage class
+        Initialize the AbstractGeoPackage class
         """
         super().__init__()
-        self._path: Path = Path(path)
+        self._path: Union[Path, str] = path
         self._conn: Optional['Connection'] = None
     # End init built-in
-
-    def __repr__(self) -> str:
-        """
-        String Representation
-        """
-        return f'GeoPackage(path={self._path!r})'
-    # End repr built-in
 
     def _check_table_exists(self, table_name: str) -> bool:
         """
@@ -127,7 +121,7 @@ class GeoPackage:
         if not fields:
             fields = ()
         if not overwrite and self.exists(name):
-            raise ValueError(f'Table {name} already exists in {self._path}')
+            raise ValueError(f'Table {name} already exists in {self.path}')
         return fields
     # End _validate_inputs method
 
@@ -141,12 +135,37 @@ class GeoPackage:
         return {name: cls(self, name) for name, in cursor.fetchall()}
     # End _get_table_objects method
 
+    def _configure_connection(self, db: str) -> None:
+        """
+        Configure Connection
+        """
+        conn = connect(
+            db, isolation_level='EXCLUSIVE',
+            detect_types=PARSE_DECLTYPES | PARSE_COLNAMES)
+        self._register_functions(conn)
+        self._conn = conn
+    # End _configure_connection method
+
+    @staticmethod
+    def _register_functions(connection: 'Connection') -> None:
+        """
+        Register Functions / Functionality
+        """
+        connection.execute("""PRAGMA foreign_keys = true""")
+        _register_geometry()
+        _register_numpy_integers()
+        _add_st_functions(connection)
+        register_converter('timestamp', convert_datetime)
+        register_converter('datetime', convert_datetime)
+    # End _register_functions method
+
     @property
-    def path(self) -> Path:
+    @abstractmethod
+    def path(self) -> Union[Path, str]:
         """
         Path
         """
-        return self._path
+        pass
     # End path property
 
     @property
@@ -155,46 +174,9 @@ class GeoPackage:
         Connection
         """
         if self._conn is None:
-            self._conn = connect(
-                str(self._path), isolation_level='EXCLUSIVE',
-                detect_types=PARSE_DECLTYPES | PARSE_COLNAMES)
-            self._conn.execute("""PRAGMA foreign_keys = true""")
-            _register_geometry()
-            _register_numpy_integers()
-            _add_st_functions(self._conn)
-            register_converter('timestamp', convert_datetime)
-            register_converter('datetime', convert_datetime)
+            self._configure_connection(str(self.path))
         return self._conn
     # End connection property
-
-    @classmethod
-    def create(cls, path: Union[PathLike, str], flavor: str = GPKGFlavors.esri,
-               ogr_contents: bool = False, enable_metadata: bool = False,
-               enable_schema: bool = False) -> 'GeoPackage':
-        """
-        Create a new GeoPackage
-        """
-        path = Path(path).with_suffix(GPKG_EXT)
-        if path.is_file():
-            raise ValueError(f'GeoPackage already exists: {path}')
-        if not path.parent.is_dir():
-            raise ValueError(f'Folder does not exist: {path.parent}')
-        if flavor == GPKGFlavors.esri:
-            defaults = DEFAULT_ESRI_RECS
-        else:
-            defaults = DEFAULT_EPSG_RECS
-        with connect(str(path), isolation_level='EXCLUSIVE') as conn:
-            with Path(__file__).parent.joinpath('geopkg.sql').open() as fin:
-                conn.executescript(fin.read())
-            conn.executemany(INSERT_GPKG_SRS, defaults)
-            if ogr_contents:
-                conn.execute(CREATE_OGR_CONTENTS)
-            if enable_metadata:
-                add_metadata_extension(conn)
-            if enable_schema:
-                add_schema_extension(conn)
-        return cls(path)
-    # End create method
 
     def add_spatial_reference(self, srs: 'SpatialReferenceSystem') -> None:
         """
@@ -255,15 +237,12 @@ class GeoPackage:
         return has_schema_extension(self.connection)
     # End is_schema_enabled property
 
+    @abstractmethod
     def exists(self, table_name: str) -> bool:
         """
         Check if the table exists in the GeoPackage
         """
-        if not table_name:
-            return False
-        if not self.path.is_file():
-            return False
-        return self._check_table_exists(table_name)
+        pass
     # End exists method
 
     def create_feature_class(self, name: str, srs: 'SpatialReferenceSystem',
@@ -343,7 +322,150 @@ class GeoPackage:
             return
         return Schema(geopackage=self)
     # End schema property
+
+    @staticmethod
+    def _build_geopackage(path: str, flavor: str, ogr_contents: bool,
+                          enable_metadata: bool, enable_schema: bool) \
+            -> 'Connection':
+        """
+        Build Geopackage Structure and Return a Connection
+        """
+        if flavor == GPKGFlavors.esri:
+            defaults = DEFAULT_ESRI_RECS
+        else:
+            defaults = DEFAULT_EPSG_RECS
+        with connect(path, isolation_level='EXCLUSIVE',
+                     detect_types=PARSE_DECLTYPES | PARSE_COLNAMES) as conn:
+            with Path(__file__).parent.joinpath('geopkg.sql').open() as fin:
+                conn.executescript(fin.read())
+            conn.executemany(INSERT_GPKG_SRS, defaults)
+            if ogr_contents:
+                conn.execute(CREATE_OGR_CONTENTS)
+            if enable_metadata:
+                add_metadata_extension(conn)
+            if enable_schema:
+                add_schema_extension(conn)
+        return conn
+    # End _build_geopackage method
+# End AbstractGeoPackage class
+
+
+class GeoPackage(AbstractGeoPackage):
+    """
+    GeoPackage
+    """
+    def __init__(self, path: Union[PathLike, str]) -> None:
+        """
+        Initialize the GeoPackage class
+        """
+        super().__init__(Path(path))
+    # End init built-in
+
+    def __repr__(self) -> str:
+        """
+        String Representation
+        """
+        return f'GeoPackage(path={self.path!r})'
+    # End repr built-in
+
+    @property
+    def path(self) -> Path:
+        """
+        Path
+        """
+        return self._path
+    # End path property
+
+    def exists(self, table_name: str) -> bool:
+        """
+        Check if the table exists in the GeoPackage
+        """
+        if not table_name:
+            return False
+        if not self.path.is_file():
+            return False
+        return self._check_table_exists(table_name)
+    # End exists method
+
+    @classmethod
+    def create(cls, path: Union[PathLike, str], flavor: str = GPKGFlavors.esri,
+               ogr_contents: bool = False, enable_metadata: bool = False,
+               enable_schema: bool = False) -> 'GeoPackage':
+        """
+        Create a new GeoPackage
+        """
+        path = Path(path).with_suffix(GPKG_EXT)
+        if path.is_file():
+            raise ValueError(f'GeoPackage already exists: {path}')
+        if not path.parent.is_dir():
+            raise ValueError(f'Folder does not exist: {path.parent}')
+        cls._build_geopackage(
+            path=str(path), flavor=flavor, ogr_contents=ogr_contents,
+            enable_metadata=enable_metadata, enable_schema=enable_schema)
+        return cls(path)
+    # End create method
 # End GeoPackage class
+
+
+class MemoryGeoPackage(AbstractGeoPackage):
+    """
+    In Memory GeoPackage
+    """
+    def __init__(self) -> None:
+        """
+        Initialize the MemoryGeoPackage class
+        """
+        super().__init__(MEMORY)
+    # End init built-in
+
+    @property
+    def connection(self) -> Optional['Connection']:
+        """
+        Connection
+        """
+        return self._conn
+
+    @connection.setter
+    def connection(self, value: 'Connection') -> None:
+        self._conn = value
+    # End connection property
+
+    @property
+    def path(self) -> str:
+        """
+        Path
+        """
+        return MEMORY
+    # End path property
+
+    def exists(self, table_name: str) -> bool:
+        """
+        Check if the table exists in the GeoPackage
+        """
+        if not table_name:
+            return False
+        if self.path != MEMORY:
+            return False
+        return self._check_table_exists(table_name)
+    # End exists method
+
+    # noinspection PyUnusedLocal
+    @classmethod
+    def create(cls, path: str = MEMORY, flavor: str = GPKGFlavors.esri,
+               ogr_contents: bool = False, enable_metadata: bool = False,
+               enable_schema: bool = False) -> 'MemoryGeoPackage':
+        """
+        Create a new Memory based GeoPackage
+        """
+        conn = cls._build_geopackage(
+            path=MEMORY, flavor=flavor, ogr_contents=ogr_contents,
+            enable_metadata=enable_metadata, enable_schema=enable_schema)
+        gpkg = cls()
+        gpkg.connection = conn
+        gpkg._register_functions(conn)
+        return gpkg
+    # End create method
+# End MemoryGeoPackage class
 
 
 class BaseTable:
@@ -471,8 +593,11 @@ class BaseTable:
         """
         if source.name.casefold() != target.name.casefold():
             return
-        if not source.geopackage.path.samefile(target.geopackage.path):
+        if not isinstance(source.geopackage, type(target.geopackage)):
             return
+        if isinstance(path := source.geopackage.path, Path):
+            if not path.samefile(target.geopackage.path):
+                return
         raise ValueError(f'Cannot copy table {source.name} to itself')
     # End _validate_same method
 

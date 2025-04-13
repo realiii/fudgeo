@@ -1200,5 +1200,14 @@ def test_table_add_drop_fields(setup_geopackage):
 # End test_table_add_drop_fields function
 
 
+def test_setup_geo_file_based(setup_geopackage):
+    """
+    Test that conftest is left in file based state
+    """
+    _, gpkg, _, _ = setup_geopackage
+    assert gpkg.path.is_file()
+# End test_setup_geo_file_based function
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass
