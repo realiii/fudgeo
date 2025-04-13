@@ -16,7 +16,7 @@ from typing import Optional, TYPE_CHECKING, Type, Union
 from numpy import int16, int32, int64, int8, uint16, uint32, uint64, uint8
 
 from fudgeo.alias import FIELDS, FIELD_NAMES, INT, STRING
-from fudgeo.constant import COMMA_SPACE, GPKG_EXT, SHAPE
+from fudgeo.constant import COMMA_SPACE, FETCH_SIZE, GPKG_EXT, SHAPE
 from fudgeo.context import ExecuteMany
 from fudgeo.enumeration import DataType, GPKGFlavors, GeometryType, SQLFieldType
 from fudgeo.extension.metadata import (
@@ -670,7 +670,7 @@ class Table(BaseTable):
         insert_sql, select_sql = self._make_copy_sql(target, where_clause)
         cursor = self.geopackage.connection.execute(select_sql)
         with target.geopackage.connection as connection:
-            while records := cursor.fetchmany(100_000):
+            while records := cursor.fetchmany(FETCH_SIZE):
                 connection.executemany(insert_sql, records)
         return target
     # End copy method
@@ -996,7 +996,7 @@ class FeatureClass(BaseTable):
         cursor = self.geopackage.connection.execute(select_sql)
         with (target.geopackage.connection as connection,
               ExecuteMany(connection=connection, table=target) as executor):
-            while features := cursor.fetchmany(100_000):
+            while features := cursor.fetchmany(FETCH_SIZE):
                 executor(sql=insert_sql, data=features)
             target.extent = self.extent
         return target
@@ -1022,7 +1022,7 @@ class FeatureClass(BaseTable):
         cursor = self.geopackage.connection.execute(select_sql)
         with (target.geopackage.connection as connection,
               ExecuteMany(connection=connection, table=target) as executor):
-            while features := cursor.fetchmany(100_000):
+            while features := cursor.fetchmany(FETCH_SIZE):
                 rows = []
                 for geoms, *values in features:
                     rows.extend((geom, *values) for geom in geoms)
