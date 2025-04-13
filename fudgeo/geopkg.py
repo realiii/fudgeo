@@ -111,6 +111,36 @@ class GeoPackage:
         return f'GeoPackage(path={self._path!r})'
     # End repr built-in
 
+    def _check_table_exists(self, table_name: str) -> bool:
+        """
+        Check existence of table
+        """
+        cursor = self.connection.execute(TABLE_EXISTS, (table_name,))
+        return bool(cursor.fetchall())
+    # End _check_table_exists method
+
+    def _validate_inputs(self, fields: FIELDS, name: str,
+                         overwrite: bool) -> FIELDS:
+        """
+        Validate Inputs
+        """
+        if not fields:
+            fields = ()
+        if not overwrite and self.exists(name):
+            raise ValueError(f'Table {name} already exists in {self._path}')
+        return fields
+    # End _validate_inputs method
+
+    def _get_table_objects(self, cls: Type['BaseTable'],
+                           data_type: str) -> dict[str, 'BaseTable']:
+        """
+        Get Table Objects
+        """
+        cursor = self.connection.execute(
+            SELECT_TABLES_BY_TYPE, (data_type,))
+        return {name: cls(self, name) for name, in cursor.fetchall()}
+    # End _get_table_objects method
+
     @property
     def path(self) -> Path:
         """
@@ -225,14 +255,6 @@ class GeoPackage:
         return has_schema_extension(self.connection)
     # End is_schema_enabled property
 
-    def _check_table_exists(self, table_name: str) -> bool:
-        """
-        Check existence of table
-        """
-        cursor = self.connection.execute(TABLE_EXISTS, (table_name,))
-        return bool(cursor.fetchall())
-    # End _check_table_exists method
-
     def exists(self, table_name: str) -> bool:
         """
         Check if the table exists in the GeoPackage
@@ -243,18 +265,6 @@ class GeoPackage:
             return False
         return self._check_table_exists(table_name)
     # End exists method
-
-    def _validate_inputs(self, fields: FIELDS, name: str,
-                         overwrite: bool) -> FIELDS:
-        """
-        Validate Inputs
-        """
-        if not fields:
-            fields = ()
-        if not overwrite and self.exists(name):
-            raise ValueError(f'Table {name} already exists in {self._path}')
-        return fields
-    # End _validate_inputs method
 
     def create_feature_class(self, name: str, srs: 'SpatialReferenceSystem',
                              shape_type: str = GeometryType.point,
