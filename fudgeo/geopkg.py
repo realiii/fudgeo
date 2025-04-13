@@ -1016,7 +1016,9 @@ class SpatialReferenceSystem:
         self.name: str = name
         self.organization: str = organization
         self.org_coord_sys_id: int = org_coord_sys_id
-        self._srs_id: int = org_coord_sys_id if srs_id is None else srs_id
+        if srs_id is None:
+            srs_id = org_coord_sys_id
+        self._srs_id: int = srs_id
         self.definition: str = definition
         self.description: str = description
     # End init built-in
