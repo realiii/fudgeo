@@ -1133,6 +1133,35 @@ def test_copy_feature_class_narrow(setup_geopackage, data_path):
 # End test_copy_feature_class_narrow function
 
 
+@mark.parametrize('name, count, out_count', [
+    ('areacode_a', 325, 4826),
+    ('areacode_narrow_a', 325, 4826),
+    ('detail_l', 14_640, 14_640),
+    ('places_p', 2176, 2176),
+])
+def test_explode_feature_class(setup_geopackage, data_path, name, count, out_count):
+    """
+    Test explode method for Feature Class
+    """
+    _, target_gpkg, _, _ = setup_geopackage
+    path = data_path / 'copy.gpkg'
+    assert path.is_file()
+    source_gpkg = GeoPackage(path)
+
+    fc = FeatureClass(geopackage=source_gpkg, name=name)
+    assert fc.exists
+    assert fc.count == count
+
+    with raises(ValueError):
+        fc.explode(name)
+
+    result = fc.explode(name=f'{name}_single', geopackage=target_gpkg)
+    assert isinstance(result, FeatureClass)
+    assert result.exists
+    assert result.count == out_count
+# End test_explode_feature_class function
+
+
 def test_table_add_drop_fields(setup_geopackage):
     """
     Test add / drop fields on a Table

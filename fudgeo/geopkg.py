@@ -1002,6 +1002,35 @@ class FeatureClass(BaseTable):
         return target
     # End copy method
 
+    def explode(self, name: str, overwrite: bool = False,
+                geopackage: Optional[GeoPackage] = None) -> 'FeatureClass':
+        """
+        Explode feature class containing MultiPart geometry in a new feature
+        class in the same or a different GeoPackage.  If the feature class
+        does not contain a MultiPart geometry then a copy of the feature
+        class is made.
+
+        When a feature class has a custom SRS and copying / exploding from one
+        geopackage to another geopackage there is a possibility that the
+        embedded SRS ID of the geometry will be incorrect in the
+        target geopackage.
+        """
+        if not self.is_multi_part:
+            return self.copy(name, overwrite=overwrite, geopackage=geopackage)
+        insert_sql, select_sql, target = self._shared_create_steps(
+            name=name, overwrite=overwrite, geopackage=geopackage)
+        cursor = self.geopackage.connection.execute(select_sql)
+        with (target.geopackage.connection as connection,
+              ExecuteMany(connection=connection, table=target) as executor):
+            while features := cursor.fetchmany(100_000):
+                rows = []
+                for geoms, *values in features:
+                    rows.extend((geom, *values) for geom in geoms)
+                executor(sql=insert_sql, data=rows)
+            target.extent = self.extent
+        return target
+    # End explode method
+
     def select(self, fields: Union[FIELDS, FIELD_NAMES] = (),
                where_clause: str = '', include_geometry: bool = True,
                include_primary: bool = False, limit: INT = None) -> 'Cursor':
