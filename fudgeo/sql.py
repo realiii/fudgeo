@@ -256,6 +256,14 @@ SELECT_TABLES_BY_TYPE: str = """
 """
 
 
+SELECT_SPATIAL_REFERENCES: str = """
+    SELECT srs_name, organization, organization_coordsys_id, 
+           definition, description, srs_id 
+    FROM gpkg_spatial_ref_sys 
+    WHERE srs_id > 0
+"""
+
+
 SELECT_COUNT: str = """SELECT COUNT(1) AS C FROM {}"""
 
 

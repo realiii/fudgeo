@@ -242,7 +242,20 @@ def test_spatial_reference_equal():
     assert srs1 == srs1
     assert srs1 == srs2
     assert srs1 == srs3
-# End test_create_feature_class function
+# End test_spatial_reference_equal function
+
+
+def test_spatial_references(setup_geopackage):
+    """
+    Test spatial references equal
+    """
+    _, gpkg, srs, _ = setup_geopackage
+    references = gpkg.spatial_references
+    assert len(references) == 2
+    assert 4326 in references
+    assert srs.srs_id in references
+    assert srs == references[srs.srs_id]
+# End test_spatial_references function
 
 
 @mark.parametrize('name, ogr_contents, has_table, trigger_count, add_index', [

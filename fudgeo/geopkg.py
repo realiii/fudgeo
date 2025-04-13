@@ -38,8 +38,8 @@ from fudgeo.sql import (
     INSERT_GPKG_CONTENTS_SHORT, INSERT_GPKG_GEOM_COL, INSERT_GPKG_SRS,
     REMOVE_FEATURE_CLASS, REMOVE_TABLE, SELECT_COUNT, SELECT_DESCRIPTION,
     SELECT_EXTENT, SELECT_GEOMETRY_COLUMN, SELECT_GEOMETRY_TYPE, SELECT_HAS_ZM,
-    SELECT_PRIMARY_KEY, SELECT_SRS, SELECT_TABLES_BY_TYPE, TABLE_EXISTS,
-    UPDATE_EXTENT)
+    SELECT_PRIMARY_KEY, SELECT_SPATIAL_REFERENCES, SELECT_SRS,
+    SELECT_TABLES_BY_TYPE, TABLE_EXISTS, UPDATE_EXTENT)
 from fudgeo.util import check_geometry_name, convert_datetime, escape_name, now
 
 
@@ -313,15 +313,16 @@ class GeoPackage:
             FeatureClass, data_type=DataType.features)
     # End feature_classes property
 
-    def _get_table_objects(self, cls: Type['BaseTable'],
-                           data_type: str) -> dict[str, 'BaseTable']:
+    @property
+    def spatial_references(self) -> dict[int, 'SpatialReferenceSystem']:
         """
-        Get Table Objects
+        Spatial References in the GeoPackage
         """
-        cursor = self.connection.execute(
-            SELECT_TABLES_BY_TYPE, (data_type,))
-        return {name: cls(self, name) for name, in cursor.fetchall()}
-    # End _get_table_objects method
+        cursor = self.connection.execute(SELECT_SPATIAL_REFERENCES)
+        references = [SpatialReferenceSystem(*record)
+                      for record in cursor.fetchall()]
+        return {srs.srs_id: srs for srs in references}
+    # End spatial_references property
 
     @property
     def metadata(self) -> Optional[Metadata]:
