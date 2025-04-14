@@ -10,8 +10,11 @@ from math import nan
 from struct import error as StructError, pack, unpack
 from typing import Any, Callable, TYPE_CHECKING, Union
 
+try:
+    from bottleneck import nanmax, nanmin
+except ModuleNotFoundError:
+    from numpy import nanmax, nanmin
 from numpy import array, frombuffer, ndarray
-from bottleneck import nanmax, nanmin
 
 from fudgeo.alias import GEOMS, GEOMS_M, GEOMS_Z, GEOMS_ZM
 from fudgeo.constant import (

@@ -449,6 +449,7 @@ Support provided for the following constraint types:
 * introduce new `MemoryGeoPackage` class, allows for memory-based `GeoPackage` capabilities via SQLite `:memory:`
 * add support for `numpy` integers during `INSERT` and `UPDATE` operations
 * improvements and corrections to type hint stubs
+* reduce dependencies to just `numpy`
 
 ### v0.8.2
 * documentation edits
