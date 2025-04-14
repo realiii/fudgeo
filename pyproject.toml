@@ -1,6 +1,6 @@
 [project]
 name = "fudgeo"
-version = "0.8.2"
+version = "1.0.0"
 description = """\
     GeoPackage support from Python.  fudgeo is a lightweight package \
     for creating OGC GeoPackages, Feature Classes, and Tables.  Easily \
