@@ -4,12 +4,14 @@ Fixtures
 """
 
 
+from pathlib import Path
 from random import randint
 
 from pytest import fixture
 
 from fudgeo.enumeration import SQLFieldType
-from fudgeo.geopkg import Field, GeoPackage, SpatialReferenceSystem
+from fudgeo.geopkg import (
+    Field, GeoPackage, MemoryGeoPackage, SpatialReferenceSystem)
 from tests.geo import make_gpkg_geom_header
 from tests.crs import WGS_1984_UTM_Zone_23N
 
@@ -29,7 +31,9 @@ def setup_geopackage(tmp_path):
     Setup Basics
     """
     path = tmp_path.joinpath('test.gpkg')
+    # NOTE toggle for testing using memory
     pkg = GeoPackage.create(path)
+    # pkg = MemoryGeoPackage.create(path)
     srs = SpatialReferenceSystem(
         'WGS_1984_UTM_Zone_23N', 'EPSG', 32623, WGS_1984_UTM_Zone_23N)
     pkg.add_spatial_reference(srs)
@@ -69,6 +73,15 @@ def random_utm_coordinates():
     northings = [randint(0, 4000000) for _ in range(count)]
     return eastings, northings
 # End random_utm_coordinates function
+
+
+@fixture(scope='session')
+def data_path():
+    """
+    Data Path
+    """
+    return Path(__file__).parent.parent.joinpath('data')
+# End data_path function
 
 
 if __name__ == '__main__':  # pragma: no cover

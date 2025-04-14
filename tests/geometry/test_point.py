@@ -121,10 +121,10 @@ def test_point(header, pt, values, wkb_func, gpkg_func):
 
 
 @mark.parametrize('cls, values, wkb_func, env_code, env', [
-    (MultiPoint, [(0, 1), (10, 11)], multipoint_to_wkb_multipoint, 1, Envelope(code=1, min_x=0, max_x=10, min_y=1, max_y=11)),
-    (MultiPointZ, [(0, 1, 2), (10, 11, 12)], multipoint_z_to_wkb_multipoint_z, 2, Envelope(code=2, min_x=0, max_x=10, min_y=1, max_y=11, min_z=2, max_z=12)),
-    (MultiPointM, [(0, 1, 2), (10, 11, 12)], multipoint_m_to_wkb_multipoint_m, 3, Envelope(code=3, min_x=0, max_x=10, min_y=1, max_y=11, min_m=2, max_m=12)),
-    (MultiPointZM, [(0, 1, 2, 3), (10, 11, 12, 13)], multipoint_zm_to_wkb_multipoint_zm, 4, Envelope(code=4, min_x=0, max_x=10, min_y=1, max_y=11, min_z=2, max_z=12, min_m=3, max_m=13)),
+    (MultiPoint, [(0, 1), (10, 11)], multipoint_to_wkb_multipoint, 1, Envelope(code=1, srs_id=-1, min_x=0, max_x=10, min_y=1, max_y=11)),
+    (MultiPointZ, [(0, 1, 2), (10, 11, 12)], multipoint_z_to_wkb_multipoint_z, 2, Envelope(code=2, srs_id=-1, min_x=0, max_x=10, min_y=1, max_y=11, min_z=2, max_z=12)),
+    (MultiPointM, [(0, 1, 2), (10, 11, 12)], multipoint_m_to_wkb_multipoint_m, 3, Envelope(code=3, srs_id=-1, min_x=0, max_x=10, min_y=1, max_y=11, min_m=2, max_m=12)),
+    (MultiPointZM, [(0, 1, 2, 3), (10, 11, 12, 13)], multipoint_zm_to_wkb_multipoint_zm, 4, Envelope(code=4, srs_id=-1, min_x=0, max_x=10, min_y=1, max_y=11, min_z=2, max_z=12, min_m=3, max_m=13)),
 ])
 def test_multi_point(header, cls, values, wkb_func, env_code, env):
     """
@@ -147,6 +147,7 @@ def test_multi_point(header, cls, values, wkb_func, env_code, env):
     assert geo['type'] == 'MultiPoint'
     assert geo['coordinates'] == tuple(values)
     assert geo['bbox'] == env.bounding_box
+    assert sum(1 for _ in pts) == len(values)
 # End test_multi_point function
 
 

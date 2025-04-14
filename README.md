@@ -96,7 +96,7 @@ SRS_WKT: str = (
     'PARAMETER["Latitude_Of_Origin",0.0],'
     'UNIT["Meter",1.0]]')
 
-SRS: SpatialReferenceSystem = SpatialReferenceSystem(
+srs: SpatialReferenceSystem = SpatialReferenceSystem(
     name='WGS_1984_UTM_Zone_23N', organization='EPSG',
     org_coord_sys_id=32623, definition=SRS_WKT)
 fields: tuple[Field, ...] = (
@@ -114,7 +114,7 @@ fields: tuple[Field, ...] = (
 
 gpkg: GeoPackage = GeoPackage.create('../temp/test.gpkg')
 fc: FeatureClass = gpkg.create_feature_class(
-    'road_l', srs=SRS, fields=fields, shape_type=GeometryType.linestring,
+    'road_l', srs=srs, fields=fields, shape_type=GeometryType.linestring,
     m_enabled=True, overwrite=True, spatial_index=True)
 ```
 
@@ -132,14 +132,16 @@ Features can be inserted into a Feature Class using SQL.
 
 This example shows the creation of a random point Feature Class and
 builds upon the code from previous examples. Note that the create Feature Class
-portion of the code is omitted...
+portion of the code is omitted.
 
 ```python
 from random import choice, randint
 from string import ascii_uppercase, digits
 
+from fudgeo.context import ExecuteMany
+from fudgeo.extension.ogr import has_ogr_contents
 from fudgeo.geometry import LineStringM
-from fudgeo.geopkg import GeoPackage
+from fudgeo.geopkg import FeatureClass, GeoPackage
 
 # Generate some random points and attributes
 rows: list[tuple[LineStringM, int, str, float, float, float, float, bool]] = []
@@ -154,12 +156,18 @@ for i in range(10000):
                  eastings[-1], northings[-1], False))
 
 # NOTE Builds from previous examples
-gpkg: GeoPackage = GeoPackage('../data/example.gpkg')   
+gpkg: GeoPackage = GeoPackage('../data/example.gpkg')
+sql = """INSERT INTO road_l (SHAPE, road_id, name, begin_easting, begin_northing, 
+                             end_easting, end_northing, is_one_way) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)"""
+fc = FeatureClass(geopackage=gpkg, name='road_l')
 with gpkg.connection as conn:
-    conn.executemany("""
-        INSERT INTO road_l (SHAPE, road_id, name, begin_easting, begin_northing, 
-                            end_easting, end_northing, is_one_way) 
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""", rows)
+    # NOTE for feature classes with OGC triggers use ExecuteMany  
+    if has_ogr_contents(conn):
+        with ExecuteMany(conn, table=fc) as executor:
+            executor(sql=sql, data=rows)
+    else:
+        conn.executemany(sql, rows)
 ```
 
 ### Geometry Examples
@@ -260,22 +268,26 @@ SRS_WKT: str = (
     'PARAMETER["Scale_Factor",0.9996],'
     'PARAMETER["Latitude_Of_Origin",0.0],'
     'UNIT["Meter",1.0]]')
-SRS: SpatialReferenceSystem = SpatialReferenceSystem(
+srs: SpatialReferenceSystem = SpatialReferenceSystem(
     name='WGS_1984_UTM_Zone_23N', organization='EPSG',
     org_coord_sys_id=32623, definition=SRS_WKT)
-fields: tuple[Field, ...] = (
-    Field('id', SQLFieldType.integer),
-    Field('name', SQLFieldType.text, size=100))
 
 gpkg: GeoPackage = GeoPackage.create('../temp/spatial_index.gpkg')
 # add spatial index at create time
 event: FeatureClass = gpkg.create_feature_class(
-    'event_p', srs=SRS, fields=fields, spatial_index=True)
+    'event_p', srs=srs, spatial_index=True)
+assert event.exists
 assert event.has_spatial_index is True
+
+# NOTE can add fields after creation as of v1.0.0 
+fields: tuple[Field, ...] = (
+    Field('id', SQLFieldType.integer),
+    Field('name', SQLFieldType.text, size=100))
+event.add_fields(fields)
 
 # add spatial index on an existing feature class / post create
 signs: FeatureClass = gpkg.create_feature_class(
-    'signs_p', srs=SRS, fields=fields)
+    'signs_p', srs=srs, fields=fields)
 # no spatial index
 assert signs.has_spatial_index is False
 signs.add_spatial_index()
@@ -417,6 +429,27 @@ Support provided for the following constraint types:
 [MIT](https://raw.githubusercontent.com/realiii/fudgeo/refs/heads/develop/LICENSE)
 
 ## Release History
+
+### v1.0.0
+* add `exists` method to `GeoPackage` to check for a `Table` or `FeatureClass` by name
+* add `spatial_references` property to `GeoPackage`, returns a dictionary of `SpatialReferenceSystem` stored by `srs_id`
+* enable comparison (equals) on `SpatialReferenceSystem` objects
+* add `exists` property to `Table` and `FeatureClass`
+* add `copy` method on `Table` and `FeatureClass`
+* add `add_fields` and `drop_fields` methods on `Table` and `FeatureClass`
+* add `explode` method on `FeatureClass`
+* add `is_multi_part` property on `FeatureClass`
+* add `shape_type` property on `FeatureClass`
+* add `as_polygon` method to `Envelope`
+* add `srs_id` property to `Envelope`
+* include `ExecuteMany` context manager for performance improvements on `FeatureClass` that uses OGR triggers
+* implement iteration for `MultiPoint[Z][M]` (yields `Point[Z][M]`), 
+* implement iteration for `MultiLineString[Z][M]` (yields `LineString[Z][M]`)
+* implement iteration for `MultiPolygon[Z][M]` (yields `Polygon[Z][M]`)
+* introduce new `MemoryGeoPackage` class, allows for memory-based `GeoPackage` capabilities via SQLite `:memory:`
+* add support for `numpy` integers during `INSERT` and `UPDATE` operations
+* improvements and corrections to type hint stubs
+* reduce dependencies to just `numpy`
 
 ### v0.8.2
 * documentation edits

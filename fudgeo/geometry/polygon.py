@@ -5,7 +5,7 @@ Polygons
 
 
 from struct import pack
-from typing import Any, ClassVar, TYPE_CHECKING
+from typing import Any, ClassVar, Iterator, TYPE_CHECKING
 
 from fudgeo.constant import (
     COUNT_CODE, EMPTY, FOUR_D, THREE_D, TWO_D, WKB_MULTI_POLYGON_M_PRE,
@@ -52,6 +52,13 @@ class BaseLinearRing(AbstractGeometry):
         return self.points == other.points
     # End eq built-in
 
+    def __iter__(self) -> Iterator:
+        """
+        Iteration
+        """
+        return iter(self.points)
+    # End iter built-in
+
     @property
     def is_empty(self) -> bool:
         """
@@ -78,7 +85,7 @@ class BaseLinearRing(AbstractGeometry):
         """
         if self._env is not EMPTY_ENVELOPE:
             return self._env
-        env = ENV_COORD[self._env_code](self.coordinates)
+        env = ENV_COORD[self._env_code](self.srs_id, self.coordinates)
         self._env = env
         return env
     # End envelope property
@@ -173,6 +180,13 @@ class BasePolygon(AbstractGeometry):
             return False
         return self.rings == other.rings
     # End eq built-in
+
+    def __iter__(self) -> Iterator:
+        """
+        Iteration
+        """
+        return iter(self.rings)
+    # End iter built-in
 
     @property
     def __geo_interface__(self) -> dict:
@@ -334,6 +348,13 @@ class BaseMultiPolygon(AbstractGeometry):
             return False
         return self.polygons == other.polygons
     # End eq built-in
+
+    def __iter__(self) -> Iterator:
+        """
+        Iteration
+        """
+        return iter(self.polygons)
+    # End iter built-in
 
     @property
     def __geo_interface__(self) -> dict:

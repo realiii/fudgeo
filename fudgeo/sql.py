@@ -32,6 +32,10 @@ KEYWORDS: set[str] = {
 ROOT: str = 'https://www.geopackage.org/spec131/'
 
 
+ADD_COLUMN: str = """ALTER TABLE {} ADD COLUMN {}"""
+DROP_COLUMN: str = """ALTER TABLE {} DROP COLUMN {}"""
+
+
 INSERT_GPKG_CONTENTS_SHORT: str = """
     INSERT INTO gpkg_contents (
         table_name, data_type, identifier, description, last_change, srs_id) 
@@ -224,6 +228,13 @@ SELECT_GEOMETRY_TYPE: str = """
 """
 
 
+SELECT_DESCRIPTION: str = """
+    SELECT DESCRIPTION
+    FROM gpkg_contents
+    WHERE lower(table_name) = lower(?)
+"""
+
+
 UPDATE_EXTENT: str = """    
     UPDATE gpkg_contents 
     SET min_x = ?, min_y = ?, max_x = ?, max_y = ? 
@@ -242,6 +253,14 @@ SELECT_TABLES_BY_TYPE: str = """
     SELECT table_name 
     FROM gpkg_contents 
     WHERE data_type = ?
+"""
+
+
+SELECT_SPATIAL_REFERENCES: str = """
+    SELECT srs_name, organization, organization_coordsys_id, 
+           definition, description, srs_id 
+    FROM gpkg_spatial_ref_sys 
+    WHERE srs_id > 0
 """
 
 

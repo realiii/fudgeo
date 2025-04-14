@@ -11,6 +11,7 @@ from pytest import approx, mark
 from fudgeo.constant import HEADER_OFFSET
 from fudgeo.geometry import (
     MultiPolygon, MultiPolygonM, MultiPolygonZ, MultiPolygonZM)
+from fudgeo.geometry.polygon import Polygon
 from fudgeo.geometry.util import (
     EMPTY_ENVELOPE, Envelope, _envelope_xy, _envelope_xym, _envelope_xyz,
     _envelope_xyzm, envelope_from_coordinates, envelope_from_coordinates_m,
@@ -42,7 +43,7 @@ def test_geometry_header(cls, srs_id, offset, code, envelope, data):
     values = unpack(f'<{count}d', data[HEADER_OFFSET:off])
     tolerance = 10 ** -6
     assert approx(values, abs=tolerance) == envelope
-    env = unpack_envelope(code=env_code, view=data[:offset])
+    env = unpack_envelope(code=env_code, srs_id=srs_id, view=data[:offset])
     if code:
         assert approx(env.min_x, abs=tolerance) == envelope[0]
         assert approx(env.max_x, abs=tolerance) == envelope[1]
@@ -66,29 +67,30 @@ def test_envelope_internal_and_coordinates():
     ys = arange(5, 10)
     zs = arange(10, 15)
     ms = arange(15, 20)
-    env = Envelope(code=1, min_x=0, max_x=4, min_y=5, max_y=9)
+    srs_id = -1
+    env = Envelope(code=1, srs_id=srs_id, min_x=0, max_x=4, min_y=5, max_y=9)
     assert env.bounding_box == (0, 5, 4, 9)
-    assert _envelope_xy(xs=xs, ys=ys) == env
-    assert envelope_from_coordinates(array(list(zip(xs, ys)), dtype=float)) == env
-    assert envelope_from_coordinates(array([], dtype=float)) is EMPTY_ENVELOPE
-    env = Envelope(code=2, min_x=0, max_x=4, min_y=5, max_y=9,
+    assert _envelope_xy(srs_id=srs_id, xs=xs, ys=ys) == env
+    assert envelope_from_coordinates(srs_id, array(list(zip(xs, ys)), dtype=float)) == env
+    assert envelope_from_coordinates(srs_id, array([], dtype=float)) is EMPTY_ENVELOPE
+    env = Envelope(code=2, srs_id=srs_id, min_x=0, max_x=4, min_y=5, max_y=9,
                    min_z=10, max_z=14)
     assert env.bounding_box == (0, 5, 4, 9)
-    assert _envelope_xyz(xs=xs, ys=ys, zs=zs) == env
-    assert envelope_from_coordinates_z(array(list(zip(xs, ys, zs)), dtype=float)) == env
-    assert envelope_from_coordinates_z(array([], dtype=float)) is EMPTY_ENVELOPE
-    env = Envelope(code=3, min_x=0, max_x=4, min_y=5, max_y=9,
+    assert _envelope_xyz(srs_id=srs_id, xs=xs, ys=ys, zs=zs) == env
+    assert envelope_from_coordinates_z(srs_id, array(list(zip(xs, ys, zs)), dtype=float)) == env
+    assert envelope_from_coordinates_z(srs_id, array([], dtype=float)) is EMPTY_ENVELOPE
+    env = Envelope(code=3, srs_id=srs_id, min_x=0, max_x=4, min_y=5, max_y=9,
                    min_m=15, max_m=19)
     assert env.bounding_box == (0, 5, 4, 9)
-    assert _envelope_xym(xs=xs, ys=ys, ms=ms) == env
-    assert envelope_from_coordinates_m(array(list(zip(xs, ys, ms)), dtype=float)) == env
-    assert envelope_from_coordinates_m(array([], dtype=float)) is EMPTY_ENVELOPE
-    env = Envelope(code=4, min_x=0, max_x=4, min_y=5, max_y=9,
+    assert _envelope_xym(srs_id=srs_id, xs=xs, ys=ys, ms=ms) == env
+    assert envelope_from_coordinates_m(srs_id, array(list(zip(xs, ys, ms)), dtype=float)) == env
+    assert envelope_from_coordinates_m(srs_id, array([], dtype=float)) is EMPTY_ENVELOPE
+    env = Envelope(code=4, srs_id=srs_id, min_x=0, max_x=4, min_y=5, max_y=9,
                    min_z=10, max_z=14, min_m=15, max_m=19)
     assert env.bounding_box == (0, 5, 4, 9)
-    assert _envelope_xyzm(xs=xs, ys=ys, zs=zs, ms=ms) == env
-    assert envelope_from_coordinates_zm(array(list(zip(xs, ys, zs, ms)), dtype=float)) == env
-    assert envelope_from_coordinates_zm(array([], dtype=float)) is EMPTY_ENVELOPE
+    assert _envelope_xyzm(srs_id=srs_id, xs=xs, ys=ys, zs=zs, ms=ms) == env
+    assert envelope_from_coordinates_zm(srs_id, array(list(zip(xs, ys, zs, ms)), dtype=float)) == env
+    assert envelope_from_coordinates_zm(srs_id, array([], dtype=float)) is EMPTY_ENVELOPE
 # End test_envelope_internal_and_coordinates function
 
 
@@ -96,10 +98,14 @@ def test_envelope():
     """
     Test Envelope
     """
-    env1 = Envelope(code=1, min_x=0, min_y=0, max_x=1, max_y=1)
+    env1 = Envelope(code=1, srs_id=-1, min_x=0, min_y=0, max_x=1, max_y=1)
     assert not (env1 == EMPTY_ENVELOPE)
     assert EMPTY_ENVELOPE == EMPTY_ENVELOPE
-    assert str(env1) == 'Envelope(code=1, min_x=0, max_x=1, min_y=0, max_y=1, min_z=nan, max_z=nan, min_m=nan, max_m=nan)'
+    assert str(env1) == 'Envelope(code=1, srs_id=-1, min_x=0, max_x=1, min_y=0, max_y=1, min_z=nan, max_z=nan, min_m=nan, max_m=nan)'
+    polygon = env1.as_polygon()
+    assert isinstance(polygon, Polygon)
+    assert len(polygon.rings) == 1
+    assert len(polygon.rings[0].coordinates) == 5
 # End test_envelope function
 
 

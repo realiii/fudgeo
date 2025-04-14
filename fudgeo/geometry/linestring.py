@@ -5,7 +5,7 @@ Line String
 
 
 from struct import pack
-from typing import Any, ClassVar, TYPE_CHECKING
+from typing import Any, ClassVar, Iterator, TYPE_CHECKING
 
 from fudgeo.constant import (
     COUNT_CODE, EMPTY, FOUR_D, THREE_D, TWO_D, WKB_LINESTRING_M_PRE,
@@ -56,6 +56,13 @@ class BaseLineString(AbstractGeometry):
             return False
         return self.points == other.points
     # End eq built-in
+
+    def __iter__(self) -> Iterator:
+        """
+        Iteration
+        """
+        return iter(self.points)
+    # End iter built-in
 
     @property
     def __geo_interface__(self) -> dict:
@@ -111,7 +118,7 @@ class BaseLineString(AbstractGeometry):
         """
         if self._env is not EMPTY_ENVELOPE:
             return self._env
-        env = ENV_COORD[self._env_code](self.coordinates)
+        env = ENV_COORD[self._env_code](self.srs_id, self.coordinates)
         self._env = env
         return env
     # End envelope property
@@ -219,6 +226,13 @@ class BaseMultiLineString(AbstractGeometry):
             return False
         return self.lines == other.lines
     # End eq built-in
+
+    def __iter__(self) -> Iterator:
+        """
+        Iteration
+        """
+        return iter(self.lines)
+    # End iter built-in
 
     @property
     def __geo_interface__(self) -> dict:

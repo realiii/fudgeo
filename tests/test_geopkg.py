@@ -24,9 +24,14 @@ from fudgeo.sql import SELECT_SRS
 from tests.crs import WGS_1984_UTM_Zone_23N
 
 # noinspection SqlNoDataSourceInspection
-INSERT_ROWS = """
+INSERT_POINTS = """
     INSERT INTO {} ({}, "int.fld", text_fld, test_fld_size, test_bool) 
     VALUES (?, ?, ?, ?, ?)
+"""
+# noinspection SqlNoDataSourceInspection
+INSERT_ROWS = """
+    INSERT INTO {} ("int.fld", text_fld, test_fld_size, test_bool) 
+    VALUES (?, ?, ?, ?)
 """
 # noinspection SqlNoDataSourceInspection
 SELECT_ST_FUNCS = """SELECT ST_IsEmpty({0}), ST_MinX({0}), ST_MaxX({0}), ST_MinY({0}), ST_MaxY({0}) FROM {1}"""
@@ -158,6 +163,7 @@ def test_create_table_drop_table(tmp_path, fields, name, ogr_contents, has_table
     table = geo.create_table(name, fields)
     assert isinstance(table, Table)
     tbl = geo.create_table(name, fields, overwrite=True)
+    assert tbl.exists
     assert table.count == 0
     # noinspection SqlNoDataSourceInspection
     sql = """SELECT count(type) AS C FROM sqlite_master WHERE type = 'trigger'"""
@@ -166,6 +172,7 @@ def test_create_table_drop_table(tmp_path, fields, name, ogr_contents, has_table
     assert count == trigger_count
     tbl.drop()
     assert not geo._check_table_exists(name)
+    assert not table.exists
     cursor = conn.execute(sql)
     count, = cursor.fetchone()
     assert count == 0
@@ -221,6 +228,36 @@ def test_create_feature_class(tmp_path, fields, name, ogr_contents, trigger_coun
 # End test_create_feature_class function
 
 
+def test_spatial_reference_equal():
+    """
+    Test spatial references equal
+    """
+    srs1 = SpatialReferenceSystem(
+        'WGS_1984_UTM_Zone_23N', 'EPSG', 32623, WGS_1984_UTM_Zone_23N)
+    srs2 = SpatialReferenceSystem(
+        'WGS_1984_UTM_Zone_23N', 'EPSG', 32623, WGS_1984_UTM_Zone_23N)
+    srs3 = SpatialReferenceSystem(
+        'Different_Name', 'EPSG', 32623, WGS_1984_UTM_Zone_23N)
+    assert id(srs1) != id(srs2)
+    assert srs1 == srs1
+    assert srs1 == srs2
+    assert srs1 == srs3
+# End test_spatial_reference_equal function
+
+
+def test_spatial_references(setup_geopackage):
+    """
+    Test spatial references equal
+    """
+    _, gpkg, srs, _ = setup_geopackage
+    references = gpkg.spatial_references
+    assert len(references) == 2
+    assert 4326 in references
+    assert srs.srs_id in references
+    assert srs == references[srs.srs_id]
+# End test_spatial_references function
+
+
 @mark.parametrize('name, ogr_contents, has_table, trigger_count, add_index', [
     ('ASDF', True, True, 2, False),
     ('ASDF', False, False, 0, False),
@@ -256,6 +293,7 @@ def test_create_feature_drop_feature(tmp_path, fields, name, ogr_contents, has_t
         assert fc.has_spatial_index
     assert isinstance(fc, FeatureClass)
     fc = geo.create_feature_class(name, srs=srs, fields=fields, overwrite=True, spatial_index=add_index)
+    assert fc.exists
     assert fc.count == 0
     # noinspection SqlNoDataSourceInspection
     sql = """SELECT count(type) AS C FROM sqlite_master WHERE type = 'trigger'"""
@@ -264,6 +302,7 @@ def test_create_feature_drop_feature(tmp_path, fields, name, ogr_contents, has_t
     assert count == trigger_count
     fc.drop()
     assert not geo._check_table_exists(name)
+    assert not fc.exists
     cursor = conn.execute(sql)
     count, = cursor.fetchone()
     assert count == 0
@@ -313,9 +352,9 @@ def test_create_feature_class_options(setup_geopackage, name, geom, has_z, has_m
     """
     Test creating feature classes with different shape options
     """
-    _, gpkg, srs, fields = setup_geopackage
+    _, gpkg, srs, flds = setup_geopackage
     fc = gpkg.create_feature_class(
-        name, shape_type=geom, srs=srs, fields=fields,
+        name, shape_type=geom, srs=srs, fields=flds,
         m_enabled=has_m, z_enabled=has_z)
     assert isinstance(fc, FeatureClass)
     assert fc.count == 0
@@ -331,10 +370,10 @@ def test_select_srs(setup_geopackage):
     """
     Test select srs
     """
-    _, gpkg, srs, fields = setup_geopackage
+    _, gpkg, srs, flds = setup_geopackage
     name = 'SELECT'
     fc = gpkg.create_feature_class(
-        name, shape_type=GeometryType.polygon, srs=srs, fields=fields)
+        name, shape_type=GeometryType.polygon, srs=srs, fields=flds)
     assert isinstance(fc, FeatureClass)
     conn = gpkg.connection
     cursor = conn.execute(SELECT_SRS, (name,))
@@ -363,16 +402,16 @@ def test_insert_point_rows(setup_geopackage, name, add_index):
     """
     Test Insert Point Rows
     """
-    _, gpkg, srs, fields = setup_geopackage
+    _, gpkg, srs, flds = setup_geopackage
     fc = gpkg.create_feature_class(
-        name, srs, fields=fields, shape_type=GeometryType.point,
+        name, srs, fields=flds, shape_type=GeometryType.point,
         spatial_index=add_index)
     assert fc.has_spatial_index is add_index
     assert isinstance(fc, FeatureClass)
     count = 10000
     rows = random_points_and_attrs(count, srs.srs_id)
     with gpkg.connection as conn:
-        conn.executemany(INSERT_ROWS.format(fc.escaped_name, fc.geometry_column_name), rows)
+        conn.executemany(INSERT_POINTS.format(fc.escaped_name, fc.geometry_column_name), rows)
     assert fc.count == count
     # noinspection SqlNoDataSourceInspection
     cursor = fc.select(limit=10)
@@ -410,9 +449,9 @@ def test_insert_poly(setup_geopackage, rings, add_index):
     """
     Test create a feature class and insert a polygon
     """
-    _, gpkg, srs, fields = setup_geopackage
+    _, gpkg, srs, flds = setup_geopackage
     fc = gpkg.create_feature_class(
-        'SELECT', srs, fields=fields, shape_type=GeometryType.polygon,
+        'SELECT', srs, fields=flds, shape_type=GeometryType.polygon,
         spatial_index=add_index)
     assert fc.has_spatial_index is add_index
     geom = Polygon(rings, srs.srs_id)
@@ -438,10 +477,11 @@ def test_insert_multi_poly(setup_geopackage, add_index):
     """
     Test create a feature class with "multi polygons"
     """
-    _, gpkg, srs, fields = setup_geopackage
+    _, gpkg, srs, flds = setup_geopackage
     fc = gpkg.create_feature_class(
-        'SELECT', srs, fields=fields, shape_type=GeometryType.multi_polygon,
+        'SELECT', srs, fields=flds, shape_type=GeometryType.multi_polygon,
         spatial_index=add_index)
+    assert fc.is_multi_part
     assert fc.has_spatial_index is add_index
     polys = [[[(300000, 1), (300000, 4000000), (700000, 4000000), (700000, 1),
                (300000, 1)]],
@@ -470,9 +510,9 @@ def test_insert_lines(setup_geopackage, add_index):
     """
     Test insert a line
     """
-    _, gpkg, srs, fields = setup_geopackage
+    _, gpkg, srs, flds = setup_geopackage
     fc = gpkg.create_feature_class(
-        'SELECT', srs, fields=fields, shape_type=GeometryType.linestring,
+        'SELECT', srs, fields=flds, shape_type=GeometryType.linestring,
         spatial_index=add_index)
     assert fc.has_spatial_index is add_index
     coords = [(300000, 1), (300000, 4000000), (700000, 4000000), (700000, 1)]
@@ -499,10 +539,11 @@ def test_insert_multi_point(setup_geopackage, add_index):
     """
     Test insert a multi point
     """
-    _, gpkg, srs, fields = setup_geopackage
+    _, gpkg, srs, flds = setup_geopackage
     fc = gpkg.create_feature_class(
-        'SELECT', srs, fields=fields, shape_type=GeometryType.multi_point,
+        'SELECT', srs, fields=flds, shape_type=GeometryType.multi_point,
         spatial_index=add_index)
+    assert fc.is_multi_part
     assert fc.has_spatial_index is add_index
     multipoints = [(300000, 1), (700000, 4000000)]
     geom = MultiPoint(multipoints, srs_id=srs.srs_id)
@@ -528,9 +569,9 @@ def test_insert_lines_z(setup_geopackage, add_index):
     """
     Test insert a line with Z
     """
-    _, gpkg, srs, fields = setup_geopackage
+    _, gpkg, srs, flds = setup_geopackage
     fc = gpkg.create_feature_class(
-        'SELECT', srs, fields=fields, shape_type=GeometryType.linestring,
+        'SELECT', srs, fields=flds, shape_type=GeometryType.linestring,
         z_enabled=True, spatial_index=add_index)
     assert fc.has_spatial_index is add_index
     coords = [(300000, 1, 10), (300000, 4000000, 20), (700000, 4000000, 30),
@@ -558,9 +599,9 @@ def test_insert_lines_m(setup_geopackage, add_index):
     """
     Test insert a line with M
     """
-    _, gpkg, srs, fields = setup_geopackage
+    _, gpkg, srs, flds = setup_geopackage
     fc = gpkg.create_feature_class(
-        'SELECT', srs, fields=fields, shape_type=GeometryType.linestring,
+        'SELECT', srs, fields=flds, shape_type=GeometryType.linestring,
         m_enabled=True, spatial_index=add_index)
     assert fc.has_spatial_index is add_index
     coords = [(300000, 1, 10), (300000, 4000000, 20), (700000, 4000000, 30),
@@ -588,9 +629,9 @@ def test_insert_lines_zm(setup_geopackage, add_index):
     """
     Test insert a line with ZM
     """
-    _, gpkg, srs, fields = setup_geopackage
+    _, gpkg, srs, flds = setup_geopackage
     fc = gpkg.create_feature_class(
-        'SELECT', srs, fields=fields, shape_type=GeometryType.linestring,
+        'SELECT', srs, fields=flds, shape_type=GeometryType.linestring,
         z_enabled=True, m_enabled=True, spatial_index=add_index)
     assert fc.has_spatial_index is add_index
     coords = [(300000, 1, 10, 0), (300000, 4000000, 20, 1000),
@@ -618,9 +659,9 @@ def test_insert_and_update_lines_zm(setup_geopackage, add_index):
     """
     Test insert a line with ZM an then update the geometry
     """
-    _, gpkg, srs, fields = setup_geopackage
+    _, gpkg, srs, flds = setup_geopackage
     fc = gpkg.create_feature_class(
-        'SELECT', srs, fields=fields, shape_type=GeometryType.linestring,
+        'SELECT', srs, fields=flds, shape_type=GeometryType.linestring,
         z_enabled=True, m_enabled=True, spatial_index=add_index)
     assert fc.has_spatial_index is add_index
     coords = [(300000, 1, 10, 0), (300000, 4000000, 20, 1000),
@@ -663,10 +704,10 @@ def test_non_standard_geom_name(setup_geopackage, geom_name, add_index, is_error
     """
     Test non-standard geometry column name
     """
-    _, gpkg, srs, fields = setup_geopackage
+    _, gpkg, srs, flds = setup_geopackage
     tbl = 'SELECT'
     kwargs = dict(
-        name=tbl, srs=srs, fields=fields,
+        name=tbl, srs=srs, fields=flds,
         shape_type=GeometryType.linestring,
         z_enabled=True, m_enabled=True, spatial_index=add_index,
         geom_name=geom_name)
@@ -698,11 +739,12 @@ def test_insert_multi_lines(setup_geopackage, add_index):
     """
     Test insert multi lines
     """
-    _, gpkg, srs, fields = setup_geopackage
+    _, gpkg, srs, flds = setup_geopackage
     fc = gpkg.create_feature_class(
-        'SELECT', srs, fields=fields,
+        'SELECT', srs, fields=flds,
         shape_type=GeometryType.multi_linestring,
         z_enabled=False, m_enabled=False, spatial_index=add_index)
+    assert fc.is_multi_part
     assert fc.has_spatial_index is add_index
     coords = [[(300000, 1), (300000, 4000000), (700000, 4000000), (700000, 1)],
               [(600000, 100000), (600000, 3900000), (400000, 3900000),
@@ -732,9 +774,9 @@ def test_insert_polygon_m(setup_geopackage, add_index):
     """
     rings = [[(0, 0, 0), (0, 1, 1), (1, 1, 1), (1, 0, 1), (0, 0, 0)],
               [(5, 5, 5), (5, 15, 10), (15, 15, 15), (15, 5, 20), (5, 5, 5)]]
-    _, gpkg, srs, fields = setup_geopackage
+    _, gpkg, srs, flds = setup_geopackage
     fc = gpkg.create_feature_class(
-        'SELECT', srs, fields=fields, shape_type=GeometryType.polygon,
+        'SELECT', srs, fields=flds, shape_type=GeometryType.polygon,
         spatial_index=add_index, m_enabled=True)
     assert fc.has_spatial_index is add_index
     geom = PolygonM(rings, srs.srs_id)
@@ -856,14 +898,14 @@ def test_validate_fields_feature_class(setup_geopackage):
     a = Field('a', SQLFieldType.integer)
     b = Field('b', SQLFieldType.text, 20)
     c = Field('c', SQLFieldType.text, 50)
-    fields = a, b, c
-    fc = gpkg.create_feature_class(name=name, srs=srs, fields=fields)
+    flds = a, b, c
+    fc = gpkg.create_feature_class(name=name, srs=srs, fields=flds)
     expected_names = ['fid', SHAPE, a.name, b.name, c.name]
     assert fc.field_names == expected_names
-    fields = fc._validate_fields(fields=expected_names)
-    assert [f.name for f in fields] == [a.name, b.name, c.name]
-    fields = fc._validate_fields(fields=[n.upper() for n in expected_names])
-    assert [f.name for f in fields] == [a.name, b.name, c.name]
+    flds = fc._validate_fields(fields=expected_names)
+    assert [f.name for f in flds] == [a.name, b.name, c.name]
+    flds = fc._validate_fields(fields=[n.upper() for n in expected_names])
+    assert [f.name for f in flds] == [a.name, b.name, c.name]
     assert not fc._validate_fields(fields='d')
     assert not fc._validate_fields(fields=1234)
     assert not fc._validate_fields(fields=())
@@ -915,10 +957,10 @@ def test_validate_fields_table(setup_geopackage):
     tbl = gpkg.create_table(name=name, fields=(a, b, c))
     expected_names = ['fid', a.name, b.name, c.name]
     assert tbl.field_names == expected_names
-    fields = tbl._validate_fields(fields=expected_names)
-    assert [f.name for f in fields] == [a.name, b.name, c.name]
-    fields = tbl._validate_fields(fields=[n.upper() for n in expected_names])
-    assert [f.name for f in fields] == [a.name, b.name, c.name]
+    flds = tbl._validate_fields(fields=expected_names)
+    assert [f.name for f in flds] == [a.name, b.name, c.name]
+    flds = tbl._validate_fields(fields=[n.upper() for n in expected_names])
+    assert [f.name for f in flds] == [a.name, b.name, c.name]
     assert not tbl._validate_fields(fields='d')
     assert not tbl._validate_fields(fields=1234)
     assert not tbl._validate_fields(fields=())
@@ -964,5 +1006,208 @@ def test_representation():
 # End test_representation function
 
 
-if __name__ == '__main__':
+def test_exists(tmp_path, fields):
+    """
+    Test exists methods
+    """
+    name = 'example'
+    path = tmp_path / 'tbl_exists'
+
+    assert not GeoPackage(path).exists('asdf')
+
+    geo = GeoPackage.create(path)
+    assert not geo.exists(None)
+
+    tbl = Table(geopackage=None, name=name)
+    assert not tbl.exists
+
+    tbl = geo.create_table(name, fields)
+    assert tbl.exists
+# End test_exists function
+
+
+def test_copy_table(setup_geopackage):
+    """
+    Test copy method for Table
+    """
+    _, gpkg, _, flds = setup_geopackage
+    another_name = 'another_table'
+    gpkg.create_table(another_name, fields=flds)
+    name = 'source_tbl'
+    tbl = gpkg.create_table(name, fields=flds)
+    assert isinstance(tbl, Table)
+    count = 1000
+    rows = random_points_and_attrs(count, 4326)
+    rows = [row[1:] for row in rows]
+    with gpkg.connection as conn:
+        conn.executemany(INSERT_ROWS.format(tbl.escaped_name), rows)
+    assert tbl.count == count
+
+    with raises(ValueError):
+        tbl.copy(another_name)
+    with raises(ValueError):
+        tbl.copy(name)
+
+    result = tbl.copy(another_name, overwrite=True)
+    assert isinstance(result, Table)
+    assert result.count == count
+
+    desc = 'The quick brown fox'
+    sql = f'{tbl.primary_key_field.escaped_name} > 500'
+    result = tbl.copy(another_name, description=desc, where_clause=sql, overwrite=True)
+    assert isinstance(result, Table)
+    assert result.exists
+    assert result.description == desc
+    assert result.count == 500
+# End test_copy_table function
+
+
+@mark.parametrize('name, count, sql, sub_count', [
+    ('areacode_a', 325, """STATE = 'TX'""", 27),
+    ('detail_l', 14_640, """Type = 1""", 12_633),
+    ('places_p', 2176, """ST = 'TN'""", 427),
+])
+def test_copy_feature_class(setup_geopackage, data_path, name, count, sql, sub_count):
+    """
+    Test copy method for Feature Class
+    """
+    _, target_gpkg, _, _ = setup_geopackage
+    path = data_path / 'copy.gpkg'
+    assert path.is_file()
+    source_gpkg = GeoPackage(path)
+
+    fc = FeatureClass(geopackage=source_gpkg, name=name)
+    assert fc.exists
+    assert fc.count == count
+
+    with raises(ValueError):
+        fc.copy(name)
+
+    desc = 'The quick brown fox'
+    result = fc.copy(
+        name=f'{name}_copy', geopackage=target_gpkg, description=desc,
+        geom_name=SHAPE)
+    assert isinstance(result, FeatureClass)
+    assert result.exists
+    assert result.count == count
+    assert result.geometry_column_name == SHAPE
+
+    desc = 'The quick brown fox'
+    result = fc.copy(
+        name=f'{name}_copy', geopackage=target_gpkg, description=desc,
+        geom_name=SHAPE, where_clause=sql, overwrite=True)
+    assert isinstance(result, FeatureClass)
+    assert result.exists
+    assert result.count == sub_count
+    assert result.geometry_column_name == SHAPE
+# End test_copy_feature_class function
+
+
+def test_copy_feature_class_narrow(setup_geopackage, data_path):
+    """
+    Test copy method for narrow Feature Class (only has fid and geometry)
+    """
+    count = 325
+    _, target_gpkg, _, _ = setup_geopackage
+    path = data_path / 'copy.gpkg'
+    assert path.is_file()
+    source_gpkg = GeoPackage(path)
+
+    fc = FeatureClass(geopackage=source_gpkg, name='areacode_narrow_a')
+    assert fc.exists
+    assert fc.count == count
+
+    result = fc.copy(name=fc.name, geopackage=target_gpkg, geom_name=SHAPE)
+    assert isinstance(result, FeatureClass)
+    assert result.exists
+    assert result.count == count
+    assert result.geometry_column_name == SHAPE
+
+    sql = f"""{fc.primary_key_field.escaped_name} <= 100"""
+    result = fc.copy(name=fc.name, where_clause=sql,
+                     geopackage=target_gpkg, geom_name=SHAPE, overwrite=True)
+    assert isinstance(result, FeatureClass)
+    assert result.exists
+    assert result.count == 100
+    assert result.geometry_column_name == SHAPE
+# End test_copy_feature_class_narrow function
+
+
+@mark.parametrize('name, count, out_count', [
+    ('areacode_a', 325, 4826),
+    ('areacode_narrow_a', 325, 4826),
+    ('detail_l', 14_640, 14_640),
+    ('places_p', 2176, 2176),
+])
+def test_explode_feature_class(setup_geopackage, data_path, name, count, out_count):
+    """
+    Test explode method for Feature Class
+    """
+    _, target_gpkg, _, _ = setup_geopackage
+    path = data_path / 'copy.gpkg'
+    assert path.is_file()
+    source_gpkg = GeoPackage(path)
+
+    fc = FeatureClass(geopackage=source_gpkg, name=name)
+    assert fc.exists
+    assert fc.count == count
+
+    with raises(ValueError):
+        fc.explode(name)
+
+    result = fc.explode(name=f'{name}_single', geopackage=target_gpkg)
+    assert isinstance(result, FeatureClass)
+    assert result.exists
+    assert result.count == out_count
+# End test_explode_feature_class function
+
+
+def test_table_add_drop_fields(setup_geopackage):
+    """
+    Test add / drop fields on a Table
+    """
+    _, gpkg, _, flds = setup_geopackage
+    name = 'source_tbl'
+    tbl = gpkg.create_table(name, fields=flds)
+    assert isinstance(tbl, Table)
+    count = 1000
+    rows = random_points_and_attrs(count, 4326)
+    rows = [row[1:] for row in rows]
+    with gpkg.connection as conn:
+        conn.executemany(INSERT_ROWS.format(tbl.escaped_name), rows)
+    assert tbl.count == count
+    assert not tbl.add_fields(fields=flds)
+
+    fld = Field('a', SQLFieldType.integer)
+    assert tbl.add_fields(fields=fld)
+    assert 'a' in tbl.field_names
+
+    flds = fld, Field('b', SQLFieldType.text, 20), Field('c', SQLFieldType.real)
+    assert tbl.add_fields(fields=flds)
+    assert 'b' in tbl.field_names
+    assert 'c' in tbl.field_names
+
+    fld = Field('d', SQLFieldType.text, 20)
+    assert not tbl.drop_fields(fields=fld)
+    assert not tbl.drop_fields(fields=[fld])
+
+    assert tbl.drop_fields(fields=flds)
+    assert 'a' not in tbl.field_names
+    assert 'b' not in tbl.field_names
+    assert 'c' not in tbl.field_names
+
+    assert not tbl.drop_fields(fields=tbl.primary_key_field)
+# End test_table_add_drop_fields function
+
+
+def test_setup_geo_file_based(setup_geopackage):
+    """
+    Test that conftest is left in file based state
+    """
+    _, gpkg, _, _ = setup_geopackage
+    assert gpkg.path.is_file()
+# End test_setup_geo_file_based function
+
+
+if __name__ == '__main__':  # pragma: no cover
     pass

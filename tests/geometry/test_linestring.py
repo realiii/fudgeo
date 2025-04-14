@@ -92,10 +92,10 @@ def test_empty_multi_line_string(cls, wkb, data):
 
 
 @mark.parametrize('cls, values, env_code, wkb_func, gpkg_func, env', [
-    (LineString, [(0, 1), (10, 11)], 1, points_to_wkb_line_string, points_to_gpkg_line_string, Envelope(code=1, min_x=0, max_x=10, min_y=1, max_y=11)),
-    (LineStringZ, [(0, 1, 2), (10, 11, 12)], 2, points_z_to_wkb_line_string_z, points_z_to_gpkg_line_string_z, Envelope(code=2, min_x=0, max_x=10, min_y=1, max_y=11, min_z=2, max_z=12)),
-    (LineStringM, [(0, 1, 2), (10, 11, 12)], 3, points_m_to_wkb_line_string_m, points_m_to_gpkg_line_string_m, Envelope(code=3, min_x=0, max_x=10, min_y=1, max_y=11, min_m=2, max_m=12)),
-    (LineStringZM, [(0, 1, 2, 3), (10, 11, 12, 13)], 4, points_zm_to_wkb_line_string_zm, points_zm_to_gpkg_line_string_zm, Envelope(code=4, min_x=0, max_x=10, min_y=1, max_y=11, min_z=2, max_z=12, min_m=3, max_m=13)),
+    (LineString, [(0, 1), (10, 11)], 1, points_to_wkb_line_string, points_to_gpkg_line_string, Envelope(code=1, srs_id=-1, min_x=0, max_x=10, min_y=1, max_y=11)),
+    (LineStringZ, [(0, 1, 2), (10, 11, 12)], 2, points_z_to_wkb_line_string_z, points_z_to_gpkg_line_string_z, Envelope(code=2, srs_id=-1, min_x=0, max_x=10, min_y=1, max_y=11, min_z=2, max_z=12)),
+    (LineStringM, [(0, 1, 2), (10, 11, 12)], 3, points_m_to_wkb_line_string_m, points_m_to_gpkg_line_string_m, Envelope(code=3, srs_id=-1, min_x=0, max_x=10, min_y=1, max_y=11, min_m=2, max_m=12)),
+    (LineStringZM, [(0, 1, 2, 3), (10, 11, 12, 13)], 4, points_zm_to_wkb_line_string_zm, points_zm_to_gpkg_line_string_zm, Envelope(code=4, srs_id=-1, min_x=0, max_x=10, min_y=1, max_y=11, min_z=2, max_z=12, min_m=3, max_m=13)),
 ])
 def test_line_string(header, cls, values, env_code, wkb_func, gpkg_func, env):
     """
@@ -122,6 +122,7 @@ def test_line_string(header, cls, values, env_code, wkb_func, gpkg_func, env):
     assert geo['type'] == 'LineString'
     assert geo['coordinates'] == tuple(values)
     assert geo['bbox'] == env.bounding_box
+    assert sum(1 for _ in line) == len(values)
 # End test_line_string function
 
 
@@ -149,13 +150,13 @@ def test_line_string_envelope(data):
 
 @mark.parametrize('cls, values, env_code, wkb_func, env', [
     (MultiLineString, [[(0, 0), (1, 1)], [(10, 12), (15, 16)], [(45, 55), (75, 85)], [(4.4, 5.5), (7.7, 8.8)]],
-     1, point_lists_to_multi_line_string, Envelope(code=1, min_x=0, max_x=75, min_y=0, max_y=85)),
+     1, point_lists_to_multi_line_string, Envelope(code=1, srs_id=-1, min_x=0, max_x=75, min_y=0, max_y=85)),
     (MultiLineStringZ, [[(0, 0, 0), (1, 1, 1)], [(10, 12, 13), (15, 16, 17)], [(45, 55, 65), (75, 85, 95)], [(4.4, 5.5, 6.6), (7.7, 8.8, 9.9)]],
-     2, point_lists_z_to_multi_line_string_z, Envelope(code=2, min_x=0, max_x=75, min_y=0, max_y=85, min_z=0, max_z=95)),
+     2, point_lists_z_to_multi_line_string_z, Envelope(code=2, srs_id=-1, min_x=0, max_x=75, min_y=0, max_y=85, min_z=0, max_z=95)),
     (MultiLineStringM, [[(0, 0, 0), (1, 1, 1)], [(10, 12, 13), (15, 16, 17)], [(45, 55, 65), (75, 85, 95)], [(4.4, 5.5, 6.6), (7.7, 8.8, 9.9)]],
-     3, point_lists_m_to_multi_line_string_m, Envelope(code=3, min_x=0, max_x=75, min_y=0, max_y=85, min_m=0, max_m=95)),
+     3, point_lists_m_to_multi_line_string_m, Envelope(code=3, srs_id=-1, min_x=0, max_x=75, min_y=0, max_y=85, min_m=0, max_m=95)),
     (MultiLineStringZM, [[(0, 0, 0, 0), (1, 1, 1, 1)], [(10, 12, 13, 14), (15, 16, 17, 18)], [(45, 55, 65, 75), (75, 85, 95, 105)], [(4.4, 5.5, 6.6, 7.7), (7.7, 8.8, 9.9, 10.1)]],
-     4, point_lists_zm_to_multi_line_string_zm, Envelope(code=4, min_x=0, max_x=75, min_y=0, max_y=85, min_z=0, max_z=95, min_m=0, max_m=105)),
+     4, point_lists_zm_to_multi_line_string_zm, Envelope(code=4, srs_id=-1, min_x=0, max_x=75, min_y=0, max_y=85, min_z=0, max_z=95, min_m=0, max_m=105)),
 ])
 def test_multi_line_string(header, cls, values, env_code, wkb_func, env):
     """
@@ -178,6 +179,7 @@ def test_multi_line_string(header, cls, values, env_code, wkb_func, env):
     assert geo['type'] == 'MultiLineString'
     assert geo['coordinates'] == tuple(tuple(v) for v in values)
     assert geo['bbox'] == env.bounding_box
+    assert sum(1 for _ in multi) == len(values)
 # End test_multi_line_string function
 
 
