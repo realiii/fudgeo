@@ -12,7 +12,7 @@ from pathlib import Path
 from sqlite3 import (
     PARSE_COLNAMES, PARSE_DECLTYPES, connect, register_adapter,
     register_converter)
-from typing import Optional, TYPE_CHECKING, Type, Union
+from typing import Any, Optional, TYPE_CHECKING, Type, Union
 
 from numpy import int16, int32, int64, int8, uint16, uint32, uint64, uint8
 
@@ -508,12 +508,11 @@ class BaseTable:
     # End _drop method
 
     @staticmethod
-    def _check_result(cursor: 'Cursor') -> STRING:
+    def _check_result(cursor: 'Cursor') -> Any:
         """
         Check Result
         """
-        result = cursor.fetchone()
-        if not result:
+        if not (result := cursor.fetchone()):
             return
         if None in result:
             return

@@ -1,6 +1,6 @@
 [project]
 name = "fudgeo"
-version = "0.8.2"
+version = "1.0.0"
 description = """\
     GeoPackage support from Python.  fudgeo is a lightweight package \
     for creating OGC GeoPackages, Feature Classes, and Tables.  Easily \
@@ -22,7 +22,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 keywords = ["geopackage"]
-dependencies = ["numpy", "Bottleneck"]
+dependencies = ["numpy"]
 requires-python = ">=3.9"
 
 [tool.setuptools]
