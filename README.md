@@ -271,9 +271,6 @@ SRS_WKT: str = (
 srs: SpatialReferenceSystem = SpatialReferenceSystem(
     name='WGS_1984_UTM_Zone_23N', organization='EPSG',
     org_coord_sys_id=32623, definition=SRS_WKT)
-fields: tuple[Field, ...] = (
-    Field('id', SQLFieldType.integer),
-    Field('name', SQLFieldType.text, size=100))
 
 gpkg: GeoPackage = GeoPackage.create('../temp/spatial_index.gpkg')
 # add spatial index at create time
@@ -281,6 +278,12 @@ event: FeatureClass = gpkg.create_feature_class(
     'event_p', srs=srs, spatial_index=True)
 assert event.exists
 assert event.has_spatial_index is True
+
+# NOTE can add fields after creation as of v1.0.0 
+fields: tuple[Field, ...] = (
+    Field('id', SQLFieldType.integer),
+    Field('name', SQLFieldType.text, size=100))
+event.add_fields(fields)
 
 # add spatial index on an existing feature class / post create
 signs: FeatureClass = gpkg.create_feature_class(
