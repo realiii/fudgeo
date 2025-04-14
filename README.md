@@ -138,8 +138,10 @@ portion of the code is omitted...
 from random import choice, randint
 from string import ascii_uppercase, digits
 
+from fudgeo.context import ExecuteMany
+from fudgeo.extension.ogr import has_ogr_contents
 from fudgeo.geometry import LineStringM
-from fudgeo.geopkg import GeoPackage
+from fudgeo.geopkg import FeatureClass, GeoPackage
 
 # Generate some random points and attributes
 rows: list[tuple[LineStringM, int, str, float, float, float, float, bool]] = []
@@ -154,12 +156,18 @@ for i in range(10000):
                  eastings[-1], northings[-1], False))
 
 # NOTE Builds from previous examples
-gpkg: GeoPackage = GeoPackage('../data/example.gpkg')   
+gpkg: GeoPackage = GeoPackage('../data/example.gpkg')
+sql = """INSERT INTO road_l (SHAPE, road_id, name, begin_easting, begin_northing, 
+                             end_easting, end_northing, is_one_way) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)"""
+fc = FeatureClass(geopackage=gpkg, name='road_l')
 with gpkg.connection as conn:
-    conn.executemany("""
-        INSERT INTO road_l (SHAPE, road_id, name, begin_easting, begin_northing, 
-                            end_easting, end_northing, is_one_way) 
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""", rows)
+    # NOTE for feature classes with OGC triggers use ExecuteMany  
+    if has_ogr_contents(conn):
+        with ExecuteMany(conn, table=fc) as executor:
+            executor(sql=sql, data=rows)
+    else:
+        conn.executemany(sql, rows)
 ```
 
 ### Geometry Examples
