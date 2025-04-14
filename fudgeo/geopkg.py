@@ -512,8 +512,7 @@ class BaseTable:
         """
         Check Result
         """
-        result = cursor.fetchone()
-        if not result:
+        if not (result := cursor.fetchone()):
             return
         if None in result:
             return
