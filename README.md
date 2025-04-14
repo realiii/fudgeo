@@ -96,7 +96,7 @@ SRS_WKT: str = (
     'PARAMETER["Latitude_Of_Origin",0.0],'
     'UNIT["Meter",1.0]]')
 
-SRS: SpatialReferenceSystem = SpatialReferenceSystem(
+srs: SpatialReferenceSystem = SpatialReferenceSystem(
     name='WGS_1984_UTM_Zone_23N', organization='EPSG',
     org_coord_sys_id=32623, definition=SRS_WKT)
 fields: tuple[Field, ...] = (
@@ -114,7 +114,7 @@ fields: tuple[Field, ...] = (
 
 gpkg: GeoPackage = GeoPackage.create('../temp/test.gpkg')
 fc: FeatureClass = gpkg.create_feature_class(
-    'road_l', srs=SRS, fields=fields, shape_type=GeometryType.linestring,
+    'road_l', srs=srs, fields=fields, shape_type=GeometryType.linestring,
     m_enabled=True, overwrite=True, spatial_index=True)
 ```
 
@@ -260,7 +260,7 @@ SRS_WKT: str = (
     'PARAMETER["Scale_Factor",0.9996],'
     'PARAMETER["Latitude_Of_Origin",0.0],'
     'UNIT["Meter",1.0]]')
-SRS: SpatialReferenceSystem = SpatialReferenceSystem(
+srs: SpatialReferenceSystem = SpatialReferenceSystem(
     name='WGS_1984_UTM_Zone_23N', organization='EPSG',
     org_coord_sys_id=32623, definition=SRS_WKT)
 fields: tuple[Field, ...] = (
@@ -270,12 +270,13 @@ fields: tuple[Field, ...] = (
 gpkg: GeoPackage = GeoPackage.create('../temp/spatial_index.gpkg')
 # add spatial index at create time
 event: FeatureClass = gpkg.create_feature_class(
-    'event_p', srs=SRS, fields=fields, spatial_index=True)
+    'event_p', srs=srs, spatial_index=True)
+assert event.exists
 assert event.has_spatial_index is True
 
 # add spatial index on an existing feature class / post create
 signs: FeatureClass = gpkg.create_feature_class(
-    'signs_p', srs=SRS, fields=fields)
+    'signs_p', srs=srs, fields=fields)
 # no spatial index
 assert signs.has_spatial_index is False
 signs.add_spatial_index()
