@@ -132,7 +132,7 @@ Features can be inserted into a Feature Class using SQL.
 
 This example shows the creation of a random point Feature Class and
 builds upon the code from previous examples. Note that the create Feature Class
-portion of the code is omitted...
+portion of the code is omitted.
 
 ```python
 from random import choice, randint
