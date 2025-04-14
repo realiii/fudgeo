@@ -430,6 +430,26 @@ Support provided for the following constraint types:
 
 ## Release History
 
+### v1.0.0
+* add `exists` method to `GeoPackage` to check for a `Table` or `FeatureClass` by name
+* add `spatial_references` property to `GeoPackage`, returns a dictionary of `SpatialReferenceSystem` stored by `srs_id`
+* enable comparison (equals) on `SpatialReferenceSystem` objects
+* add `exists` property to `Table` and `FeatureClass`
+* add `copy` method on `Table` and `FeatureClass`
+* add `add_fields` and `drop_fields` methods on `Table` and `FeatureClass`
+* add `explode` method on `FeatureClass`
+* add `is_multi_part` property on `FeatureClass`
+* add `shape_type` property on `FeatureClass`
+* add `as_polygon` method to `Envelope`
+* add `srs_id` property to `Envelope`
+* include `ExecuteMany` context manager for performance improvements on `FeatureClass` that uses OGR triggers
+* implement iteration for `MultiPoint[Z][M]` (yields `Point[Z][M]`), 
+* implement iteration for `MultiLineString[Z][M]` (yields `LineString[Z][M]`)
+* implement iteration for `MultiPolygon[Z][M]` (yields `Polygon[Z][M]`)
+* introduce new `MemoryGeoPackage` class, allows for memory-based `GeoPackage` capabilities via SQLite `:memory:`
+* add support for `numpy` integers during `INSERT` and `UPDATE` operations
+* improvements and corrections to type hint stubs
+
 ### v0.8.2
 * documentation edits
 * copyright bump
