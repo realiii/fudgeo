@@ -78,8 +78,8 @@ either of these options are enabled, the geometry inserted into the
 Feature Class **must** include a value for the option specified.
 
 ```python
-from fudgeo.enumeration import GeometryType, SQLFieldType
 from fudgeo import FeatureClass, Field, GeoPackage, SpatialReferenceSystem
+from fudgeo.enumeration import GeometryType, SQLFieldType
 
 SRS_WKT: str = (
     'PROJCS["WGS_1984_UTM_Zone_23N",'
@@ -138,10 +138,10 @@ portion of the code is omitted.
 from random import choice, randint
 from string import ascii_uppercase, digits
 
+from fudgeo import FeatureClass, GeoPackage
 from fudgeo.context import ExecuteMany
 from fudgeo.extension.ogr import has_ogr_contents
 from fudgeo.geometry import LineStringM
-from fudgeo import FeatureClass, GeoPackage
 
 # Generate some random points and attributes
 rows: list[tuple[LineStringM, int, str, float, float, float, float, bool]] = []
@@ -204,8 +204,8 @@ For simple geometries (e.g. those without *Z* or *M*) this can be done via a
 basic `SELECT` statement or the `select` method.
 
 ```python
-from fudgeo.geometry import Point
 from fudgeo import FeatureClass, GeoPackage
+from fudgeo.geometry import Point
 
 gpkg = GeoPackage(...)
 
@@ -225,8 +225,8 @@ then ensure `SQLite` knows how to convert the geopackage stored geometry to a
 
 
 ```python
-from fudgeo.geometry import LineStringM
 from fudgeo import FeatureClass, GeoPackage
+from fudgeo.geometry import LineStringM
 
 gpkg = GeoPackage('../data/example.gpkg')
 # NOTE for fudgeo version v0.8.0 and above use helper method
@@ -250,8 +250,8 @@ Spatial Indexes apply to individual feature classes.  A spatial index can be
 added at create time or added on an existing feature class.
 
 ```python
-from fudgeo.enumeration import SQLFieldType
 from fudgeo import FeatureClass, Field, GeoPackage, SpatialReferenceSystem
+from fudgeo.enumeration import SQLFieldType
 
 
 SRS_WKT: str = (
@@ -327,9 +327,9 @@ assert gpkg.is_metadata_enabled is True
 ```
 
 ```python
+from fudgeo import GeoPackage
 from fudgeo.enumeration import MetadataScope
 from fudgeo.extension.metadata import TableReference
-from fudgeo import GeoPackage
 
 # open GeoPackage with metadata extension enabled
 gpkg: GeoPackage = GeoPackage('../data/example.gpkg')
@@ -381,9 +381,9 @@ assert gpkg.is_schema_enabled is True
 ```
 
 ```python
+from fudgeo import GeoPackage
 from fudgeo.extension.schema import (
     EnumerationConstraint, GlobConstraint, RangeConstraint)
-from fudgeo import GeoPackage
 
 # open GeoPackage with schema extension enabled
 gpkg: GeoPackage = GeoPackage('../data/example.gpkg')
