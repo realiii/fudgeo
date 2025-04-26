@@ -38,7 +38,7 @@ tested on **macOS** and **Windows**, should be fine on **Linux** too.
 ### Create an Empty GeoPackage / Open GeoPackage
 
 ```python
-from fudgeo.geopkg import GeoPackage
+from fudgeo import GeoPackage
 
 # Creates an empty geopackage
 gpkg: GeoPackage = GeoPackage.create('../data/example.gpkg')
@@ -58,7 +58,7 @@ default, the *ESRI WKT* is used - However, if *EPSG WKT* is desired, you
 may provide a ``flavor`` parameter to the create method specifying EPSG.
 
 ```python
-from fudgeo.geopkg import GeoPackage
+from fudgeo import GeoPackage
 
 # Creates an empty geopackage using EPSG definitions
 gpkg: GeoPackage = GeoPackage.create('../temp/test.gpkg', flavor='EPSG')
@@ -78,8 +78,8 @@ either of these options are enabled, the geometry inserted into the
 Feature Class **must** include a value for the option specified.
 
 ```python
+from fudgeo import FeatureClass, Field, GeoPackage, SpatialReferenceSystem
 from fudgeo.enumeration import GeometryType, SQLFieldType
-from fudgeo.geopkg import FeatureClass, Field, GeoPackage, SpatialReferenceSystem
 
 SRS_WKT: str = (
     'PROJCS["WGS_1984_UTM_Zone_23N",'
@@ -138,10 +138,10 @@ portion of the code is omitted.
 from random import choice, randint
 from string import ascii_uppercase, digits
 
+from fudgeo import FeatureClass, GeoPackage
 from fudgeo.context import ExecuteMany
 from fudgeo.extension.ogr import has_ogr_contents
 from fudgeo.geometry import LineStringM
-from fudgeo.geopkg import FeatureClass, GeoPackage
 
 # Generate some random points and attributes
 rows: list[tuple[LineStringM, int, str, float, float, float, float, bool]] = []
@@ -204,8 +204,8 @@ For simple geometries (e.g. those without *Z* or *M*) this can be done via a
 basic `SELECT` statement or the `select` method.
 
 ```python
+from fudgeo import FeatureClass, GeoPackage
 from fudgeo.geometry import Point
-from fudgeo.geopkg import FeatureClass, GeoPackage
 
 gpkg = GeoPackage(...)
 
@@ -225,8 +225,8 @@ then ensure `SQLite` knows how to convert the geopackage stored geometry to a
 
 
 ```python
+from fudgeo import FeatureClass, GeoPackage
 from fudgeo.geometry import LineStringM
-from fudgeo.geopkg import FeatureClass, GeoPackage
 
 gpkg = GeoPackage('../data/example.gpkg')
 # NOTE for fudgeo version v0.8.0 and above use helper method
@@ -250,8 +250,8 @@ Spatial Indexes apply to individual feature classes.  A spatial index can be
 added at create time or added on an existing feature class.
 
 ```python
+from fudgeo import FeatureClass, Field, GeoPackage, SpatialReferenceSystem
 from fudgeo.enumeration import SQLFieldType
-from fudgeo.geopkg import FeatureClass, Field, GeoPackage, SpatialReferenceSystem
 
 
 SRS_WKT: str = (
@@ -313,7 +313,7 @@ Metadata extension can be enabled at create time for a GeoPackage or
 can be enabled on an existing GeoPackage.
 
 ```python
-from fudgeo.geopkg import GeoPackage
+from fudgeo import GeoPackage
 
 # enable metadata at create time
 gpkg: GeoPackage = GeoPackage.create('../data/metadata.gpkg', enable_metadata=True)
@@ -327,9 +327,9 @@ assert gpkg.is_metadata_enabled is True
 ```
 
 ```python
+from fudgeo import GeoPackage
 from fudgeo.enumeration import MetadataScope
 from fudgeo.extension.metadata import TableReference
-from fudgeo.geopkg import GeoPackage
 
 # open GeoPackage with metadata extension enabled
 gpkg: GeoPackage = GeoPackage('../data/example.gpkg')
@@ -367,7 +367,7 @@ can be enabled on an existing GeoPackage.
 
 
 ```python
-from fudgeo.geopkg import GeoPackage
+from fudgeo import GeoPackage
 
 # enable schema at create time
 gpkg: GeoPackage = GeoPackage.create('../data/schema.gpkg', enable_schema=True)
@@ -381,9 +381,9 @@ assert gpkg.is_schema_enabled is True
 ```
 
 ```python
+from fudgeo import GeoPackage
 from fudgeo.extension.schema import (
     EnumerationConstraint, GlobConstraint, RangeConstraint)
-from fudgeo.geopkg import GeoPackage
 
 # open GeoPackage with schema extension enabled
 gpkg: GeoPackage = GeoPackage('../data/example.gpkg')
@@ -429,6 +429,10 @@ Support provided for the following constraint types:
 [MIT](https://raw.githubusercontent.com/realiii/fudgeo/refs/heads/develop/LICENSE)
 
 ## Release History
+
+### v1.0.1
+* add `__all__` to top level package, includes classes from `fudgeo.geopkg`
+* use explicit `return`
 
 ### v1.0.0
 * add `exists` method to `GeoPackage` to check for a `Table` or `FeatureClass` by name
