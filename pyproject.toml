@@ -9,7 +9,8 @@ description = """\
     """
 readme = "README.md"
 authors = [{ name = "Integrated Informatics (USA) Inc.", email = "contact@integrated-informatics.com" }]
-license = { file = "LICENSE" }
+license = "MIT"
+license-files = ["LICEN[CS]E*"]
 classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
@@ -18,7 +19,6 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
 keywords = ["geopackage"]
