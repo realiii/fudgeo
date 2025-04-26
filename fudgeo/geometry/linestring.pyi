@@ -5,6 +5,7 @@ Line String
 
 from typing import Any, ClassVar, Iterator, Union
 
+# noinspection PyPackageRequirements
 from numpy import ndarray
 
 from fudgeo.alias import DOUBLE, QUADRUPLE, TRIPLE

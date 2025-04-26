@@ -14,6 +14,7 @@ from sqlite3 import (
     register_converter)
 from typing import Any, Optional, TYPE_CHECKING, Type, Union
 
+# noinspection PyPackageRequirements
 from numpy import int16, int32, int64, int8, uint16, uint32, uint64, uint8
 
 from fudgeo.alias import FIELDS, FIELD_NAMES, INT, STRING
@@ -309,7 +310,7 @@ class AbstractGeoPackage:
         Metadata for the Geopackage, None if Metadata extension not enabled.
         """
         if not self.is_metadata_enabled:
-            return
+            return None
         return Metadata(geopackage=self)
     # End metadata property
 
@@ -319,7 +320,7 @@ class AbstractGeoPackage:
         Schema for the Geopackage, None if Schema extension not enabled.
         """
         if not self.is_schema_enabled:
-            return
+            return None
         return Schema(geopackage=self)
     # End schema property
 
@@ -513,9 +514,9 @@ class BaseTable:
         Check Result
         """
         if not (result := cursor.fetchone()):
-            return
+            return None
         if None in result:
-            return
+            return None
         value, = result
         return value
     # End _check_result method
@@ -638,7 +639,7 @@ class BaseTable:
             SELECT_PRIMARY_KEY.format(self.name, SQLFieldType.integer))
         result = cursor.fetchone()
         if not result:  # pragma: no cover
-            return
+            return None
         return Field(*result)
     # End primary_key_field property
 
@@ -1012,7 +1013,7 @@ class FeatureClass(BaseTable):
         Shape Type
         """
         if not (geom_type := self.geometry_type):
-            return
+            return None
         return geom_type.upper().rstrip('ZM')
     # End shape_type property
 
@@ -1063,7 +1064,7 @@ class FeatureClass(BaseTable):
         Spatial Index Name (escaped) if present, None otherwise
         """
         if not self.has_spatial_index:
-            return
+            return None
         return escape_name(self._spatial_index_name)
     # End spatial_index_name property
 

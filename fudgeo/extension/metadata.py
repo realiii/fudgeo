@@ -330,7 +330,7 @@ class Metadata:
         Add Metadata to the Geopackage if the metadata extension enabled.
         """
         if not self._geopackage.is_metadata_enabled:
-            return
+            return None
         with self._geopackage.connection as conn:
             conn.execute(INSERT_METADATA, (scope, uri, mime_type, metadata))
         cursor = conn.execute(SELECT_METADATA_ID)
