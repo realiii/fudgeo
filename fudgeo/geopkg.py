@@ -14,6 +14,7 @@ from sqlite3 import (
     register_converter)
 from typing import Any, Optional, TYPE_CHECKING, Type, Union
 
+# noinspection PyPackageRequirements
 from numpy import int16, int32, int64, int8, uint16, uint32, uint64, uint8
 
 from fudgeo.alias import FIELDS, FIELD_NAMES, INT, STRING

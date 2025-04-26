@@ -11,9 +11,12 @@ from struct import error as StructError, pack, unpack
 from typing import Any, Callable, TYPE_CHECKING, Union
 
 try:
+    # noinspection PyUnresolvedReferences,PyPackageRequirements
     from bottleneck import nanmax, nanmin
 except ModuleNotFoundError:
+    # noinspection PyPackageRequirements
     from numpy import nanmax, nanmin
+# noinspection PyPackageRequirements
 from numpy import array, frombuffer, ndarray
 
 from fudgeo.alias import GEOMS, GEOMS_M, GEOMS_Z, GEOMS_ZM

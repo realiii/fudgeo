@@ -21,6 +21,7 @@ from fudgeo.geometry.util import (
 
 
 if TYPE_CHECKING:
+    # noinspection PyPackageRequirements
     from numpy import ndarray
     from fudgeo.geometry.util import Envelope
 
