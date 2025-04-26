@@ -103,7 +103,7 @@ def _st_is_empty(geometry: bytes) -> INT:
     Is Empty
     """
     if geometry is None:
-        return
+        return None
     _, _, flags, _ = unpack(HEADER_CODE, geometry[:HEADER_OFFSET])
     return (flags & (0x01 << 4)) >> 4
 # End _st_is_empty function

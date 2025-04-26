@@ -20,6 +20,7 @@ from fudgeo.geometry.util import (
 
 
 if TYPE_CHECKING:  # pragma: no cover
+    # noinspection PyPackageRequirements
     from numpy import ndarray
     from fudgeo.geometry.util import Envelope
 
