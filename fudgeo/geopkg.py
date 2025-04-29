@@ -494,17 +494,17 @@ class BaseTable:
 
     @staticmethod
     def _drop(conn: 'Connection', sql: str, name: str, escaped_name: str,
-              geom_name: str, delete_ogr_contents: bool,
-              delete_metadata: bool, delete_schema: bool) -> None:
+              geom_name: str, has_ogr: bool, has_meta: bool,
+              has_schema: bool) -> None:
         """
         Drop Table from Geopackage
         """
         conn.executescript(sql.format(name, escaped_name, geom_name))
-        if delete_ogr_contents:
+        if has_ogr:
             conn.execute(DELETE_OGR_CONTENTS.format(name))
-        if delete_metadata:
+        if has_meta:
             conn.execute(DELETE_METADATA_REFERENCE.format(name))
-        if delete_schema:
+        if has_schema:
             conn.execute(DELETE_DATA_COLUMNS.format(name))
     # End _drop method
 
@@ -750,11 +750,11 @@ class Table(BaseTable):
             escaped_name = escape_name(name)
             has_contents = has_ogr_contents(conn)
             if overwrite:
-                cls._drop(conn=conn, sql=REMOVE_TABLE, geom_name='',
-                          name=name, escaped_name=escaped_name,
-                          delete_ogr_contents=has_contents,
-                          delete_metadata=geopackage.is_metadata_enabled,
-                          delete_schema=geopackage.is_schema_enabled)
+                cls._drop(
+                    conn=conn, sql=REMOVE_TABLE, geom_name='', name=name,
+                    escaped_name=escaped_name, has_ogr=has_contents,
+                    has_meta=geopackage.is_metadata_enabled,
+                    has_schema=geopackage.is_schema_enabled)
             conn.execute(CREATE_TABLE.format(
                 name=escaped_name, other_fields=cols))
             conn.execute(INSERT_GPKG_CONTENTS_SHORT, (
@@ -769,11 +769,11 @@ class Table(BaseTable):
         Drop table from Geopackage
         """
         with self.geopackage.connection as conn:
-            self._drop(conn=conn, sql=REMOVE_TABLE, geom_name='',
-                       name=self.name, escaped_name=self.escaped_name,
-                       delete_ogr_contents=has_ogr_contents(conn),
-                       delete_metadata=self.geopackage.is_metadata_enabled,
-                       delete_schema=self.geopackage.is_schema_enabled)
+            self._drop(
+                conn=conn, sql=REMOVE_TABLE, geom_name='', name=self.name,
+                escaped_name=self.escaped_name, has_ogr=has_ogr_contents(conn),
+                has_meta=self.geopackage.is_metadata_enabled,
+                has_schema=self.geopackage.is_schema_enabled)
     # End drop method
 
     def copy(self, name: str, description: str = '',
@@ -953,9 +953,9 @@ class FeatureClass(BaseTable):
                 cls._drop(
                     conn=conn, sql=REMOVE_FEATURE_CLASS, name=name,
                     escaped_name=escaped_name, geom_name=current_name,
-                    delete_ogr_contents=has_contents,
-                    delete_metadata=geopackage.is_metadata_enabled,
-                    delete_schema=geopackage.is_schema_enabled)
+                    has_ogr=has_contents,
+                    has_meta=geopackage.is_metadata_enabled,
+                    has_schema=geopackage.is_schema_enabled)
             conn.execute(CREATE_FEATURE_TABLE.format(
                 name=escaped_name, geom_name=geom_name,
                 feature_type=shape_type, other_fields=cols))
@@ -979,12 +979,12 @@ class FeatureClass(BaseTable):
         Drop feature class from Geopackage
         """
         with self.geopackage.connection as conn:
-            self._drop(conn=conn, sql=REMOVE_FEATURE_CLASS,
-                       geom_name=self.geometry_column_name,
-                       name=self.name, escaped_name=self.escaped_name,
-                       delete_ogr_contents=has_ogr_contents(conn),
-                       delete_metadata=self.geopackage.is_metadata_enabled,
-                       delete_schema=self.geopackage.is_schema_enabled)
+            self._drop(
+                conn=conn, sql=REMOVE_FEATURE_CLASS,
+                geom_name=self.geometry_column_name, name=self.name,
+                escaped_name=self.escaped_name, has_ogr=has_ogr_contents(conn),
+                has_meta=self.geopackage.is_metadata_enabled,
+                has_schema=self.geopackage.is_schema_enabled)
     # End drop method
 
     @property
