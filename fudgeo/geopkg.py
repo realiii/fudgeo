@@ -19,7 +19,7 @@ from numpy import int16, int32, int64, int8, uint16, uint32, uint64, uint8
 
 from fudgeo.alias import FIELDS, FIELD_NAMES, INT, STRING
 from fudgeo.constant import COMMA_SPACE, FETCH_SIZE, GPKG_EXT, MEMORY, SHAPE
-from fudgeo.context import ExecuteMany
+from fudgeo.context import ExecuteMany, ForeignKeys
 from fudgeo.enumeration import DataType, GPKGFlavors, GeometryType, SQLFieldType
 from fudgeo.extension.metadata import (
     Metadata, add_metadata_extension, has_metadata_extension)
@@ -38,10 +38,12 @@ from fudgeo.sql import (
     CREATE_TABLE, DEFAULT_EPSG_RECS, DEFAULT_ESRI_RECS, DELETE_DATA_COLUMNS,
     DELETE_METADATA_REFERENCE, DELETE_OGR_CONTENTS, DROP_COLUMN,
     INSERT_GPKG_CONTENTS_SHORT, INSERT_GPKG_GEOM_COL, INSERT_GPKG_SRS,
-    REMOVE_FEATURE_CLASS, REMOVE_TABLE, SELECT_COUNT, SELECT_DESCRIPTION,
-    SELECT_EXTENT, SELECT_GEOMETRY_COLUMN, SELECT_GEOMETRY_TYPE, SELECT_HAS_ZM,
-    SELECT_PRIMARY_KEY, SELECT_SPATIAL_REFERENCES, SELECT_SRS,
-    SELECT_TABLES_BY_TYPE, TABLE_EXISTS, UPDATE_EXTENT)
+    REMOVE_FEATURE_CLASS, REMOVE_OGR, REMOVE_TABLE, RENAME_DATA_COLUMNS,
+    RENAME_FEATURE_CLASS, RENAME_METADATA_REFERENCE, RENAME_TABLE, SELECT_COUNT,
+    SELECT_DESCRIPTION, SELECT_EXTENT, SELECT_GEOMETRY_COLUMN,
+    SELECT_GEOMETRY_TYPE, SELECT_HAS_ZM, SELECT_PRIMARY_KEY,
+    SELECT_SPATIAL_REFERENCES, SELECT_SRS, SELECT_TABLES_BY_TYPE, TABLE_EXISTS,
+    UPDATE_EXTENT, UPDATE_GPKG_OGR_CONTENTS)
 from fudgeo.util import check_geometry_name, convert_datetime, escape_name, now
 
 
@@ -508,6 +510,31 @@ class BaseTable:
             conn.execute(DELETE_DATA_COLUMNS.format(name))
     # End _drop method
 
+    def _rename(self, conn: 'Connection', sql: str, new_name: str,
+                escaped_new_name, has_ogr: bool) -> None:
+        """
+        Rename Table or Feature Class
+        """
+        count = 0
+        if has_ogr:
+            conn.executescript(REMOVE_OGR.format(self.name))
+            count = self.count
+        with ForeignKeys(conn):
+            conn.executescript(sql.format(
+                self.name, self.escaped_name,
+                getattr(self, 'geometry_column_name', ''),
+                new_name, escaped_new_name))
+        if has_ogr:
+            add_ogr_contents(
+                conn=conn, name=new_name, escaped_name=escaped_new_name)
+            conn.execute(UPDATE_GPKG_OGR_CONTENTS, (count, new_name))
+        if self.geopackage.is_metadata_enabled:
+            conn.execute(RENAME_METADATA_REFERENCE.format(new_name, self.name))
+        if self.geopackage.is_schema_enabled:
+            conn.execute(RENAME_DATA_COLUMNS.format(new_name, self.name))
+        self.name = new_name
+    # End _rename method
+
     @staticmethod
     def _check_result(cursor: 'Cursor') -> Any:
         """
@@ -776,6 +803,18 @@ class Table(BaseTable):
                 has_schema=self.geopackage.is_schema_enabled)
     # End drop method
 
+    def rename(self, name: str) -> None:
+        """
+        Rename Table
+        """
+        self._validate_overwrite(self.geopackage, name=name, overwrite=False)
+        with self.geopackage.connection as conn:
+            self._rename(
+                conn=conn, sql=RENAME_TABLE, new_name=name,
+                escaped_new_name=escape_name(name),
+                has_ogr=has_ogr_contents(conn))
+    # End rename method
+
     def copy(self, name: str, description: str = '',
              where_clause: str = '', overwrite: bool = False,
              geopackage: Optional[GeoPackage] = None) -> 'Table':
@@ -985,6 +1024,21 @@ class FeatureClass(BaseTable):
                 has_meta=self.geopackage.is_metadata_enabled,
                 has_schema=self.geopackage.is_schema_enabled)
     # End drop method
+
+    def rename(self, name: str) -> None:
+        """
+        Rename Feature Class
+        """
+        self._validate_overwrite(self.geopackage, name=name, overwrite=False)
+        with self.geopackage.connection as conn:
+            has_index = self.has_spatial_index
+            self._rename(
+                conn=conn, sql=RENAME_FEATURE_CLASS, new_name=name,
+                escaped_new_name=escape_name(name),
+                has_ogr=has_ogr_contents(conn))
+            if has_index:
+                self.add_spatial_index()
+    # End rename method
 
     @property
     def geometry_column_name(self) -> STRING:
