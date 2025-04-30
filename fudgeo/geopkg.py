@@ -581,7 +581,7 @@ class BaseTable:
         """
         Validate Overwrite
         """
-        if not overwrite and geopackage.exists(table_name=name):
+        if not overwrite and geopackage.exists(name):
             raise ValueError(
                 f'Table {name} already exists in {geopackage.path}')
     # End _validate_overwrite method
