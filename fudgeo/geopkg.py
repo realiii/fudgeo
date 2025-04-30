@@ -748,18 +748,18 @@ class Table(BaseTable):
         cols = cls._column_names_types(fields)
         with geopackage.connection as conn:
             escaped_name = escape_name(name)
-            has_contents = has_ogr_contents(conn)
+            has_ogr = has_ogr_contents(conn)
             if overwrite:
                 cls._drop(
                     conn=conn, sql=REMOVE_TABLE, geom_name='', name=name,
-                    escaped_name=escaped_name, has_ogr=has_contents,
+                    escaped_name=escaped_name, has_ogr=has_ogr,
                     has_meta=geopackage.is_metadata_enabled,
                     has_schema=geopackage.is_schema_enabled)
             conn.execute(CREATE_TABLE.format(
                 name=escaped_name, other_fields=cols))
             conn.execute(INSERT_GPKG_CONTENTS_SHORT, (
                 name, DataType.attributes, name, description, now(), None))
-            if has_contents:
+            if has_ogr:
                 add_ogr_contents(conn, name=name, escaped_name=escaped_name)
         return cls(geopackage=geopackage, name=name)
     # End create method
@@ -947,14 +947,13 @@ class FeatureClass(BaseTable):
         with geopackage.connection as conn:
             escaped_name = escape_name(name)
             geom_name = check_geometry_name(geom_name)
-            has_contents = has_ogr_contents(conn)
+            has_ogr = has_ogr_contents(conn)
             if overwrite:
                 current_name = cls._find_geometry_column_name(geopackage, name)
                 cls._drop(
                     conn=conn, sql=REMOVE_FEATURE_CLASS, name=name,
                     escaped_name=escaped_name, geom_name=current_name,
-                    has_ogr=has_contents,
-                    has_meta=geopackage.is_metadata_enabled,
+                    has_ogr=has_ogr, has_meta=geopackage.is_metadata_enabled,
                     has_schema=geopackage.is_schema_enabled)
             conn.execute(CREATE_FEATURE_TABLE.format(
                 name=escaped_name, geom_name=geom_name,
@@ -966,7 +965,7 @@ class FeatureClass(BaseTable):
             conn.execute(INSERT_GPKG_GEOM_COL,
                          (name, geom_name, shape_type, srs.srs_id,
                           int(z_enabled), int(m_enabled)))
-            if has_contents:
+            if has_ogr:
                 add_ogr_contents(conn, name=name, escaped_name=escaped_name)
             feature_class = cls(geopackage=geopackage, name=name)
             if spatial_index:
