@@ -13,13 +13,15 @@ from string import ascii_uppercase, digits
 from pytest import mark, raises
 
 from fudgeo.constant import SHAPE
-from fudgeo.enumeration import GeometryType, SQLFieldType
+from fudgeo.enumeration import GeometryType, MetadataScope, SQLFieldType
+from fudgeo.extension.metadata import TableReference
+from fudgeo.extension.schema import GlobConstraint
 from fudgeo.geometry import (
     LineString, LineStringM, LineStringZ, LineStringZM, MultiLineString,
     MultiPoint, MultiPolygon, Point, Polygon, PolygonM)
 from fudgeo.geopkg import (
     FeatureClass, Field, GeoPackage, SpatialReferenceSystem, Table)
-from fudgeo.extension.ogr import has_ogr_contents
+from fudgeo.extension.ogr import add_ogr_contents, has_ogr_contents
 from fudgeo.sql import SELECT_SRS
 from tests.crs import WGS_1984_UTM_Zone_23N
 
@@ -1207,6 +1209,93 @@ def test_setup_geo_file_based(setup_geopackage):
     _, gpkg, _, _ = setup_geopackage
     assert gpkg.path.is_file()
 # End test_setup_geo_file_based function
+
+
+@mark.parametrize('use_index, use_ogr, use_meta, use_schema', [
+    (False, False, False, False),
+    (True, False, False, False),
+    (False, True, False, False),
+    (False, False, True, False),
+    (False, False, False, True),
+    (True, True, True, True),
+    (False, True, True, True),
+    (True, False, True, True),
+    (True, True, False, True),
+    (True, True, True, False),
+])
+def test_rename_feature_class(setup_geopackage, use_index, use_ogr, use_meta, use_schema):
+    """
+    Test Rename Feature Class
+    """
+    _, gpkg, srs, flds = setup_geopackage
+    name = 'asdf'
+    fc = gpkg.create_feature_class(
+        name=name, srs=srs, fields=flds, shape_type=GeometryType.point,
+        spatial_index=use_index)
+    if use_ogr:
+        add_ogr_contents(gpkg.connection, name=fc.name, escaped_name=fc.escaped_name)
+    assert fc.has_spatial_index is use_index
+    assert isinstance(fc, FeatureClass)
+    count = 100
+    rows = random_points_and_attrs(count, srs.srs_id)
+    with gpkg.connection as conn:
+        conn.executemany(INSERT_POINTS.format(fc.escaped_name, fc.geometry_column_name), rows)
+    if use_meta:
+        gpkg.enable_metadata_extension()
+        assert gpkg.is_metadata_enabled
+        metadata = gpkg.metadata
+        scopes = (MetadataScope.undefined, MetadataScope.undefined,
+                  MetadataScope.undefined, MetadataScope.series)
+        for scope in scopes:
+            metadata.add_metadata(
+                uri='https://schemas.opengis.net/iso/19139/',
+                scope=scope)
+        reference = TableReference(table_name=name, file_id=4, parent_id=1)
+        metadata.add_references(reference)
+    if use_schema:
+        gpkg.enable_schema_extension()
+        assert gpkg.is_schema_enabled
+        schema = gpkg.schema
+        constraint = GlobConstraint(name='numeric', pattern='[0-9]')
+        schema.add_constraints(constraint)
+        schema.add_column_definition(
+            table_name=name, column_name=flds[0].name,
+            constraint_name=constraint.name)
+
+    assert fc.name == name
+    new_name = f'{name}_renamed'
+    fc.rename(new_name)
+    assert fc.name == new_name
+    assert fc.exists
+    assert fc.count == count
+    assert fc.has_spatial_index is use_index
+
+    if use_ogr:
+        with fc.geopackage.connection as conn:
+            cursor = conn.execute(
+                f"""SELECT feature_count 
+                    FROM gpkg_ogr_contents 
+                    WHERE table_name = '{new_name}'""")
+            ogr_count, = cursor.fetchone()
+            assert ogr_count == count
+    if use_meta:
+        with fc.geopackage.connection as conn:
+            cursor = conn.execute(
+                f"""SELECT COUNT(1) AS CNT 
+                    FROM gpkg_metadata_reference 
+                    WHERE table_name = '{new_name}'""")
+            rec_count, = cursor.fetchone()
+            assert rec_count == 1
+    if use_schema:
+        with fc.geopackage.connection as conn:
+            cursor = conn.execute(
+                f"""SELECT COUNT(1) AS CNT 
+                    FROM gpkg_data_columns 
+                    WHERE table_name = '{new_name}'""")
+            rec_count, = cursor.fetchone()
+            assert rec_count == 1
+
+# End test_rename_feature_class function
 
 
 if __name__ == '__main__':  # pragma: no cover
