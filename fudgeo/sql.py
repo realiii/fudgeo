@@ -89,6 +89,7 @@ REMOVE_FEATURE_CLASS: str = """
           lower(extension_name) = 'gpkg_rtree_index';
     DROP TRIGGER IF EXISTS "trigger_insert_feature_count_{0}";
     DROP TRIGGER IF EXISTS "trigger_delete_feature_count_{0}";
+    DROP TRIGGER IF EXISTS "rtree_{0}_{2}_delete";
     DROP TRIGGER IF EXISTS "rtree_{0}_{2}_insert";
     DROP TRIGGER IF EXISTS "rtree_{0}_{2}_update1";
     DROP TRIGGER IF EXISTS "rtree_{0}_{2}_update2";
