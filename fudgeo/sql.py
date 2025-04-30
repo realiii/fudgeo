@@ -94,6 +94,10 @@ REMOVE_FEATURE_CLASS: str = """
     DROP TRIGGER IF EXISTS "rtree_{0}_{2}_update2";
     DROP TRIGGER IF EXISTS "rtree_{0}_{2}_update3";
     DROP TRIGGER IF EXISTS "rtree_{0}_{2}_update4";
+    DROP TRIGGER IF EXISTS "rtree_{0}_{2}_update5";
+    DROP TRIGGER IF EXISTS "rtree_{0}_{2}_update6";
+    DROP TRIGGER IF EXISTS "rtree_{0}_{2}_update7";
+    DROP TABLE IF EXISTS "rtree_{0}_{2}";
     DROP TABLE IF EXISTS {1};
     DROP TABLE IF EXISTS "rtree_{0}_{2}";
 """
