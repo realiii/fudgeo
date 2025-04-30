@@ -9,6 +9,7 @@ from math import nan
 # noinspection PyPep8Naming
 from struct import error as StructError, pack, unpack
 from typing import Any, Callable, TYPE_CHECKING, Union
+from warnings import catch_warnings, simplefilter
 
 try:
     # noinspection PyUnresolvedReferences,PyPackageRequirements
@@ -545,8 +546,10 @@ def _envelope_xy(srs_id: int, xs: ndarray, ys: ndarray) -> Envelope:
     """
     Envelope XY
     """
-    min_x, max_x = nanmin(xs), nanmax(xs)
-    min_y, max_y = nanmin(ys), nanmax(ys)
+    with catch_warnings():
+        simplefilter('ignore', category=RuntimeWarning)
+        min_x, max_x = nanmin(xs), nanmax(xs)
+        min_y, max_y = nanmin(ys), nanmax(ys)
     return Envelope(code=EnvelopeCode.xy, srs_id=srs_id,
                     min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y)
 # End _envelope_xy function
@@ -556,9 +559,11 @@ def _envelope_xyz(srs_id: int, xs: ndarray, ys: ndarray, zs: ndarray) -> Envelop
     """
     Envelope XYZ
     """
-    min_x, max_x = nanmin(xs), nanmax(xs)
-    min_y, max_y = nanmin(ys), nanmax(ys)
-    min_z, max_z = nanmin(zs), nanmax(zs)
+    with catch_warnings():
+        simplefilter('ignore', category=RuntimeWarning)
+        min_x, max_x = nanmin(xs), nanmax(xs)
+        min_y, max_y = nanmin(ys), nanmax(ys)
+        min_z, max_z = nanmin(zs), nanmax(zs)
     return Envelope(code=EnvelopeCode.xyz, srs_id=srs_id,
                     min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y,
                     min_z=min_z, max_z=max_z)
@@ -569,9 +574,11 @@ def _envelope_xym(srs_id: int, xs: ndarray, ys: ndarray, ms: ndarray) -> Envelop
     """
     Envelope XYM
     """
-    min_x, max_x = nanmin(xs), nanmax(xs)
-    min_y, max_y = nanmin(ys), nanmax(ys)
-    min_m, max_m = nanmin(ms), nanmax(ms)
+    with catch_warnings():
+        simplefilter('ignore', category=RuntimeWarning)
+        min_x, max_x = nanmin(xs), nanmax(xs)
+        min_y, max_y = nanmin(ys), nanmax(ys)
+        min_m, max_m = nanmin(ms), nanmax(ms)
     return Envelope(code=EnvelopeCode.xym, srs_id=srs_id,
                     min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y,
                     min_m=min_m, max_m=max_m)
@@ -583,10 +590,12 @@ def _envelope_xyzm(srs_id: int, xs: ndarray, ys: ndarray,
     """
     Envelope XYZM
     """
-    min_x, max_x = nanmin(xs), nanmax(xs)
-    min_y, max_y = nanmin(ys), nanmax(ys)
-    min_z, max_z = nanmin(zs), nanmax(zs)
-    min_m, max_m = nanmin(ms), nanmax(ms)
+    with catch_warnings():
+        simplefilter('ignore', category=RuntimeWarning)
+        min_x, max_x = nanmin(xs), nanmax(xs)
+        min_y, max_y = nanmin(ys), nanmax(ys)
+        min_z, max_z = nanmin(zs), nanmax(zs)
+        min_m, max_m = nanmin(ms), nanmax(ms)
     return Envelope(code=EnvelopeCode.xyzm, srs_id=srs_id,
                     min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y,
                     min_z=min_z, max_z=max_z, min_m=min_m, max_m=max_m)

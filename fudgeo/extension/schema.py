@@ -37,11 +37,19 @@ class AbstractConstraint:
         self._description: STRING = description
     # End init built-in
 
+    @property
+    def name(self) -> str:
+        """
+        Name
+        """
+        return self._name
+    # End name property
+
     def validate(self) -> None:
         """
         Validate
         """
-        if not isinstance(self._name, str):
+        if not isinstance(self.name, str):
             raise TypeError('constraint name must be a string')
     # End validate method
 
@@ -83,7 +91,7 @@ class EnumerationConstraint(AbstractConstraint):
         """
         As Records
         """
-        return [(self._type, self._name, value, None, None, None, None,
+        return [(self._type, self.name, value, None, None, None, None,
                  self._description) for value in self._values]
     # End as_records method
 # End EnumerationConstraint class
@@ -116,7 +124,7 @@ class GlobConstraint(AbstractConstraint):
         """
         As Records
         """
-        return [(self._type, self._name, self._pattern,
+        return [(self._type, self.name, self._pattern,
                  None, None, None, None, self._description)]
     # End as_records method
 # End GlobConstraint class
@@ -156,7 +164,7 @@ class RangeConstraint(AbstractConstraint):
         """
         As Records
         """
-        return [(self._type, self._name, None,
+        return [(self._type, self.name, None,
                  self._min_value, int(self._min_inclusive),
                  self._max_value, int(self._max_inclusive), self._description)]
     # End as_records method

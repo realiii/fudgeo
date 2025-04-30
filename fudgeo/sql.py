@@ -48,6 +48,13 @@ INSERT_GPKG_OGR_CONTENTS: str = """
 """
 
 
+UPDATE_GPKG_OGR_CONTENTS: str = """
+    UPDATE gpkg_ogr_contents 
+    SET feature_count = ? 
+    WHERE table_name = ?
+"""
+
+
 CREATE_OGR_CONTENTS: str = """
     CREATE TABLE gpkg_ogr_contents (
         table_name    TEXT NOT NULL PRIMARY KEY,
@@ -64,19 +71,35 @@ HAS_OGR_CONTENTS: str = """
 
 DELETE_OGR_CONTENTS: str = """
     DELETE FROM gpkg_ogr_contents 
-    WHERE lower(table_name) = lower('{0}');
+    WHERE lower(table_name) = lower('{0}')
 """
 
 
 DELETE_METADATA_REFERENCE: str = """
     DELETE FROM gpkg_metadata_reference 
-    WHERE lower(table_name) = lower('{0}');
+    WHERE lower(table_name) = lower('{0}')
 """
 
 
 DELETE_DATA_COLUMNS: str = """
     DELETE FROM gpkg_data_columns 
-    WHERE lower(table_name) = lower('{0}');
+    WHERE lower(table_name) = lower('{0}')
+"""
+
+
+# NOTE 0 - new name, 1 - name
+RENAME_METADATA_REFERENCE: str = """
+    UPDATE gpkg_metadata_reference
+    SET table_name = '{0}' 
+    WHERE lower(table_name) = lower('{1}')
+"""
+
+
+# NOTE 0 - new name, 1 - name
+RENAME_DATA_COLUMNS: str = """
+    UPDATE gpkg_data_columns
+    SET table_name = '{0}' 
+    WHERE lower(table_name) = lower('{1}')
 """
 
 
@@ -89,13 +112,46 @@ REMOVE_FEATURE_CLASS: str = """
           lower(extension_name) = 'gpkg_rtree_index';
     DROP TRIGGER IF EXISTS "trigger_insert_feature_count_{0}";
     DROP TRIGGER IF EXISTS "trigger_delete_feature_count_{0}";
+    DROP TRIGGER IF EXISTS "rtree_{0}_{2}_delete";
     DROP TRIGGER IF EXISTS "rtree_{0}_{2}_insert";
     DROP TRIGGER IF EXISTS "rtree_{0}_{2}_update1";
     DROP TRIGGER IF EXISTS "rtree_{0}_{2}_update2";
     DROP TRIGGER IF EXISTS "rtree_{0}_{2}_update3";
     DROP TRIGGER IF EXISTS "rtree_{0}_{2}_update4";
-    DROP TABLE IF EXISTS {1};
+    DROP TRIGGER IF EXISTS "rtree_{0}_{2}_update5";
+    DROP TRIGGER IF EXISTS "rtree_{0}_{2}_update6";
+    DROP TRIGGER IF EXISTS "rtree_{0}_{2}_update7";
     DROP TABLE IF EXISTS "rtree_{0}_{2}";
+    DROP TABLE IF EXISTS {1};
+"""
+
+
+# NOTE 0 - table name, 1 - escaped name, 2 - geometry column name,
+#  3 - new name, 4 - new name escaped
+RENAME_FEATURE_CLASS: str = """
+    -- update the name in gpkg_geometry_columns and gpkg_contents tables 
+    UPDATE gpkg_contents 
+    SET table_name = '{3}'
+    WHERE lower(table_name) = lower('{0}');
+    UPDATE gpkg_geometry_columns 
+    SET table_name = '{3}'
+    WHERE lower(table_name) = lower('{0}');
+    -- delete the table name from the gpkg_extensions table for spatial indexes 
+    DELETE FROM gpkg_extensions 
+    WHERE lower(table_name) = lower('{0}') AND 
+          lower(extension_name) = 'gpkg_rtree_index';
+    -- drop triggers and the virtual table, recreate the triggers in code
+    DROP TABLE IF EXISTS "rtree_{0}_{2}";
+    DROP TRIGGER IF EXISTS "rtree_{0}_{2}_delete";
+    DROP TRIGGER IF EXISTS "rtree_{0}_{2}_insert";
+    DROP TRIGGER IF EXISTS "rtree_{0}_{2}_update1";
+    DROP TRIGGER IF EXISTS "rtree_{0}_{2}_update2";
+    DROP TRIGGER IF EXISTS "rtree_{0}_{2}_update3";
+    DROP TRIGGER IF EXISTS "rtree_{0}_{2}_update4";
+    DROP TRIGGER IF EXISTS "rtree_{0}_{2}_update5";
+    DROP TRIGGER IF EXISTS "rtree_{0}_{2}_update6";
+    DROP TRIGGER IF EXISTS "rtree_{0}_{2}_update7";
+    ALTER TABLE {1} RENAME TO {4};
 """
 
 
@@ -105,6 +161,25 @@ REMOVE_TABLE: str = """
     DROP TRIGGER IF EXISTS "trigger_insert_feature_count_{0}";
     DROP TRIGGER IF EXISTS "trigger_delete_feature_count_{0}";
     DROP TABLE IF EXISTS {1};
+"""
+
+
+# NOTE 0 - name, 1 - escaped name, 2 - geometry column (not used),
+#  3 - new name, 4 - new name escaped
+RENAME_TABLE: str = """
+    UPDATE gpkg_contents 
+    SET table_name = '{3}'
+    WHERE lower(table_name) = lower('{0}');
+    ALTER TABLE {1} RENAME TO {4};
+"""
+
+
+# NOTE 0 - name
+REMOVE_OGR: str = """
+    -- remove OGR table reference and associated triggers, recreate in code
+    DELETE FROM gpkg_ogr_contents WHERE lower(table_name) = lower('{0}');    
+    DROP TRIGGER IF EXISTS "trigger_insert_feature_count_{0}";
+    DROP TRIGGER IF EXISTS "trigger_delete_feature_count_{0}";
 """
 
 

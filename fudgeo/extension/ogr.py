@@ -8,8 +8,9 @@ from sqlite3 import DatabaseError, OperationalError
 from typing import TYPE_CHECKING
 
 from fudgeo.sql import (
-    GPKG_OGR_CONTENTS_DELETE_TRIGGER, GPKG_OGR_CONTENTS_INSERT_TRIGGER,
-    HAS_OGR_CONTENTS, INSERT_GPKG_OGR_CONTENTS)
+    CREATE_OGR_CONTENTS, GPKG_OGR_CONTENTS_DELETE_TRIGGER,
+    GPKG_OGR_CONTENTS_INSERT_TRIGGER, HAS_OGR_CONTENTS,
+    INSERT_GPKG_OGR_CONTENTS)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -33,8 +34,11 @@ def has_ogr_contents(conn: 'Connection') -> bool:
 
 def add_ogr_contents(conn: 'Connection', name: str, escaped_name: str) -> None:
     """
-    Add OGR Contents Table Entry and Triggers
+    Add OGR Contents Table Entry and Triggers, adds the table if it was not
+    created during GeoPackage creation.
     """
+    if not has_ogr_contents(conn):
+        conn.execute(CREATE_OGR_CONTENTS)
     conn.execute(INSERT_GPKG_OGR_CONTENTS, (name, 0))
     conn.execute(GPKG_OGR_CONTENTS_INSERT_TRIGGER.format(name, escaped_name))
     conn.execute(GPKG_OGR_CONTENTS_DELETE_TRIGGER.format(name, escaped_name))
