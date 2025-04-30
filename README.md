@@ -430,6 +430,14 @@ Support provided for the following constraint types:
 
 ## Release History
 
+### v1.1.0
+* add `rename` method to `Table` and `FeatureClass` classes
+* add `ForeignKeys` context manager
+* add `name` property to constraint classes
+* improve `drop` for `FeatureClass`, include addition variants for trigger names
+* enhance `add_ogr_contents` by creating the ogr table if it does not exist 
+* catch `RuntimeWarning` for All-NaN arrays
+
 ### v1.0.1
 * add `__all__` to top level package, includes classes from `fudgeo.geopkg`
 * use explicit `return`
