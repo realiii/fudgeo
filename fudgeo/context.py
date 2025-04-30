@@ -11,6 +11,7 @@ from fudgeo.alias import TABLE
 from fudgeo.extension.ogr import OGR_CONTENTS, has_ogr_contents
 from fudgeo.sql import GPKG_OGR_CONTENTS_INSERT_TRIGGER
 
+
 if TYPE_CHECKING:  # pragma: no cover
     from sqlite3 import Connection
 
@@ -73,6 +74,36 @@ class ExecuteMany:
         return False
     # End exit built-in
 # End ExecuteMany class
+
+
+class ForeignKeys:
+    """
+    Foreign Keys
+    """
+    def __init__(self, connection: 'Connection') -> None:
+        """
+        Initialize the ForeignKeys class
+        """
+        super().__init__()
+        self._conn: 'Connection' = connection
+    # End init built-in
+
+    def __enter__(self) -> 'ForeignKeys':
+        """
+        Context Manager Enter
+        """
+        self._conn.execute("""PRAGMA foreign_keys = false""")
+        return self
+    # End enter built-in
+
+    def __exit__(self, exc_type, exc_value, traceback) -> bool:
+        """
+        Context Manager Exit
+        """
+        self._conn.execute("""PRAGMA foreign_keys = true""")
+        return False
+    # End exit built-in
+# End ForeignKeys class
 
 
 if __name__ == '__main__':  # pragma: no cover
