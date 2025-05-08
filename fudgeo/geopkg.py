@@ -667,7 +667,7 @@ class BaseTable:
         result = cursor.fetchone()
         if not result:  # pragma: no cover
             return None
-        return Field(*result)
+        return Field(*result,  is_nullable=False)
     # End primary_key_field property
 
     @property
@@ -675,10 +675,14 @@ class BaseTable:
         """
         Fields
         """
+        fields = []
         cursor = self.geopackage.connection.execute(
             f"""PRAGMA table_info({self.escaped_name})""")
-        return [Field(name=name, data_type=type_)
-                for _, name, type_, _, _, _ in cursor.fetchall()]
+        for _, name, type_, not_nullable, default, _ in cursor.fetchall():
+            fields.append(Field(
+                name=name, data_type=type_, is_nullable=not bool(not_nullable),
+                default=default))
+        return fields
     # End fields property
 
     @property

@@ -856,6 +856,15 @@ def test_escaped_columns(setup_geopackage):
     cursor = gpkg.connection.execute(
         SELECT_ST_FUNCS.format(fc.geometry_column_name, fc.escaped_name))
     assert cursor.fetchall() == [(0, 1.0, 1.0, 2.0, 2.0), (0, 3.0, 3.0, 4.0, 4.0)]
+
+    (_, _, select_field, union_field,
+     all_field, dot_field, regular_field) = fc.fields
+
+    assert select_field == select
+    assert union_field == union
+    assert all_field == all_
+    assert dot_field == example_dot
+    assert regular_field == regular
 # End test_escaped_columns function
 
 
