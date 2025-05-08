@@ -1295,7 +1295,8 @@ class Field:
     """
     Field Object for GeoPackage
     """
-    def __init__(self, name: str, data_type: str, size: INT = None) -> None:
+    def __init__(self, name: str, data_type: str, size: INT = None,
+                 is_nullable: bool = True, default: Any = None) -> None:
         """
         Initialize the Field class
         """
@@ -1303,16 +1304,25 @@ class Field:
         self.name: str = name
         self.data_type: str = data_type
         self.size: INT = size
+        self.is_nullable: bool = is_nullable
+        self.default: Any = default
     # End init built-in
 
     def __repr__(self) -> str:
         """
         String representation
         """
-        types = SQLFieldType.blob, SQLFieldType.text
-        if self.size and self.data_type in types:
-            return f'{self.escaped_name} {self.data_type}{self.size}'
-        return f'{self.escaped_name} {self.data_type}'
+        definition = f'{self.escaped_name} {self.data_type}'
+        is_type = self.data_type in (SQLFieldType.blob, SQLFieldType.text)
+        if self.size and is_type:
+            definition = f'{definition}{self.size}'
+        if default := self.default:
+            if is_type:
+                default = f"'{default}'"
+            definition = f'{definition} default {default}'
+        if not self.is_nullable:
+            definition = f'{definition} NOT NULL'
+        return definition
     # End repr built-in
 
     def __eq__(self, other: 'Field') -> bool:

@@ -1008,6 +1008,26 @@ def test_representation():
 # End test_representation function
 
 
+@mark.parametrize('name, data_type, size, is_nullable, default, expected', [
+    ('a', SQLFieldType.integer, None, True, None, 'a INTEGER'),
+    ('a', SQLFieldType.integer, None, False, 1234, 'a INTEGER default 1234 NOT NULL'),
+    ('a', SQLFieldType.integer, None, True, 1234, 'a INTEGER default 1234'),
+    ('b', SQLFieldType.text, 256, True, None, 'b TEXT256'),
+    ('b', SQLFieldType.text, 256, False, None, 'b TEXT256 NOT NULL'),
+    ('b', SQLFieldType.text, 256, False, 'asdf', "b TEXT256 default 'asdf' NOT NULL"),
+    ('SELECT', SQLFieldType.integer, 256, False, None, '"SELECT" INTEGER NOT NULL'),
+    ('SELECT', SQLFieldType.text, 256, False, 'asdf', """"SELECT" TEXT256 default 'asdf' NOT NULL"""),
+])
+def test_field_repr(name, data_type, size, is_nullable, default, expected):
+    """
+    Test Field Representation
+    """
+    field = Field(name=name, data_type=data_type, size=size,
+                  is_nullable=is_nullable, default=default)
+    assert repr(field) == expected
+# End test_field_repr function
+
+
 def test_exists(tmp_path, fields):
     """
     Test exists methods
