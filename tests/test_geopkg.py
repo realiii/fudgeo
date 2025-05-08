@@ -822,16 +822,17 @@ def test_escaped_columns(setup_geopackage):
     """
     _, gpkg, srs, _ = setup_geopackage
     name = 'keyword_column_fc'
-    select = Field('select', SQLFieldType.integer)
-    union = Field('UnIoN', SQLFieldType.text, 20)
-    all_ = Field('ALL', SQLFieldType.text, 50)
-    example_dot = Field('why.do.this', SQLFieldType.text, 123)
-    regular = Field('regular', SQLFieldType.integer)
+    select = Field('select', data_type=SQLFieldType.integer, is_nullable=False)
+    union = Field('UnIoN', data_type=SQLFieldType.text, size=20, is_nullable=False)
+    all_ = Field('ALL', data_type=SQLFieldType.text, size=50)
+    example_dot = Field('why.do.this', data_type=SQLFieldType.text,
+                        size=123, is_nullable=False, default='.......')
+    regular = Field('regular', data_type=SQLFieldType.integer)
     fields = select, union, all_, example_dot, regular
-    assert repr(select) == '"select" INTEGER'
-    assert repr(union) == '"UnIoN" TEXT20'
+    assert repr(select) == '"select" INTEGER NOT NULL'
+    assert repr(union) == '"UnIoN" TEXT20 NOT NULL'
     assert repr(all_) == '"ALL" TEXT50'
-    assert repr(example_dot) == '"why.do.this" TEXT123'
+    assert repr(example_dot) == """"why.do.this" TEXT123 default '.......' NOT NULL"""
     assert repr(regular) == 'regular INTEGER'
     fc = gpkg.create_feature_class(name=name, srs=srs, fields=fields)
     expected_names = ['fid', SHAPE, select.name, union.name, all_.name,
