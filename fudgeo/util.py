@@ -33,14 +33,30 @@ def _is_invalid_name(name: str) -> bool:
 # End _is_invalid_name function
 
 
+def _is_invalid_with_raise(name: str, msg_name: str) -> str:
+    """
+    Is invalid name, raise exception if invalid
+    """
+    if _is_invalid_name(name):
+        raise ValueError(f'Invalid field name for {msg_name} column: {name}')
+    return name
+# End _is_invalid_with_raise function
+
+
 def check_geometry_name(name: str) -> str:
     """
     Check geometry name
     """
-    if _is_invalid_name(name):
-        raise ValueError(f'Invalid field name for geometry column: {name}')
-    return name
+    return _is_invalid_with_raise(name, msg_name='geometry')
 # End check_geometry_name function
+
+
+def check_primary_name(name: str) -> str:
+    """
+    Check primary key name
+    """
+    return _is_invalid_with_raise(name, msg_name='primary key')
+# End check_primary_name function
 
 
 def now() -> str:
