@@ -362,7 +362,7 @@ def has_metadata_extension(conn: 'Connection') -> bool:
     """
     try:
         cursor = conn.execute(HAS_METADATA)
-    except (DatabaseError, OperationalError):
+    except (DatabaseError, OperationalError):  # pragma: no cover
         return False
     return bool(cursor.fetchone())
 # End has_metadata_extension function
