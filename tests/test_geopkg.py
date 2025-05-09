@@ -879,6 +879,7 @@ def test_escaped_table(setup_geopackage):
     all_ = Field('c', SQLFieldType.text, 50)
     fields = select, union, all_
     fc = gpkg.create_feature_class(name=name, srs=srs, fields=fields)
+    assert fc.is_empty
     expected_names = ['fid', SHAPE, select.name, union.name, all_.name]
     assert fc.field_names == expected_names
     rows = [(Point(x=1, y=2, srs_id=srs.srs_id), 1, 'asdf', 'lmnop'),
@@ -889,6 +890,7 @@ def test_escaped_table(setup_geopackage):
             f"""INSERT INTO {fc.escaped_name} ({fc.geometry_column_name}, {select.escaped_name}, 
                             {union.escaped_name}, {all_.escaped_name})
                 VALUES (?, ?, ?, ?)""", rows)
+    assert not fc.is_empty
     # noinspection SqlNoDataSourceInspection
     cursor = fc.select(fields=(select, union, all_), include_geometry=False)
     records = cursor.fetchall()

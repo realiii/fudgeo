@@ -41,7 +41,7 @@ from fudgeo.sql import (
     REMOVE_FEATURE_CLASS, REMOVE_OGR, REMOVE_TABLE, RENAME_DATA_COLUMNS,
     RENAME_FEATURE_CLASS, RENAME_METADATA_REFERENCE, RENAME_TABLE, SELECT_COUNT,
     SELECT_DESCRIPTION, SELECT_EXTENT, SELECT_GEOMETRY_COLUMN,
-    SELECT_GEOMETRY_TYPE, SELECT_HAS_ZM, SELECT_PRIMARY_KEY,
+    SELECT_GEOMETRY_TYPE, SELECT_HAS_ROWS, SELECT_HAS_ZM, SELECT_PRIMARY_KEY,
     SELECT_SPATIAL_REFERENCES, SELECT_SRS, SELECT_TABLES_BY_TYPE, TABLE_EXISTS,
     UPDATE_EXTENT, UPDATE_GPKG_OGR_CONTENTS)
 from fudgeo.util import check_geometry_name, convert_datetime, escape_name, now
@@ -656,6 +656,17 @@ class BaseTable:
             return False
         return self.geopackage.exists(self.name)
     # End exists property
+
+    @property
+    def is_empty(self) -> bool:
+        """
+        True if there are rows in the table / features in the feature class
+        """
+        cursor = self.geopackage.connection.execute(
+            SELECT_HAS_ROWS.format(self.escaped_name))
+        result, = cursor.fetchone()
+        return not bool(result)
+    # End is_empty property
 
     @property
     def primary_key_field(self) -> Optional['Field']:

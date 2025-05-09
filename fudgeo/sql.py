@@ -342,6 +342,9 @@ SELECT_SPATIAL_REFERENCES: str = """
 SELECT_COUNT: str = """SELECT COUNT(1) AS C FROM {}"""
 
 
+SELECT_HAS_ROWS: str = """SELECT EXISTS(SELECT 1 FROM {}) AS H"""
+
+
 SELECT_PRIMARY_KEY: str = """
     SELECT name, type
     FROM pragma_table_info('{}')
