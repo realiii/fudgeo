@@ -12,7 +12,7 @@ from string import ascii_uppercase, digits
 
 from pytest import mark, raises
 
-from fudgeo.constant import SHAPE
+from fudgeo.constant import FID, SHAPE
 from fudgeo.enumeration import GeometryType, MetadataScope, SQLFieldType
 from fudgeo.extension.metadata import TableReference
 from fudgeo.extension.schema import GlobConstraint
@@ -105,7 +105,7 @@ def test_create_table(tmp_path, fields, name, ogr_contents, trigger_count):
     table = geo.create_table(name, fields)
     field_names = ', '.join(f.escaped_name for f in fields)
     assert isinstance(table, Table)
-    assert table.primary_key_field.name == 'fid'
+    assert table.primary_key_field.name == FID
     with raises(ValueError):
         geo.create_table(name, fields)
     conn = geo.connection
@@ -212,7 +212,7 @@ def test_create_feature_class(tmp_path, fields, name, ogr_contents, trigger_coun
         'WGS_1984_UTM_Zone_23N', 'EPSG', 32623, WGS_1984_UTM_Zone_23N)
     fc = geo.create_feature_class(name, srs=srs, fields=fields, spatial_index=add_index)
     assert fc.has_spatial_index is add_index
-    assert fc.primary_key_field.name == 'fid'
+    assert fc.primary_key_field.name == FID
     assert isinstance(fc, FeatureClass)
     with raises(ValueError):
         geo.create_feature_class(name, srs=srs, fields=fields)
@@ -822,19 +822,20 @@ def test_escaped_columns(setup_geopackage):
     """
     _, gpkg, srs, _ = setup_geopackage
     name = 'keyword_column_fc'
-    select = Field('select', SQLFieldType.integer)
-    union = Field('UnIoN', SQLFieldType.text, 20)
-    all_ = Field('ALL', SQLFieldType.text, 50)
-    example_dot = Field('why.do.this', SQLFieldType.text, 123)
-    regular = Field('regular', SQLFieldType.integer)
+    select = Field('select', data_type=SQLFieldType.integer, is_nullable=False)
+    union = Field('UnIoN', data_type=SQLFieldType.text, size=20, is_nullable=False)
+    all_ = Field('ALL', data_type=SQLFieldType.text, size=50)
+    example_dot = Field('why.do.this', data_type=SQLFieldType.text,
+                        size=123, is_nullable=False, default='.......')
+    regular = Field('regular', data_type=SQLFieldType.integer)
     fields = select, union, all_, example_dot, regular
-    assert repr(select) == '"select" INTEGER'
-    assert repr(union) == '"UnIoN" TEXT20'
+    assert repr(select) == '"select" INTEGER NOT NULL'
+    assert repr(union) == '"UnIoN" TEXT20 NOT NULL'
     assert repr(all_) == '"ALL" TEXT50'
-    assert repr(example_dot) == '"why.do.this" TEXT123'
+    assert repr(example_dot) == """"why.do.this" TEXT123 default '.......' NOT NULL"""
     assert repr(regular) == 'regular INTEGER'
     fc = gpkg.create_feature_class(name=name, srs=srs, fields=fields)
-    expected_names = ['fid', SHAPE, select.name, union.name, all_.name,
+    expected_names = [FID, SHAPE, select.name, union.name, all_.name,
                       example_dot.name, regular.name]
     assert fc.field_names == expected_names
     rows = [(Point(x=1, y=2, srs_id=srs.srs_id), 1, 'asdf', 'lmnop', ';;::;;;'),
@@ -855,6 +856,15 @@ def test_escaped_columns(setup_geopackage):
     cursor = gpkg.connection.execute(
         SELECT_ST_FUNCS.format(fc.geometry_column_name, fc.escaped_name))
     assert cursor.fetchall() == [(0, 1.0, 1.0, 2.0, 2.0), (0, 3.0, 3.0, 4.0, 4.0)]
+
+    (_, _, select_field, union_field,
+     all_field, dot_field, regular_field) = fc.fields
+
+    assert select_field == select
+    assert union_field == union
+    assert all_field == all_
+    assert dot_field == example_dot
+    assert regular_field == regular
 # End test_escaped_columns function
 
 
@@ -869,7 +879,8 @@ def test_escaped_table(setup_geopackage):
     all_ = Field('c', SQLFieldType.text, 50)
     fields = select, union, all_
     fc = gpkg.create_feature_class(name=name, srs=srs, fields=fields)
-    expected_names = ['fid', SHAPE, select.name, union.name, all_.name]
+    assert fc.is_empty
+    expected_names = [FID, SHAPE, select.name, union.name, all_.name]
     assert fc.field_names == expected_names
     rows = [(Point(x=1, y=2, srs_id=srs.srs_id), 1, 'asdf', 'lmnop'),
             (Point(x=3, y=4, srs_id=srs.srs_id), 2, 'qwerty', 'xyz')]
@@ -879,6 +890,7 @@ def test_escaped_table(setup_geopackage):
             f"""INSERT INTO {fc.escaped_name} ({fc.geometry_column_name}, {select.escaped_name}, 
                             {union.escaped_name}, {all_.escaped_name})
                 VALUES (?, ?, ?, ?)""", rows)
+    assert not fc.is_empty
     # noinspection SqlNoDataSourceInspection
     cursor = fc.select(fields=(select, union, all_), include_geometry=False)
     records = cursor.fetchall()
@@ -902,7 +914,7 @@ def test_validate_fields_feature_class(setup_geopackage):
     c = Field('c', SQLFieldType.text, 50)
     flds = a, b, c
     fc = gpkg.create_feature_class(name=name, srs=srs, fields=flds)
-    expected_names = ['fid', SHAPE, a.name, b.name, c.name]
+    expected_names = [FID, SHAPE, a.name, b.name, c.name]
     assert fc.field_names == expected_names
     flds = fc._validate_fields(fields=expected_names)
     assert [f.name for f in flds] == [a.name, b.name, c.name]
@@ -917,17 +929,17 @@ def test_validate_fields_feature_class(setup_geopackage):
 
 @mark.parametrize('names, include_primary, include_geometry, where_clause, expected', [
     (('a', 'b', 'c'), False, True, '', ('', 'a', 'b', 'c')),
-    (('a', 'b', 'c'), True, True, '', ('', 'fid', 'a', 'b', 'c')),
+    (('a', 'b', 'c'), True, True, '', ('', FID, 'a', 'b', 'c')),
     ((), False, True, '', ('',)),
-    ((), True, True, '', ('', 'fid')),
+    ((), True, True, '', ('', FID)),
     (('a', 'b', 'c'), False, True, 'a = 10', ('', 'a', 'b', 'c')),
-    (('a', 'b', 'c'), True, True, "a = 20 AND c = 'asdf'", ('', 'fid', 'a', 'b', 'c')),
+    (('a', 'b', 'c'), True, True, "a = 20 AND c = 'asdf'", ('', FID, 'a', 'b', 'c')),
     (('a', 'b', 'c'), False, False, '', ('a', 'b', 'c')),
-    (('a', 'b', 'c'), True, False, '', ('fid', 'a', 'b', 'c')),
-    ((), False, False, '', ('fid',)),
-    ((), True, False, '', ('fid',)),
+    (('a', 'b', 'c'), True, False, '', (FID, 'a', 'b', 'c')),
+    ((), False, False, '', (FID,)),
+    ((), True, False, '', (FID,)),
     (('a', 'b', 'c'), False, False, 'a = 10', ('a', 'b', 'c')),
-    (('a', 'b', 'c'), True, False, "a = 20 AND c = 'asdf'", ('fid', 'a', 'b', 'c')),
+    (('a', 'b', 'c'), True, False, "a = 20 AND c = 'asdf'", (FID, 'a', 'b', 'c')),
 ])
 def test_select_feature_class(setup_geopackage, names, include_primary, include_geometry, where_clause, expected):
     """
@@ -957,7 +969,7 @@ def test_validate_fields_table(setup_geopackage):
     b = Field('b', SQLFieldType.text, 20)
     c = Field('c', SQLFieldType.text, 50)
     tbl = gpkg.create_table(name=name, fields=(a, b, c))
-    expected_names = ['fid', a.name, b.name, c.name]
+    expected_names = [FID, a.name, b.name, c.name]
     assert tbl.field_names == expected_names
     flds = tbl._validate_fields(fields=expected_names)
     assert [f.name for f in flds] == [a.name, b.name, c.name]
@@ -972,11 +984,11 @@ def test_validate_fields_table(setup_geopackage):
 
 @mark.parametrize('names, include, where_clause, expected', [
     (('a', 'b', 'c'), False, '', ('a', 'b', 'c')),
-    (('a', 'b', 'c'), True, '', ('fid', 'a', 'b', 'c')),
-    ((), False, '', ('fid',)),
-    ((), True, '', ('fid',)),
+    (('a', 'b', 'c'), True, '', (FID, 'a', 'b', 'c')),
+    ((), False, '', (FID,)),
+    ((), True, '', (FID,)),
     (('a', 'b', 'c'), False, 'a = 10', ('a', 'b', 'c')),
-    (('a', 'b', 'c'), True, "a = 20 AND c = 'asdf'", ('fid', 'a', 'b', 'c')),
+    (('a', 'b', 'c'), True, "a = 20 AND c = 'asdf'", (FID, 'a', 'b', 'c')),
 ])
 def test_select_table(setup_geopackage, names, include, where_clause, expected):
     """
@@ -1006,6 +1018,26 @@ def test_representation():
     tbl = Table(gpkg, '/some/path/to/geopackage.gpkg')
     assert repr(tbl) == "Table(geopackage=GeoPackage(path=PosixPath('/some/path/to/geopackage.gpkg')), name='/some/path/to/geopackage.gpkg')"
 # End test_representation function
+
+
+@mark.parametrize('name, data_type, size, is_nullable, default, expected', [
+    ('a', SQLFieldType.integer, None, True, None, 'a INTEGER'),
+    ('a', SQLFieldType.integer, None, False, 1234, 'a INTEGER default 1234 NOT NULL'),
+    ('a', SQLFieldType.integer, None, True, 1234, 'a INTEGER default 1234'),
+    ('b', SQLFieldType.text, 256, True, None, 'b TEXT256'),
+    ('b', SQLFieldType.text, 256, False, None, 'b TEXT256 NOT NULL'),
+    ('b', SQLFieldType.text, 256, False, 'asdf', "b TEXT256 default 'asdf' NOT NULL"),
+    ('SELECT', SQLFieldType.integer, 256, False, None, '"SELECT" INTEGER NOT NULL'),
+    ('SELECT', SQLFieldType.text, 256, False, 'asdf', """"SELECT" TEXT256 default 'asdf' NOT NULL"""),
+])
+def test_field_repr(name, data_type, size, is_nullable, default, expected):
+    """
+    Test Field Representation
+    """
+    field = Field(name=name, data_type=data_type, size=size,
+                  is_nullable=is_nullable, default=default)
+    assert repr(field) == expected
+# End test_field_repr function
 
 
 def test_exists(tmp_path, fields):
@@ -1296,6 +1328,43 @@ def test_rename_feature_class(setup_geopackage, use_index, use_ogr, use_meta, us
             assert rec_count == 1
 
 # End test_rename_feature_class function
+
+
+@mark.parametrize('pk_name', [
+    FID, 'id', 'OBJECTID',
+])
+def test_create_elements_pk_name(tmp_path, fields, pk_name):
+    """
+    Create Table and Feature Class using specified primary key name
+    """
+    name = 'asdf'
+    path = tmp_path / 'tbl'
+    geo = GeoPackage.create(path)
+    table = geo.create_table(f'{name}_table', fields=fields, pk_name=pk_name)
+    assert isinstance(table, Table)
+    assert table.primary_key_field.name == pk_name
+
+    table2 = Table.create(
+        geopackage=geo, name=f'{name}_table2', fields=fields, pk_name=pk_name)
+    assert isinstance(table2, Table)
+    assert table2.primary_key_field.name == pk_name
+
+    srs = SpatialReferenceSystem(
+        'WGS_1984_UTM_Zone_23N', 'EPSG', 32623, WGS_1984_UTM_Zone_23N)
+    fc = geo.create_feature_class(
+        f'{name}_fc', srs=srs, fields=fields, pk_name=pk_name)
+    assert isinstance(fc, FeatureClass)
+    assert fc.primary_key_field.name == pk_name
+
+    fc2 = FeatureClass.create(
+        geopackage=geo, name=f'{name}_fc2', srs=srs, fields=fields,
+        pk_name=pk_name, shape_type=GeometryType.point)
+    assert isinstance(fc2, FeatureClass)
+    assert fc2.primary_key_field.name == pk_name
+
+    if path.exists():
+        path.unlink()
+# End test_create_elements_pk_name function
 
 
 if __name__ == '__main__':  # pragma: no cover

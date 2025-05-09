@@ -430,6 +430,11 @@ Support provided for the following constraint types:
 
 ## Release History
 
+### v1.2.0
+* add support for creating tables and feature classes with a primary key column name other than `fid`
+* add `is_empty` property to `Table` and `FeatureClass` classes
+* improve `Field` with support for nullable and default value
+
 ### v1.1.0
 * add `rename` method to `Table` and `FeatureClass` classes
 * add `ForeignKeys` context manager

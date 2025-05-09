@@ -210,14 +210,14 @@ INSERT_GPKG_GEOM_COL: str = """
 
 CREATE_FEATURE_TABLE: str = """
     CREATE TABLE {name} (
-        fid INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, 
+        {pk_name} INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, 
         {geom_name} {feature_type}{other_fields})
 """
 
 
 CREATE_TABLE: str = """
     CREATE TABLE {name} (
-        fid INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT  
+        {pk_name} INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT  
         {other_fields})
 """
 
@@ -340,6 +340,9 @@ SELECT_SPATIAL_REFERENCES: str = """
 
 
 SELECT_COUNT: str = """SELECT COUNT(1) AS C FROM {}"""
+
+
+SELECT_HAS_ROWS: str = """SELECT EXISTS(SELECT 1 FROM {}) AS H"""
 
 
 SELECT_PRIMARY_KEY: str = """

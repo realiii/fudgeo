@@ -26,7 +26,7 @@ def has_ogr_contents(conn: 'Connection') -> bool:
     """
     try:
         cursor = conn.execute(HAS_OGR_CONTENTS)
-    except (DatabaseError, OperationalError):
+    except (DatabaseError, OperationalError):  # pragma: no cover
         return False
     return bool(cursor.fetchone())
 # End has_ogr_contents function

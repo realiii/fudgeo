@@ -18,7 +18,8 @@ from typing import Any, Optional, TYPE_CHECKING, Type, Union
 from numpy import int16, int32, int64, int8, uint16, uint32, uint64, uint8
 
 from fudgeo.alias import FIELDS, FIELD_NAMES, INT, STRING
-from fudgeo.constant import COMMA_SPACE, FETCH_SIZE, GPKG_EXT, MEMORY, SHAPE
+from fudgeo.constant import (
+    COMMA_SPACE, FETCH_SIZE, FID, GPKG_EXT, MEMORY, SHAPE)
 from fudgeo.context import ExecuteMany, ForeignKeys
 from fudgeo.enumeration import DataType, GPKGFlavors, GeometryType, SQLFieldType
 from fudgeo.extension.metadata import (
@@ -41,10 +42,11 @@ from fudgeo.sql import (
     REMOVE_FEATURE_CLASS, REMOVE_OGR, REMOVE_TABLE, RENAME_DATA_COLUMNS,
     RENAME_FEATURE_CLASS, RENAME_METADATA_REFERENCE, RENAME_TABLE, SELECT_COUNT,
     SELECT_DESCRIPTION, SELECT_EXTENT, SELECT_GEOMETRY_COLUMN,
-    SELECT_GEOMETRY_TYPE, SELECT_HAS_ZM, SELECT_PRIMARY_KEY,
+    SELECT_GEOMETRY_TYPE, SELECT_HAS_ROWS, SELECT_HAS_ZM, SELECT_PRIMARY_KEY,
     SELECT_SPATIAL_REFERENCES, SELECT_SRS, SELECT_TABLES_BY_TYPE, TABLE_EXISTS,
     UPDATE_EXTENT, UPDATE_GPKG_OGR_CONTENTS)
-from fudgeo.util import check_geometry_name, convert_datetime, escape_name, now
+from fudgeo.util import (
+    check_geometry_name, check_primary_name, convert_datetime, escape_name, now)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -254,7 +256,8 @@ class AbstractGeoPackage:
                              fields: FIELDS = (), description: str = '',
                              overwrite: bool = False,
                              spatial_index: bool = False,
-                             geom_name: str = SHAPE) -> 'FeatureClass':
+                             geom_name: str = SHAPE,
+                             pk_name: STRING = FID) -> 'FeatureClass':
         """
         Creates a feature class in the GeoPackage per the options given.
         """
@@ -263,18 +266,19 @@ class AbstractGeoPackage:
             geopackage=self, name=name, shape_type=shape_type, srs=srs,
             z_enabled=z_enabled, m_enabled=m_enabled, fields=fields,
             description=description, overwrite=overwrite,
-            spatial_index=spatial_index, geom_name=geom_name)
+            spatial_index=spatial_index, geom_name=geom_name, pk_name=pk_name)
     # End create_feature_class method
 
     def create_table(self, name: str, fields: FIELDS = (),
-                     description: str = '', overwrite: bool = False) -> 'Table':
+                     description: str = '', overwrite: bool = False,
+                     pk_name: STRING = FID) -> 'Table':
         """
         Creates a feature class in the GeoPackage per the options given.
         """
         fields = self._validate_inputs(fields, name, overwrite)
         return Table.create(
             geopackage=self, name=name, fields=fields,
-            description=description, overwrite=overwrite)
+            description=description, overwrite=overwrite, pk_name=pk_name)
     # End create_feature_class method
 
     @property
@@ -658,6 +662,17 @@ class BaseTable:
     # End exists property
 
     @property
+    def is_empty(self) -> bool:
+        """
+        True if there are rows in the table / features in the feature class
+        """
+        cursor = self.geopackage.connection.execute(
+            SELECT_HAS_ROWS.format(self.escaped_name))
+        result, = cursor.fetchone()
+        return not bool(result)
+    # End is_empty property
+
+    @property
     def primary_key_field(self) -> Optional['Field']:
         """
         Primary Key Field
@@ -667,7 +682,7 @@ class BaseTable:
         result = cursor.fetchone()
         if not result:  # pragma: no cover
             return None
-        return Field(*result)
+        return Field(*result,  is_nullable=False)
     # End primary_key_field property
 
     @property
@@ -675,10 +690,14 @@ class BaseTable:
         """
         Fields
         """
+        fields = []
         cursor = self.geopackage.connection.execute(
             f"""PRAGMA table_info({self.escaped_name})""")
-        return [Field(name=name, data_type=type_)
-                for _, name, type_, _, _, _ in cursor.fetchall()]
+        for _, name, type_, not_nullable, default, _ in cursor.fetchall():
+            fields.append(Field(
+                name=name, data_type=type_, is_nullable=not bool(not_nullable),
+                default=default))
+        return fields
     # End fields property
 
     @property
@@ -767,7 +786,8 @@ class Table(BaseTable):
 
     @classmethod
     def create(cls, geopackage: GeoPackage, name: str, fields: FIELDS,
-               description: str = '', overwrite: bool = False) -> 'Table':
+               description: str = '', overwrite: bool = False,
+               pk_name: STRING = FID) -> 'Table':
         """
         Create a regular non-spatial table in the geopackage
         """
@@ -775,6 +795,7 @@ class Table(BaseTable):
         cols = cls._column_names_types(fields)
         with geopackage.connection as conn:
             escaped_name = escape_name(name)
+            pk_name = check_primary_name(pk_name)
             has_ogr = has_ogr_contents(conn)
             if overwrite:
                 cls._drop(
@@ -783,7 +804,7 @@ class Table(BaseTable):
                     has_meta=geopackage.is_metadata_enabled,
                     has_schema=geopackage.is_schema_enabled)
             conn.execute(CREATE_TABLE.format(
-                name=escaped_name, other_fields=cols))
+                name=escaped_name, pk_name=pk_name, other_fields=cols))
             conn.execute(INSERT_GPKG_CONTENTS_SHORT, (
                 name, DataType.attributes, name, description, now(), None))
             if has_ogr:
@@ -938,7 +959,7 @@ class FeatureClass(BaseTable):
     def _shared_create_steps(self, name: str, description: str = '',
                              where_clause: str = '', overwrite: bool = False,
                              geopackage: Optional[GeoPackage] = None,
-                             geom_name: STRING = None) \
+                             geom_name: STRING = None, pk_name: STRING = None) \
             -> tuple[str, str, 'FeatureClass']:
         """
         Shared Steps for Creating a Feature Class during Copy / Explode
@@ -955,7 +976,9 @@ class FeatureClass(BaseTable):
             description=description or self.description, overwrite=overwrite,
             z_enabled=self.has_z, m_enabled=self.has_m,
             spatial_index=self.has_spatial_index,
-            geom_name=geom_name or self.geometry_column_name)
+            geom_name=geom_name or self.geometry_column_name,
+            pk_name=pk_name or self.primary_key_field.name
+        )
         insert_sql, select_sql = self._make_copy_sql(target, where_clause)
         return insert_sql, select_sql, target
     # End _shared_create_steps method
@@ -976,8 +999,8 @@ class FeatureClass(BaseTable):
                srs: 'SpatialReferenceSystem', z_enabled: bool = False,
                m_enabled: bool = False, fields: FIELDS = (),
                description: str = '', overwrite: bool = False,
-               spatial_index: bool = False,
-               geom_name: str = SHAPE) -> 'FeatureClass':
+               spatial_index: bool = False, geom_name: str = SHAPE,
+               pk_name: STRING = FID) -> 'FeatureClass':
         """
         Create Feature Class
         """
@@ -986,6 +1009,7 @@ class FeatureClass(BaseTable):
         with geopackage.connection as conn:
             escaped_name = escape_name(name)
             geom_name = check_geometry_name(geom_name)
+            pk_name = check_primary_name(pk_name)
             has_ogr = has_ogr_contents(conn)
             if overwrite:
                 current_name = cls._find_geometry_column_name(geopackage, name)
@@ -995,7 +1019,7 @@ class FeatureClass(BaseTable):
                     has_ogr=has_ogr, has_meta=geopackage.is_metadata_enabled,
                     has_schema=geopackage.is_schema_enabled)
             conn.execute(CREATE_FEATURE_TABLE.format(
-                name=escaped_name, geom_name=geom_name,
+                name=escaped_name, pk_name=pk_name, geom_name=geom_name,
                 feature_type=shape_type, other_fields=cols))
             if not geopackage.check_srs_exists(srs.srs_id):
                 conn.execute(INSERT_GPKG_SRS, srs.as_record())
@@ -1158,7 +1182,8 @@ class FeatureClass(BaseTable):
     def copy(self, name: str, description: str = '',
              where_clause: str = '', overwrite: bool = False,
              geopackage: Optional[GeoPackage] = None,
-             geom_name: STRING = None) -> 'FeatureClass':
+             geom_name: STRING = None,
+             pk_name: STRING = None) -> 'FeatureClass':
         """
         Copy the structure and content of a feature class.  Create a new
         feature class or overwrite an existing.  Use a where clause to limit
@@ -1170,7 +1195,8 @@ class FeatureClass(BaseTable):
         """
         insert_sql, select_sql, target = self._shared_create_steps(
             name=name, description=description, where_clause=where_clause,
-            overwrite=overwrite, geopackage=geopackage, geom_name=geom_name)
+            overwrite=overwrite, geopackage=geopackage, geom_name=geom_name,
+            pk_name=pk_name)
         cursor = self.geopackage.connection.execute(select_sql)
         with (target.geopackage.connection as connection,
               ExecuteMany(connection=connection, table=target) as executor):
@@ -1295,7 +1321,8 @@ class Field:
     """
     Field Object for GeoPackage
     """
-    def __init__(self, name: str, data_type: str, size: INT = None) -> None:
+    def __init__(self, name: str, data_type: str, size: INT = None,
+                 is_nullable: bool = True, default: Any = None) -> None:
         """
         Initialize the Field class
         """
@@ -1303,16 +1330,25 @@ class Field:
         self.name: str = name
         self.data_type: str = data_type
         self.size: INT = size
+        self.is_nullable: bool = is_nullable
+        self.default: Any = default
     # End init built-in
 
     def __repr__(self) -> str:
         """
         String representation
         """
-        types = SQLFieldType.blob, SQLFieldType.text
-        if self.size and self.data_type in types:
-            return f'{self.escaped_name} {self.data_type}{self.size}'
-        return f'{self.escaped_name} {self.data_type}'
+        definition = f'{self.escaped_name} {self.data_type}'
+        is_type = self.data_type in (SQLFieldType.blob, SQLFieldType.text)
+        if self.size and is_type:
+            definition = f'{definition}{self.size}'
+        if default := self.default:
+            if is_type:
+                default = f"'{default}'"
+            definition = f'{definition} default {default}'
+        if not self.is_nullable:
+            definition = f'{definition} NOT NULL'
+        return definition
     # End repr built-in
 
     def __eq__(self, other: 'Field') -> bool:
