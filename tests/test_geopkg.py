@@ -212,7 +212,7 @@ def test_create_feature_class(tmp_path, fields, name, ogr_contents, trigger_coun
         'WGS_1984_UTM_Zone_23N', 'EPSG', 32623, WGS_1984_UTM_Zone_23N)
     fc = geo.create_feature_class(name, srs=srs, fields=fields, spatial_index=add_index)
     assert fc.has_spatial_index is add_index
-    assert fc.primary_key_field.name == 'fid'
+    assert fc.primary_key_field.name == FID
     assert isinstance(fc, FeatureClass)
     with raises(ValueError):
         geo.create_feature_class(name, srs=srs, fields=fields)
@@ -835,7 +835,7 @@ def test_escaped_columns(setup_geopackage):
     assert repr(example_dot) == """"why.do.this" TEXT123 default '.......' NOT NULL"""
     assert repr(regular) == 'regular INTEGER'
     fc = gpkg.create_feature_class(name=name, srs=srs, fields=fields)
-    expected_names = ['fid', SHAPE, select.name, union.name, all_.name,
+    expected_names = [FID, SHAPE, select.name, union.name, all_.name,
                       example_dot.name, regular.name]
     assert fc.field_names == expected_names
     rows = [(Point(x=1, y=2, srs_id=srs.srs_id), 1, 'asdf', 'lmnop', ';;::;;;'),
@@ -880,7 +880,7 @@ def test_escaped_table(setup_geopackage):
     fields = select, union, all_
     fc = gpkg.create_feature_class(name=name, srs=srs, fields=fields)
     assert fc.is_empty
-    expected_names = ['fid', SHAPE, select.name, union.name, all_.name]
+    expected_names = [FID, SHAPE, select.name, union.name, all_.name]
     assert fc.field_names == expected_names
     rows = [(Point(x=1, y=2, srs_id=srs.srs_id), 1, 'asdf', 'lmnop'),
             (Point(x=3, y=4, srs_id=srs.srs_id), 2, 'qwerty', 'xyz')]
@@ -914,7 +914,7 @@ def test_validate_fields_feature_class(setup_geopackage):
     c = Field('c', SQLFieldType.text, 50)
     flds = a, b, c
     fc = gpkg.create_feature_class(name=name, srs=srs, fields=flds)
-    expected_names = ['fid', SHAPE, a.name, b.name, c.name]
+    expected_names = [FID, SHAPE, a.name, b.name, c.name]
     assert fc.field_names == expected_names
     flds = fc._validate_fields(fields=expected_names)
     assert [f.name for f in flds] == [a.name, b.name, c.name]
@@ -929,17 +929,17 @@ def test_validate_fields_feature_class(setup_geopackage):
 
 @mark.parametrize('names, include_primary, include_geometry, where_clause, expected', [
     (('a', 'b', 'c'), False, True, '', ('', 'a', 'b', 'c')),
-    (('a', 'b', 'c'), True, True, '', ('', 'fid', 'a', 'b', 'c')),
+    (('a', 'b', 'c'), True, True, '', ('', FID, 'a', 'b', 'c')),
     ((), False, True, '', ('',)),
-    ((), True, True, '', ('', 'fid')),
+    ((), True, True, '', ('', FID)),
     (('a', 'b', 'c'), False, True, 'a = 10', ('', 'a', 'b', 'c')),
-    (('a', 'b', 'c'), True, True, "a = 20 AND c = 'asdf'", ('', 'fid', 'a', 'b', 'c')),
+    (('a', 'b', 'c'), True, True, "a = 20 AND c = 'asdf'", ('', FID, 'a', 'b', 'c')),
     (('a', 'b', 'c'), False, False, '', ('a', 'b', 'c')),
-    (('a', 'b', 'c'), True, False, '', ('fid', 'a', 'b', 'c')),
-    ((), False, False, '', ('fid',)),
-    ((), True, False, '', ('fid',)),
+    (('a', 'b', 'c'), True, False, '', (FID, 'a', 'b', 'c')),
+    ((), False, False, '', (FID,)),
+    ((), True, False, '', (FID,)),
     (('a', 'b', 'c'), False, False, 'a = 10', ('a', 'b', 'c')),
-    (('a', 'b', 'c'), True, False, "a = 20 AND c = 'asdf'", ('fid', 'a', 'b', 'c')),
+    (('a', 'b', 'c'), True, False, "a = 20 AND c = 'asdf'", (FID, 'a', 'b', 'c')),
 ])
 def test_select_feature_class(setup_geopackage, names, include_primary, include_geometry, where_clause, expected):
     """
@@ -969,7 +969,7 @@ def test_validate_fields_table(setup_geopackage):
     b = Field('b', SQLFieldType.text, 20)
     c = Field('c', SQLFieldType.text, 50)
     tbl = gpkg.create_table(name=name, fields=(a, b, c))
-    expected_names = ['fid', a.name, b.name, c.name]
+    expected_names = [FID, a.name, b.name, c.name]
     assert tbl.field_names == expected_names
     flds = tbl._validate_fields(fields=expected_names)
     assert [f.name for f in flds] == [a.name, b.name, c.name]
@@ -984,11 +984,11 @@ def test_validate_fields_table(setup_geopackage):
 
 @mark.parametrize('names, include, where_clause, expected', [
     (('a', 'b', 'c'), False, '', ('a', 'b', 'c')),
-    (('a', 'b', 'c'), True, '', ('fid', 'a', 'b', 'c')),
-    ((), False, '', ('fid',)),
-    ((), True, '', ('fid',)),
+    (('a', 'b', 'c'), True, '', (FID, 'a', 'b', 'c')),
+    ((), False, '', (FID,)),
+    ((), True, '', (FID,)),
     (('a', 'b', 'c'), False, 'a = 10', ('a', 'b', 'c')),
-    (('a', 'b', 'c'), True, "a = 20 AND c = 'asdf'", ('fid', 'a', 'b', 'c')),
+    (('a', 'b', 'c'), True, "a = 20 AND c = 'asdf'", (FID, 'a', 'b', 'c')),
 ])
 def test_select_table(setup_geopackage, names, include, where_clause, expected):
     """
