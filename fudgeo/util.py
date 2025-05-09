@@ -29,7 +29,9 @@ def _is_invalid_name(name: str) -> bool:
     """
     Is invalid name
     """
-    return name.upper() in KEYWORDS or not NAME_MATCHER(name)
+    return (not name.strip() or
+            name.upper() in KEYWORDS or
+            not NAME_MATCHER(name))
 # End _is_invalid_name function
 
 
