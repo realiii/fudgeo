@@ -210,14 +210,14 @@ INSERT_GPKG_GEOM_COL: str = """
 
 CREATE_FEATURE_TABLE: str = """
     CREATE TABLE {name} (
-        fid INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, 
+        {pk_name} INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, 
         {geom_name} {feature_type}{other_fields})
 """
 
 
 CREATE_TABLE: str = """
     CREATE TABLE {name} (
-        fid INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT  
+        {pk_name} INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT  
         {other_fields})
 """
 

@@ -12,7 +12,7 @@ from string import ascii_uppercase, digits
 
 from pytest import mark, raises
 
-from fudgeo.constant import SHAPE
+from fudgeo.constant import FID, SHAPE
 from fudgeo.enumeration import GeometryType, MetadataScope, SQLFieldType
 from fudgeo.extension.metadata import TableReference
 from fudgeo.extension.schema import GlobConstraint
@@ -105,7 +105,7 @@ def test_create_table(tmp_path, fields, name, ogr_contents, trigger_count):
     table = geo.create_table(name, fields)
     field_names = ', '.join(f.escaped_name for f in fields)
     assert isinstance(table, Table)
-    assert table.primary_key_field.name == 'fid'
+    assert table.primary_key_field.name == FID
     with raises(ValueError):
         geo.create_table(name, fields)
     conn = geo.connection
@@ -1328,6 +1328,43 @@ def test_rename_feature_class(setup_geopackage, use_index, use_ogr, use_meta, us
             assert rec_count == 1
 
 # End test_rename_feature_class function
+
+
+@mark.parametrize('pk_name', [
+    FID, 'id', 'OBJECTID',
+])
+def test_create_elements_pk_name(tmp_path, fields, pk_name):
+    """
+    Create Table and Feature Class using specified primary key name
+    """
+    name = 'asdf'
+    path = tmp_path / 'tbl'
+    geo = GeoPackage.create(path)
+    table = geo.create_table(f'{name}_table', fields=fields, pk_name=pk_name)
+    assert isinstance(table, Table)
+    assert table.primary_key_field.name == pk_name
+
+    table2 = Table.create(
+        geopackage=geo, name=f'{name}_table2', fields=fields, pk_name=pk_name)
+    assert isinstance(table2, Table)
+    assert table2.primary_key_field.name == pk_name
+
+    srs = SpatialReferenceSystem(
+        'WGS_1984_UTM_Zone_23N', 'EPSG', 32623, WGS_1984_UTM_Zone_23N)
+    fc = geo.create_feature_class(
+        f'{name}_fc', srs=srs, fields=fields, pk_name=pk_name)
+    assert isinstance(fc, FeatureClass)
+    assert fc.primary_key_field.name == pk_name
+
+    fc2 = FeatureClass.create(
+        geopackage=geo, name=f'{name}_fc2', srs=srs, fields=fields,
+        pk_name=pk_name, shape_type=GeometryType.point)
+    assert isinstance(fc2, FeatureClass)
+    assert fc2.primary_key_field.name == pk_name
+
+    if path.exists():
+        path.unlink()
+# End test_create_elements_pk_name function
 
 
 if __name__ == '__main__':  # pragma: no cover
