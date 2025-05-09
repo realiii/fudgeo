@@ -242,7 +242,7 @@ def has_schema_extension(conn: 'Connection') -> bool:
     """
     try:
         cursor = conn.execute(HAS_SCHEMA)
-    except (DatabaseError, OperationalError):
+    except (DatabaseError, OperationalError):  # pragma: no cover
         return False
     return bool(cursor.fetchone())
 # End has_schema_extension function
