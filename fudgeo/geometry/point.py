@@ -94,6 +94,14 @@ class Point(AbstractGeometry):
     # End _to_wkb method
 
     @property
+    def wkb(self) -> bytes:
+        """
+        WKB
+        """
+        return self._to_wkb()
+    # End wkb property
+
+    @property
     def envelope(self) -> 'Envelope':
         """
         Envelope
@@ -208,6 +216,14 @@ class PointZ(AbstractGeometry):
     # End _to_wkb method
 
     @property
+    def wkb(self) -> bytes:
+        """
+        WKB
+        """
+        return self._to_wkb()
+    # End wkb property
+
+    @property
     def envelope(self) -> 'Envelope':
         """
         Envelope
@@ -319,6 +335,14 @@ class PointM(AbstractGeometry):
         """
         return WKB_POINT_M_PRE + pack(THREE_D_PACK_CODE, *self.as_tuple())
     # End _to_wkb method
+
+    @property
+    def wkb(self) -> bytes:
+        """
+        WKB
+        """
+        return self._to_wkb()
+    # End wkb property
 
     @property
     def envelope(self) -> 'Envelope':
@@ -438,6 +462,14 @@ class PointZM(AbstractGeometry):
         """
         return WKB_POINT_ZM_PRE + pack(FOUR_D_PACK_CODE, *self.as_tuple())
     # End _to_wkb method
+
+    @property
+    def wkb(self) -> bytes:
+        """
+        WKB
+        """
+        return self._to_wkb()
+    # End wkb property
 
     @property
     def envelope(self) -> 'Envelope':
