@@ -31,7 +31,7 @@ packages = ["fudgeo", "fudgeo.geometry", "fudgeo.extension"]
 include-package-data = true
 
 [project.optional-dependencies]
-dev = ["pytest", "coverage", "twine", "build"]
+dev = ["pytest", "coverage", "twine", "build", "shapely"]
 
 [project.urls]
 Homepage = "https://github.com/realiii/fudgeo"

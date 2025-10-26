@@ -36,6 +36,14 @@ class AbstractGeometry(metaclass=ABCMeta):
         pass
     # End _to_wkb method
 
+    @property
+    def wkb(self) -> bytes:
+        """
+        WKB
+        """
+        return bytes(self._to_wkb(bytearray()))
+    # End wkb property
+
     @staticmethod
     def _join_geometries(ary: bytearray,
                          geoms: list['AbstractGeometry']) -> bytearray:

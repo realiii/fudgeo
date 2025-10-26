@@ -47,7 +47,7 @@ class Point(AbstractGeometry):
         """
         Equals
         """
-        if not isinstance(other, Point):  # pragma: nocover
+        if not isinstance(other, self.__class__):  # pragma: nocover
             return NotImplemented
         if self.srs_id != other.srs_id:
             return False
@@ -92,6 +92,14 @@ class Point(AbstractGeometry):
         """
         return WKB_POINT_PRE + pack(TWO_D_PACK_CODE, *self.as_tuple())
     # End _to_wkb method
+
+    @property
+    def wkb(self) -> bytes:
+        """
+        WKB
+        """
+        return self._to_wkb()
+    # End wkb property
 
     @property
     def envelope(self) -> 'Envelope':
@@ -160,7 +168,7 @@ class PointZ(AbstractGeometry):
         """
         Equals
         """
-        if not isinstance(other, PointZ):  # pragma: nocover
+        if not isinstance(other, self.__class__):  # pragma: nocover
             return NotImplemented
         if self.srs_id != other.srs_id:
             return False
@@ -206,6 +214,14 @@ class PointZ(AbstractGeometry):
         """
         return WKB_POINT_Z_PRE + pack(THREE_D_PACK_CODE, *self.as_tuple())
     # End _to_wkb method
+
+    @property
+    def wkb(self) -> bytes:
+        """
+        WKB
+        """
+        return self._to_wkb()
+    # End wkb property
 
     @property
     def envelope(self) -> 'Envelope':
@@ -274,7 +290,7 @@ class PointM(AbstractGeometry):
         """
         Equals
         """
-        if not isinstance(other, PointM):  # pragma: nocover
+        if not isinstance(other, self.__class__):  # pragma: nocover
             return NotImplemented
         if self.srs_id != other.srs_id:
             return False
@@ -319,6 +335,14 @@ class PointM(AbstractGeometry):
         """
         return WKB_POINT_M_PRE + pack(THREE_D_PACK_CODE, *self.as_tuple())
     # End _to_wkb method
+
+    @property
+    def wkb(self) -> bytes:
+        """
+        WKB
+        """
+        return self._to_wkb()
+    # End wkb property
 
     @property
     def envelope(self) -> 'Envelope':
@@ -389,7 +413,7 @@ class PointZM(AbstractGeometry):
         """
         Equals
         """
-        if not isinstance(other, PointZM):  # pragma: nocover
+        if not isinstance(other, self.__class__):  # pragma: nocover
             return NotImplemented
         if self.srs_id != other.srs_id:
             return False
@@ -438,6 +462,14 @@ class PointZM(AbstractGeometry):
         """
         return WKB_POINT_ZM_PRE + pack(FOUR_D_PACK_CODE, *self.as_tuple())
     # End _to_wkb method
+
+    @property
+    def wkb(self) -> bytes:
+        """
+        WKB
+        """
+        return self._to_wkb()
+    # End wkb property
 
     @property
     def envelope(self) -> 'Envelope':
@@ -590,9 +622,8 @@ class BaseMultiPoint(AbstractGeometry):
         To WKB
         """
         return pack_coordinates(
-            ary, self._wkb_prefix, self.coordinates,
-            has_z=self._has_z, has_m=self._has_m,
-            use_point_prefix=True)
+            ary, prefix=self._wkb_prefix, coordinates=self.coordinates,
+            has_z=self._has_z, has_m=self._has_m, use_point_prefix=True)
     # End _to_wkb method
 
     @classmethod
