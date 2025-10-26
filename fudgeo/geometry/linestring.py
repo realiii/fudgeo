@@ -128,8 +128,9 @@ class BaseLineString(AbstractGeometry):
         """
         To WKB
         """
-        return pack_coordinates(ary, self._wkb_prefix, self.coordinates,
-                                has_z=self._has_z, has_m=self._has_m)
+        return pack_coordinates(
+            ary, prefix=self._wkb_prefix, coordinates=self.coordinates,
+            has_z=self._has_z, has_m=self._has_m)
     # End _to_wkb method
 
     @classmethod

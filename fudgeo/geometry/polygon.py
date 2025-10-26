@@ -95,7 +95,8 @@ class BaseLinearRing(AbstractGeometry):
         """
         To WKB
         """
-        return pack_coordinates(ary, EMPTY, self.coordinates)
+        return pack_coordinates(
+            ary, prefix=EMPTY, coordinates=self.coordinates)
     # End _to_wkb method
 
     @classmethod
