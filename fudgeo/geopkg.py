@@ -4,7 +4,7 @@ Geopackage
 """
 
 
-from abc import abstractmethod
+from abc import ABCMeta, abstractmethod
 from math import nan
 from operator import itemgetter
 from os import PathLike
@@ -97,7 +97,7 @@ def _add_st_functions(conn: 'Connection') -> None:
 # End _add_st_functions function
 
 
-class AbstractGeoPackage:
+class AbstractGeoPackage(metaclass=ABCMeta):
     """
     Abstract GeoPackage
     """

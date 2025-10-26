@@ -4,7 +4,7 @@ Schema Extension
 """
 
 
-from abc import abstractmethod
+from abc import ABCMeta, abstractmethod
 from numbers import Number
 from sqlite3 import DatabaseError, OperationalError
 from typing import TYPE_CHECKING, Union
@@ -22,7 +22,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from fudgeo.geopkg import GeoPackage
 
 
-class AbstractConstraint:
+class AbstractConstraint(metaclass=ABCMeta):
     """
     Abstract Constraint
     """
