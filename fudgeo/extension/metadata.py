@@ -4,7 +4,7 @@ Metadata Extension
 """
 
 
-from abc import abstractmethod
+from abc import ABCMeta, abstractmethod
 from datetime import datetime
 from sqlite3 import DatabaseError, OperationalError
 from typing import TYPE_CHECKING
@@ -23,7 +23,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from fudgeo.geopkg import GeoPackage
 
 
-class AbstractReference:
+class AbstractReference(metaclass=ABCMeta):
     """
     Abstract Reference
     """

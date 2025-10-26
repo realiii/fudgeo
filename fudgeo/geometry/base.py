@@ -4,14 +4,14 @@ Base Classes
 """
 
 
-from abc import abstractmethod
+from abc import ABCMeta, abstractmethod
 from typing import Optional
 
 from fudgeo.alias import BOOL
 from fudgeo.geometry.util import EMPTY_ENVELOPE, Envelope, make_header
 
 
-class AbstractGeometry:
+class AbstractGeometry(metaclass=ABCMeta):
     """
     Abstract Geometry
     """
