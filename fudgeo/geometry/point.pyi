@@ -5,6 +5,7 @@ Points
 
 from typing import Any, ClassVar, Iterator, Union
 
+# noinspection PyPackageRequirements
 from numpy import ndarray
 
 from fudgeo.alias import BYTE_ARRAY, DOUBLE, QUADRUPLE, TRIPLE
