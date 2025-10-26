@@ -15,7 +15,7 @@ For details on OGC GeoPackages, please see the [OGC web page](http://www.geopack
 
 ## Python Compatibility
 
-The `fudgeo` library is compatible with Python 3.9 to 3.13.  Developed and 
+The `fudgeo` library is compatible with Python 3.9 to 3.14.  Developed and 
 tested on **macOS** and **Windows**, should be fine on **Linux** too.
 
 
@@ -429,6 +429,12 @@ Support provided for the following constraint types:
 [MIT](https://raw.githubusercontent.com/realiii/fudgeo/refs/heads/develop/LICENSE)
 
 ## Release History
+
+### v1.3.0
+* ensure support for Python 3.14 and update documentation / configuration
+* use `ABCMeta` as the metaclass for all abstract base classes
+* update equality implementation in `Point` classes for improved subclassing
+* expose `wkb` property for use with `from_wkb` function of `shapely` 
 
 ### v1.2.0
 * add support for creating tables and feature classes with a primary key column name other than `fid`
