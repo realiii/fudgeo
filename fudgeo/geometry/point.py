@@ -47,7 +47,7 @@ class Point(AbstractGeometry):
         """
         Equals
         """
-        if not isinstance(other, Point):  # pragma: nocover
+        if not isinstance(other, self.__class__):  # pragma: nocover
             return NotImplemented
         if self.srs_id != other.srs_id:
             return False
@@ -160,7 +160,7 @@ class PointZ(AbstractGeometry):
         """
         Equals
         """
-        if not isinstance(other, PointZ):  # pragma: nocover
+        if not isinstance(other, self.__class__):  # pragma: nocover
             return NotImplemented
         if self.srs_id != other.srs_id:
             return False
@@ -274,7 +274,7 @@ class PointM(AbstractGeometry):
         """
         Equals
         """
-        if not isinstance(other, PointM):  # pragma: nocover
+        if not isinstance(other, self.__class__):  # pragma: nocover
             return NotImplemented
         if self.srs_id != other.srs_id:
             return False
@@ -389,7 +389,7 @@ class PointZM(AbstractGeometry):
         """
         Equals
         """
-        if not isinstance(other, PointZM):  # pragma: nocover
+        if not isinstance(other, self.__class__):  # pragma: nocover
             return NotImplemented
         if self.srs_id != other.srs_id:
             return False
