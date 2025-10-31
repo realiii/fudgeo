@@ -1,6 +1,6 @@
 [project]
 name = "fudgeo"
-version = "1.3.0"
+version = "1.3.1"
 description = """\
     GeoPackage support from Python.  fudgeo is a lightweight package \
     for creating OGC GeoPackages, Feature Classes, and Tables.  Easily \
@@ -31,7 +31,7 @@ packages = ["fudgeo", "fudgeo.geometry", "fudgeo.extension"]
 include-package-data = true
 
 [project.optional-dependencies]
-dev = ["pytest", "coverage", "twine", "build", "shapely"]
+dev = ["pytest", "coverage", "twine", "build", "shapely", "bottleneck"]
 
 [project.urls]
 Homepage = "https://github.com/realiii/fudgeo"
