@@ -5,10 +5,24 @@ Utility Functions
 
 
 from datetime import datetime, timedelta, timezone
+from math import nan
 from re import IGNORECASE, compile as recompile
-from typing import Callable, Match, Optional
+from typing import Callable, Match, Optional, TYPE_CHECKING
 
+try:
+    # noinspection PyUnresolvedReferences,PyPackageRequirements
+    from bottleneck import nanmax, nanmin
+except ModuleNotFoundError:
+    # noinspection PyPackageRequirements
+    from numpy import nanmax, nanmin
+
+from fudgeo.constant import FETCH_SIZE
+from fudgeo.enumeration import GeometryType
 from fudgeo.sql import KEYWORDS
+
+
+if TYPE_CHECKING:  # pragma: no cover
+    from geopkg import FeatureClass
 
 
 NAME_MATCHER: Callable[[str], Optional[Match[str]]] = (
@@ -110,6 +124,31 @@ def convert_datetime(val: bytes) -> datetime:
     return datetime(year, month, day, hours, minutes, seconds,
                     micro, tzinfo=tzinfo)
 # End convert_datetime function
+
+
+def get_extent(fc: 'FeatureClass') -> tuple[float, float, float, float]:
+    """
+    Returns feature class extent as min_x, min_y, max_x, max_y,
+    """
+    if fc.is_empty:
+        return nan, nan, nan, nan
+    xs, ys = [], []
+    geom = f'{fc.geometry_column_name} "[{fc.geometry_type}]"'
+    is_point = fc.geometry_type.upper().startswith(GeometryType.point)
+    with fc.geopackage.connection as conn:
+        cursor = conn.execute(f"""SELECT {geom} FROM {fc.escaped_name}""")
+        while features := cursor.fetchmany(FETCH_SIZE):
+            if is_point:
+                for geom, in features:
+                    xs.append(geom.x)
+                    ys.append(geom.y)
+            else:
+                for geom, in features:
+                    envelope = geom.envelope
+                    xs.extend((envelope.min_x, envelope.max_x))
+                    ys.extend((envelope.min_y, envelope.max_y))
+    return nanmin(xs), nanmin(ys), nanmax(xs), nanmax(ys)
+# End get_extent function
 
 
 if __name__ == '__main__':  # pragma: no cover

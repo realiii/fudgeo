@@ -5,7 +5,7 @@ Geopackage
 
 
 from abc import ABCMeta, abstractmethod
-from math import nan
+from math import isnan, nan
 from operator import itemgetter
 from os import PathLike
 from pathlib import Path
@@ -46,7 +46,8 @@ from fudgeo.sql import (
     SELECT_SPATIAL_REFERENCES, SELECT_SRS, SELECT_TABLES_BY_TYPE, TABLE_EXISTS,
     UPDATE_EXTENT, UPDATE_GPKG_OGR_CONTENTS)
 from fudgeo.util import (
-    check_geometry_name, check_primary_name, convert_datetime, escape_name, now)
+    check_geometry_name, check_primary_name, convert_datetime, escape_name,
+    get_extent, now)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -1175,6 +1176,7 @@ class FeatureClass(BaseTable):
             raise ValueError('Please supply a tuple or list of values')
         if not len(value) == 4:  # pragma: nocover
             raise ValueError('The tuple/list of values must have four values')
+        value = [None if v is None or isnan(v) else v for v in value]
         with self.geopackage.connection as conn:
             conn.execute(UPDATE_EXTENT, tuple([*value, self.name]))
     # End extent property
@@ -1202,7 +1204,7 @@ class FeatureClass(BaseTable):
               ExecuteMany(connection=connection, table=target) as executor):
             while features := cursor.fetchmany(FETCH_SIZE):
                 executor(sql=insert_sql, data=features)
-            target.extent = self.extent
+            target.extent = get_extent(target)
         return target
     # End copy method
 
