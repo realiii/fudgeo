@@ -430,6 +430,9 @@ Support provided for the following constraint types:
 
 ## Release History
 
+### v1.3.1
+* introduce `get_extent` function and use it during copy operation on `FeatureClass`
+
 ### v1.3.0
 * ensure support for Python 3.14 and update documentation / configuration
 * use `ABCMeta` as the metaclass for all abstract base classes
