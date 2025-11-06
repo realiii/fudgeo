@@ -1373,7 +1373,7 @@ class Field:
         """
         Equality Implementation
         """
-        if not isinstance(other, Field):
+        if not isinstance(other, self.__class__):
             return NotImplemented
         return repr(self).casefold() == repr(other).casefold()
     # End eq built-int
