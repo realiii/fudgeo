@@ -1378,6 +1378,13 @@ class Field:
         return repr(self).casefold() == repr(other).casefold()
     # End eq built-int
 
+    def __hash__(self) -> int:
+        """
+        Hash Implementation
+        """
+        return hash(repr(self).casefold())
+    # End hash built-in
+
     @property
     def escaped_name(self) -> str:
         """
