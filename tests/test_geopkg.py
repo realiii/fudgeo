@@ -122,6 +122,7 @@ def test_create_table(tmp_path, fields, name, ogr_contents, trigger_count):
     conn.executemany(sql, records)
     conn.commit()
     assert table.count == 2
+    assert len(table) == 2
     *_, eee, select = fields
     # noinspection SqlNoDataSourceInspection
     cursor = table.select(fields=eee)
@@ -166,7 +167,9 @@ def test_create_table_drop_table(tmp_path, fields, name, ogr_contents, has_table
     assert isinstance(table, Table)
     tbl = geo.create_table(name, fields, overwrite=True)
     assert tbl.exists
+    assert tbl
     assert table.count == 0
+    assert len(table) == 0
     # noinspection SqlNoDataSourceInspection
     sql = """SELECT count(type) AS C FROM sqlite_master WHERE type = 'trigger'"""
     cursor = conn.execute(sql)
@@ -296,7 +299,9 @@ def test_create_feature_drop_feature(tmp_path, fields, name, ogr_contents, has_t
     assert isinstance(fc, FeatureClass)
     fc = geo.create_feature_class(name, srs=srs, fields=fields, overwrite=True, spatial_index=add_index)
     assert fc.exists
+    assert fc
     assert fc.count == 0
+    assert len(fc) == 0
     # noinspection SqlNoDataSourceInspection
     sql = """SELECT count(type) AS C FROM sqlite_master WHERE type = 'trigger'"""
     cursor = conn.execute(sql)

@@ -278,6 +278,8 @@ event: FeatureClass = gpkg.create_feature_class(
     'event_p', srs=srs, spatial_index=True)
 assert event.exists
 assert event.has_spatial_index is True
+# NOTE as of 1.4.0 can check exists using
+assert event
 
 # NOTE can add fields after creation as of v1.0.0 
 fields: tuple[Field, ...] = (

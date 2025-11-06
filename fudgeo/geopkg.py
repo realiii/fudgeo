@@ -489,6 +489,20 @@ class BaseTable:
         self.name: str = name
     # End init built-in
 
+    def __bool__(self) -> bool:
+        """
+        Boolean
+        """
+        return self.exists
+    # End bool built-in
+
+    def __len__(self) -> int:
+        """
+        Length
+        """
+        return self.count
+    # End len built-in
+
     @staticmethod
     def _column_names_types(fields: FIELDS) -> str:
         """
@@ -905,7 +919,7 @@ class FeatureClass(BaseTable):
         sans_case = {k.casefold(): v
                      for k, v in geopackage.feature_classes.items()}
         existing = sans_case.get(name.casefold())
-        if not existing:
+        if existing is None:
             return ''
         return existing.geometry_column_name
     # End _find_geometry_column_name method

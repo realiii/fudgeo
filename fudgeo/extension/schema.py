@@ -195,7 +195,7 @@ class Schema:
             return
         table = self._geopackage.feature_classes.get(
             table_name, self._geopackage.tables.get(table_name))
-        if not table:
+        if table is None:
             raise ValueError(
                 f'table name "{table_name}" not found in {self._geopackage!r}')
         if column_name not in table.field_names:
