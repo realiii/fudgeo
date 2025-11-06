@@ -510,6 +510,8 @@ class BaseTable:
         """
         if not fields:
             return ''
+        if not isinstance(fields, (list, tuple)):
+            fields = [fields]
         return f'{COMMA_SPACE}{COMMA_SPACE.join(repr(f) for f in fields)}'
     # End _column_names_types method
 
