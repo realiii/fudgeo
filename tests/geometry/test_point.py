@@ -189,5 +189,45 @@ def test_multi_point_envelope(cls, env_code, data):
 # End test_multi_point_envelope function
 
 
+@mark.parametrize('cls, coords1, coords2', [
+    (Point, (1, 2), (3, 4)),
+    (PointZ, (1, 2, 10), (3, 4, 11)),
+    (PointM, (1, 2, 10), (3, 4, 11)),
+    (PointZM, (1, 2, 10, -10), (3, 4, 11, -11)),
+])
+def test_update_from_wkb_point(cls, coords1, coords2):
+    """
+    Test update_from_wkb for points
+    """
+    pt1 = cls.from_tuple(coords1, srs_id=4326)
+    pt2 = cls.from_tuple(coords2, srs_id=4326)
+    assert pt1 != pt2
+    pt3 = cls.from_wkb(pt2.wkb, srs_id=pt2.srs_id)
+    assert pt2 is not pt3
+    assert pt1 != pt3
+    assert pt2 == pt3
+# End test_update_from_wkb_point function
+
+
+@mark.parametrize('cls, coords1, coords2', [
+    (MultiPoint, (1, 2), (3, 4)),
+    (MultiPointZ, (1, 2, 10), (3, 4, 11)),
+    (MultiPointM, (1, 2, 10), (3, 4, 11)),
+    (MultiPointZM, (1, 2, 10, -10), (3, 4, 11, -11)),
+])
+def test_update_from_wkb_multipoint(cls, coords1, coords2):
+    """
+    Test update_from_wkb for multi points
+    """
+    pt1 = cls([coords1], srs_id=4326)
+    pt2 = cls([coords2], srs_id=4326)
+    assert pt1 != pt2
+    pt3 = pt1.from_wkb(pt2.wkb, srs_id=pt2.srs_id)
+    assert pt2 is not pt3
+    assert pt1 != pt3
+    assert pt2 == pt3
+# End test_update_from_wkb_multipoint function
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass
