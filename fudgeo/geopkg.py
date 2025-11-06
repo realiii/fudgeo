@@ -510,6 +510,8 @@ class BaseTable:
         """
         if not fields:
             return ''
+        if not isinstance(fields, (list, tuple)):
+            fields = [fields]
         return f'{COMMA_SPACE}{COMMA_SPACE.join(repr(f) for f in fields)}'
     # End _column_names_types method
 
@@ -1357,7 +1359,7 @@ class Field:
         definition = f'{self.escaped_name} {self.data_type}'
         is_type = self.data_type in (SQLFieldType.blob, SQLFieldType.text)
         if self.size and is_type:
-            definition = f'{definition}{self.size}'
+            definition = f'{definition}({self.size})'
         if default := self.default:
             if is_type:
                 default = f"'{default}'"
@@ -1371,10 +1373,17 @@ class Field:
         """
         Equality Implementation
         """
-        if not isinstance(other, Field):
+        if not isinstance(other, self.__class__):
             return NotImplemented
         return repr(self).casefold() == repr(other).casefold()
     # End eq built-int
+
+    def __hash__(self) -> int:
+        """
+        Hash Implementation
+        """
+        return hash(repr(self).casefold())
+    # End hash built-in
 
     @property
     def escaped_name(self) -> str:
