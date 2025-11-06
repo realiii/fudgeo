@@ -1359,7 +1359,7 @@ class Field:
         definition = f'{self.escaped_name} {self.data_type}'
         is_type = self.data_type in (SQLFieldType.blob, SQLFieldType.text)
         if self.size and is_type:
-            definition = f'{definition}{self.size}'
+            definition = f'{definition}({self.size})'
         if default := self.default:
             if is_type:
                 default = f"'{default}'"
