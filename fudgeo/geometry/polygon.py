@@ -100,7 +100,7 @@ class BaseLinearRing(AbstractGeometry):
     # End _to_wkb method
 
     @classmethod
-    def from_gpkg(cls, value: bytes) -> Any:  # pragma: nocover
+    def from_gpkg(cls, value: bytes) -> None:  # pragma: nocover
         """
         From Geopackage, no-op for Linear Ring
         """
