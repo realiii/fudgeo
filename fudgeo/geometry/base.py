@@ -91,6 +91,15 @@ class AbstractGeometry(metaclass=ABCMeta):
         """
         pass
     # End from_gpkg method
+
+    @classmethod
+    @abstractmethod
+    def from_wkb(cls, value: bytes, srs_id: int) -> 'AbstractGeometry':
+        """
+        From WKB
+        """
+        pass
+    # End from_wkb method
 # End AbstractGeometry class
 
 

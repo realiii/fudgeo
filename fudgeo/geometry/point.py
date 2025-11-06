@@ -145,6 +145,14 @@ class Point(AbstractGeometry):
         """
         return cls(x=nan, y=nan, srs_id=srs_id)
     # End empty method
+
+    @classmethod
+    def from_wkb(cls, value: bytes, srs_id: int) -> 'Point':
+        """
+        From WKB
+        """
+        return cls.from_tuple(cls._unpack(value), srs_id=srs_id)
+    # End from_wkb method
 # End Point class
 
 
@@ -267,6 +275,14 @@ class PointZ(AbstractGeometry):
         """
         return cls(x=nan, y=nan, z=nan, srs_id=srs_id)
     # End empty method
+
+    @classmethod
+    def from_wkb(cls, value: bytes, srs_id: int) -> 'PointZ':
+        """
+        From WKB
+        """
+        return cls.from_tuple(cls._unpack(value), srs_id=srs_id)
+    # End from_wkb method
 # End PointZ class
 
 
@@ -388,6 +404,14 @@ class PointM(AbstractGeometry):
         """
         return cls(x=nan, y=nan, m=nan, srs_id=srs_id)
     # End empty method
+
+    @classmethod
+    def from_wkb(cls, value: bytes, srs_id: int) -> 'PointM':
+        """
+        From WKB
+        """
+        return cls.from_tuple(cls._unpack(value), srs_id=srs_id)
+    # End from_wkb method
 # End PointM class
 
 
@@ -516,6 +540,14 @@ class PointZM(AbstractGeometry):
         """
         return cls(x=nan, y=nan, z=nan, m=nan, srs_id=srs_id)
     # End empty method
+
+    @classmethod
+    def from_wkb(cls, value: bytes, srs_id: int) -> 'PointZM':
+        """
+        From WKB
+        """
+        return cls.from_tuple(cls._unpack(value), srs_id=srs_id)
+    # End from_wkb method
 # End PointZM class
 
 
@@ -633,6 +665,16 @@ class BaseMultiPoint(AbstractGeometry):
         """
         return lazy_unpack(cls=cls, value=value, dimension=cls._dimension)
     # End from_gpkg method
+
+    @classmethod
+    def from_wkb(cls, value: bytes, srs_id: int) -> Any:
+        """
+        From WKB
+        """
+        obj = cls([], srs_id=srs_id)
+        obj._args = memoryview(value), cls._dimension
+        return obj
+    # End from_wkb method
 # End BaseMultiPoint class
 
 
