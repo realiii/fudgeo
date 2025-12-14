@@ -41,10 +41,11 @@ from fudgeo.sql import (
     INSERT_GPKG_CONTENTS_SHORT, INSERT_GPKG_GEOM_COL, INSERT_GPKG_SRS,
     REMOVE_FEATURE_CLASS, REMOVE_OGR, REMOVE_TABLE, RENAME_DATA_COLUMNS,
     RENAME_FEATURE_CLASS, RENAME_METADATA_REFERENCE, RENAME_TABLE, SELECT_COUNT,
-    SELECT_DESCRIPTION, SELECT_EXTENT, SELECT_GEOMETRY_COLUMN,
-    SELECT_GEOMETRY_TYPE, SELECT_HAS_ROWS, SELECT_HAS_ZM, SELECT_PRIMARY_KEY,
-    SELECT_SPATIAL_REFERENCES, SELECT_SRS, SELECT_TABLES_BY_TYPE, TABLE_EXISTS,
-    UPDATE_EXTENT, UPDATE_GPKG_OGR_CONTENTS)
+    SELECT_DATA_TYPE_AND_NAME, SELECT_DESCRIPTION, SELECT_EXTENT,
+    SELECT_GEOMETRY_COLUMN, SELECT_GEOMETRY_TYPE, SELECT_HAS_ROWS,
+    SELECT_HAS_ZM, SELECT_PRIMARY_KEY, SELECT_SPATIAL_REFERENCES, SELECT_SRS,
+    SELECT_TABLES_BY_TYPE, TABLE_EXISTS, UPDATE_EXTENT,
+    UPDATE_GPKG_OGR_CONTENTS)
 from fudgeo.util import (
     check_geometry_name, check_primary_name, convert_datetime, escape_name,
     get_extent, now)
@@ -110,6 +111,23 @@ class AbstractGeoPackage(metaclass=ABCMeta):
         self._path: Union[Path, str] = path
         self._conn: Optional['Connection'] = None
     # End init built-in
+
+    def __getitem__(self, item: str) -> Optional[Union['Table', 'FeatureClass']]:
+        """
+        Get Item
+        """
+        cursor = self.connection.execute(SELECT_DATA_TYPE_AND_NAME, (item,))
+        if not (result := cursor.fetchone()):
+            return None
+        if None in result:
+            return None
+        data_type, name = result
+        if data_type == DataType.attributes:
+            return Table(geopackage=self, name=name)
+        elif data_type == DataType.features:
+            return FeatureClass(geopackage=self, name=name)
+        return None
+    # End get_item built-in
 
     def _check_table_exists(self, table_name: str) -> bool:
         """

@@ -331,6 +331,13 @@ SELECT_TABLES_BY_TYPE: str = """
 """
 
 
+SELECT_DATA_TYPE_AND_NAME: str = """
+    SELECT data_type, table_name
+    FROM gpkg_contents 
+    WHERE lower(table_name) = lower(?)
+"""
+
+
 SELECT_SPATIAL_REFERENCES: str = """
     SELECT srs_name, organization, organization_coordsys_id, 
            definition, description, srs_id 
