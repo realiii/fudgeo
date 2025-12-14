@@ -205,5 +205,45 @@ def test_multi_line_string_envelope(data):
 # End test_multi_line_string_envelope function
 
 
+@mark.parametrize('cls, coords1, coords2', [
+    (LineString, [(0, 1), (10, 11)], [(0.1, 1.2), (10.3, 11.4)]),
+    (LineStringZ, [(0, 1, 2), (10, 11, 12)], [(0, 1, 2.5), (10, 11, 12.5)]),
+    (LineStringM, [(0, 1, 2), (10, 11, 12)], [(0, 1.5, 2), (10, 11.5, 12)]),
+    (LineStringZM, [(0, 1, 2, 3), (10, 11, 12, 13)], [(0, 1, 2, 3), (4, 5, 6, 7)]),
+])
+def test_update_from_wkb_line_string(cls, coords1, coords2):
+    """
+    Test update_from_wkb line string
+    """
+    line1 = cls(coords1, srs_id=4326)
+    line2 = cls(coords2, srs_id=4326)
+    assert line1 != line2
+    line3 = cls.from_wkb(line2.wkb, srs_id=line2.srs_id)
+    assert line2 is not line3
+    assert line1 != line3
+    assert line2 == line3
+# End test_update_from_wkb_line_string function
+
+
+@mark.parametrize('cls, coords1, coords2', [
+    (MultiLineString, [(0, 1), (10, 11)], [(0.1, 1.2), (10.3, 11.4)]),
+    (MultiLineStringZ, [(0, 1, 2), (10, 11, 12)], [(0, 1, 2.5), (10, 11, 12.5)]),
+    (MultiLineStringM, [(0, 1, 2), (10, 11, 12)], [(0, 1.5, 2), (10, 11.5, 12)]),
+    (MultiLineStringZM, [(0, 1, 2, 3), (10, 11, 12, 13)], [(0, 1, 2, 3), (4, 5, 6, 7)]),
+])
+def test_update_from_wkb_multi_line_string(cls, coords1, coords2):
+    """
+    Test update_from_wkb multi line string
+    """
+    line1 = cls([coords1], srs_id=4326)
+    line2 = cls([coords2], srs_id=4326)
+    assert line1 != line2
+    line3 = line1.from_wkb(line2.wkb, srs_id=line2.srs_id)
+    assert line2 is not line3
+    assert line1 != line3
+    assert line2 == line3
+# End test_update_from_wkb_multi_line_string function
+
+
 if __name__ == '__main__':  # pragma: no cover
     pass

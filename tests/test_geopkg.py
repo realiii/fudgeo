@@ -122,6 +122,7 @@ def test_create_table(tmp_path, fields, name, ogr_contents, trigger_count):
     conn.executemany(sql, records)
     conn.commit()
     assert table.count == 2
+    assert len(table) == 2
     *_, eee, select = fields
     # noinspection SqlNoDataSourceInspection
     cursor = table.select(fields=eee)
@@ -166,7 +167,9 @@ def test_create_table_drop_table(tmp_path, fields, name, ogr_contents, has_table
     assert isinstance(table, Table)
     tbl = geo.create_table(name, fields, overwrite=True)
     assert tbl.exists
+    assert tbl
     assert table.count == 0
+    assert len(table) == 0
     # noinspection SqlNoDataSourceInspection
     sql = """SELECT count(type) AS C FROM sqlite_master WHERE type = 'trigger'"""
     cursor = conn.execute(sql)
@@ -296,7 +299,9 @@ def test_create_feature_drop_feature(tmp_path, fields, name, ogr_contents, has_t
     assert isinstance(fc, FeatureClass)
     fc = geo.create_feature_class(name, srs=srs, fields=fields, overwrite=True, spatial_index=add_index)
     assert fc.exists
+    assert fc
     assert fc.count == 0
+    assert len(fc) == 0
     # noinspection SqlNoDataSourceInspection
     sql = """SELECT count(type) AS C FROM sqlite_master WHERE type = 'trigger'"""
     cursor = conn.execute(sql)
@@ -326,10 +331,18 @@ def test_tables_and_feature_classes(tmp_path, fields):
         geo.create_feature_class(c, srs=srs, fields=fields)
     assert set(geo.feature_classes) == set('ABC')
     assert isinstance(geo.feature_classes['A'], FeatureClass)
+    with raises(KeyError):
+        _ = geo.feature_classes['a']
+    assert isinstance(geo['A'], FeatureClass)
+    assert isinstance(geo['a'], FeatureClass)
     for c in 'DEF':
         geo.create_table(c, fields=fields)
     assert set(geo.tables) == set('DEF')
     assert isinstance(geo.tables['F'], Table)
+    with raises(KeyError):
+        _ = geo.tables['f']
+    assert isinstance(geo['F'], Table)
+    assert isinstance(geo['f'], Table)
     geo.connection.close()
     if path.exists():
         path.unlink()
@@ -830,9 +843,9 @@ def test_escaped_columns(setup_geopackage):
     regular = Field('regular', data_type=SQLFieldType.integer)
     fields = select, union, all_, example_dot, regular
     assert repr(select) == '"select" INTEGER NOT NULL'
-    assert repr(union) == '"UnIoN" TEXT20 NOT NULL'
-    assert repr(all_) == '"ALL" TEXT50'
-    assert repr(example_dot) == """"why.do.this" TEXT123 default '.......' NOT NULL"""
+    assert repr(union) == '"UnIoN" TEXT(20) NOT NULL'
+    assert repr(all_) == '"ALL" TEXT(50)'
+    assert repr(example_dot) == """"why.do.this" TEXT(123) default '.......' NOT NULL"""
     assert repr(regular) == 'regular INTEGER'
     fc = gpkg.create_feature_class(name=name, srs=srs, fields=fields)
     expected_names = [FID, SHAPE, select.name, union.name, all_.name,
@@ -1024,11 +1037,11 @@ def test_representation():
     ('a', SQLFieldType.integer, None, True, None, 'a INTEGER'),
     ('a', SQLFieldType.integer, None, False, 1234, 'a INTEGER default 1234 NOT NULL'),
     ('a', SQLFieldType.integer, None, True, 1234, 'a INTEGER default 1234'),
-    ('b', SQLFieldType.text, 256, True, None, 'b TEXT256'),
-    ('b', SQLFieldType.text, 256, False, None, 'b TEXT256 NOT NULL'),
-    ('b', SQLFieldType.text, 256, False, 'asdf', "b TEXT256 default 'asdf' NOT NULL"),
+    ('b', SQLFieldType.text, 256, True, None, 'b TEXT(256)'),
+    ('b', SQLFieldType.text, 256, False, None, 'b TEXT(256) NOT NULL'),
+    ('b', SQLFieldType.text, 256, False, 'asdf', "b TEXT(256) default 'asdf' NOT NULL"),
     ('SELECT', SQLFieldType.integer, 256, False, None, '"SELECT" INTEGER NOT NULL'),
-    ('SELECT', SQLFieldType.text, 256, False, 'asdf', """"SELECT" TEXT256 default 'asdf' NOT NULL"""),
+    ('SELECT', SQLFieldType.text, 256, False, 'asdf', """"SELECT" TEXT(256) default 'asdf' NOT NULL"""),
 ])
 def test_field_repr(name, data_type, size, is_nullable, default, expected):
     """

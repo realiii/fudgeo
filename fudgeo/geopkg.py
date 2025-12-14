@@ -41,10 +41,11 @@ from fudgeo.sql import (
     INSERT_GPKG_CONTENTS_SHORT, INSERT_GPKG_GEOM_COL, INSERT_GPKG_SRS,
     REMOVE_FEATURE_CLASS, REMOVE_OGR, REMOVE_TABLE, RENAME_DATA_COLUMNS,
     RENAME_FEATURE_CLASS, RENAME_METADATA_REFERENCE, RENAME_TABLE, SELECT_COUNT,
-    SELECT_DESCRIPTION, SELECT_EXTENT, SELECT_GEOMETRY_COLUMN,
-    SELECT_GEOMETRY_TYPE, SELECT_HAS_ROWS, SELECT_HAS_ZM, SELECT_PRIMARY_KEY,
-    SELECT_SPATIAL_REFERENCES, SELECT_SRS, SELECT_TABLES_BY_TYPE, TABLE_EXISTS,
-    UPDATE_EXTENT, UPDATE_GPKG_OGR_CONTENTS)
+    SELECT_DATA_TYPE_AND_NAME, SELECT_DESCRIPTION, SELECT_EXTENT,
+    SELECT_GEOMETRY_COLUMN, SELECT_GEOMETRY_TYPE, SELECT_HAS_ROWS,
+    SELECT_HAS_ZM, SELECT_PRIMARY_KEY, SELECT_SPATIAL_REFERENCES, SELECT_SRS,
+    SELECT_TABLES_BY_TYPE, TABLE_EXISTS, UPDATE_EXTENT,
+    UPDATE_GPKG_OGR_CONTENTS)
 from fudgeo.util import (
     check_geometry_name, check_primary_name, convert_datetime, escape_name,
     get_extent, now)
@@ -110,6 +111,23 @@ class AbstractGeoPackage(metaclass=ABCMeta):
         self._path: Union[Path, str] = path
         self._conn: Optional['Connection'] = None
     # End init built-in
+
+    def __getitem__(self, item: str) -> Optional[Union['Table', 'FeatureClass']]:
+        """
+        Get Item
+        """
+        cursor = self.connection.execute(SELECT_DATA_TYPE_AND_NAME, (item,))
+        if not (result := cursor.fetchone()):
+            return None
+        if None in result:
+            return None
+        data_type, name = result
+        if data_type == DataType.attributes:
+            return Table(geopackage=self, name=name)
+        elif data_type == DataType.features:
+            return FeatureClass(geopackage=self, name=name)
+        return None
+    # End get_item built-in
 
     def _check_table_exists(self, table_name: str) -> bool:
         """
@@ -489,6 +507,20 @@ class BaseTable:
         self.name: str = name
     # End init built-in
 
+    def __bool__(self) -> bool:
+        """
+        Boolean
+        """
+        return self.exists
+    # End bool built-in
+
+    def __len__(self) -> int:
+        """
+        Length
+        """
+        return self.count
+    # End len built-in
+
     @staticmethod
     def _column_names_types(fields: FIELDS) -> str:
         """
@@ -496,6 +528,8 @@ class BaseTable:
         """
         if not fields:
             return ''
+        if not isinstance(fields, (list, tuple)):
+            fields = [fields]
         return f'{COMMA_SPACE}{COMMA_SPACE.join(repr(f) for f in fields)}'
     # End _column_names_types method
 
@@ -905,7 +939,7 @@ class FeatureClass(BaseTable):
         sans_case = {k.casefold(): v
                      for k, v in geopackage.feature_classes.items()}
         existing = sans_case.get(name.casefold())
-        if not existing:
+        if existing is None:
             return ''
         return existing.geometry_column_name
     # End _find_geometry_column_name method
@@ -1343,7 +1377,7 @@ class Field:
         definition = f'{self.escaped_name} {self.data_type}'
         is_type = self.data_type in (SQLFieldType.blob, SQLFieldType.text)
         if self.size and is_type:
-            definition = f'{definition}{self.size}'
+            definition = f'{definition}({self.size})'
         if default := self.default:
             if is_type:
                 default = f"'{default}'"
@@ -1357,10 +1391,17 @@ class Field:
         """
         Equality Implementation
         """
-        if not isinstance(other, Field):
+        if not isinstance(other, self.__class__):
             return NotImplemented
         return repr(self).casefold() == repr(other).casefold()
     # End eq built-int
+
+    def __hash__(self) -> int:
+        """
+        Hash Implementation
+        """
+        return hash(repr(self).casefold())
+    # End hash built-in
 
     @property
     def escaped_name(self) -> str:

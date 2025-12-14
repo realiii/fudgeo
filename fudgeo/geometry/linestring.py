@@ -140,6 +140,16 @@ class BaseLineString(AbstractGeometry):
         """
         return lazy_unpack(cls=cls, value=value, dimension=cls._dimension)
     # End from_gpkg method
+
+    @classmethod
+    def from_wkb(cls, value: bytes, srs_id: int) -> Any:
+        """
+        From WKB
+        """
+        obj = cls([], srs_id=srs_id)
+        obj._args = memoryview(value), cls._dimension
+        return obj
+    # End from_wkb method
 # End BaseLineString class
 
 
@@ -311,6 +321,16 @@ class BaseMultiLineString(AbstractGeometry):
         """
         return lazy_unpack(cls=cls, value=value, dimension=cls._dimension)
     # End from_gpkg method
+
+    @classmethod
+    def from_wkb(cls, value: bytes, srs_id: int) -> Any:
+        """
+        From WKB
+        """
+        obj = cls([], srs_id=srs_id)
+        obj._args = memoryview(value), cls._dimension
+        return obj
+    # End from_wkb method
 # End BaseMultiLineString class
 
 

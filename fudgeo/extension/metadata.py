@@ -87,7 +87,7 @@ class AbstractTableReference(AbstractReference):
         table_name = self._table_name
         table = geopackage.feature_classes.get(
             table_name, geopackage.tables.get(table_name))
-        if not table:
+        if table is None:
             raise ValueError(
                 f'table name "{table_name}" not found in {geopackage!r}')
         return table

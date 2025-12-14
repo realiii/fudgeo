@@ -100,12 +100,20 @@ class BaseLinearRing(AbstractGeometry):
     # End _to_wkb method
 
     @classmethod
-    def from_gpkg(cls, value: bytes) -> Any:  # pragma: nocover
+    def from_gpkg(cls, value: bytes) -> None:  # pragma: nocover
         """
         From Geopackage, no-op for Linear Ring
         """
         pass
     # End from_gpkg method
+
+    @classmethod
+    def from_wkb(cls, value: bytes, srs_id: int) -> None:
+        """
+        From WKB, no-op for Linear Ring
+        """
+        pass
+    # End from_wkb method
 # End BaseLinearRing class
 
 
@@ -265,6 +273,16 @@ class BasePolygon(AbstractGeometry):
         """
         return lazy_unpack(cls=cls, value=value, dimension=cls._dimension)
     # End from_gpkg method
+
+    @classmethod
+    def from_wkb(cls, value: bytes, srs_id: int) -> Any:
+        """
+        From WKB
+        """
+        obj = cls([], srs_id=srs_id)
+        obj._args = memoryview(value), cls._dimension
+        return obj
+    # End from_wkb method
 # End BasePolygon class
 
 
@@ -432,6 +450,16 @@ class BaseMultiPolygon(AbstractGeometry):
         """
         return lazy_unpack(cls=cls, value=value, dimension=cls._dimension)
     # End from_gpkg method
+
+    @classmethod
+    def from_wkb(cls, value: bytes, srs_id: int) -> Any:
+        """
+        From WKB
+        """
+        obj = cls([], srs_id=srs_id)
+        obj._args = memoryview(value), cls._dimension
+        return obj
+    # End from_wkb method
 # End BaseMultiPolygon class
 
 
