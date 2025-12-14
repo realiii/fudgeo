@@ -432,6 +432,13 @@ Support provided for the following constraint types:
 
 ## Release History
 
+### 1.4.0
+* implement case-insensitive `__getitem__` support in `GeoPackage`, get `Table` or `FeatureClass` by name
+* implement `__bool__` support for `Table` and `FeatureClass`, uses `exists` property
+* implement `__len__` support for `Table` and `FeatureClass`, uses `count` property
+* add `from_wkb` methods to geometry classes (also requires an `srs_id`)
+* improvements to `Field` object for hashing and parsing data types
+
 ### v1.3.1
 * introduce `get_extent` function and use it during copy operation on `FeatureClass`
 
