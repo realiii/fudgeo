@@ -331,10 +331,18 @@ def test_tables_and_feature_classes(tmp_path, fields):
         geo.create_feature_class(c, srs=srs, fields=fields)
     assert set(geo.feature_classes) == set('ABC')
     assert isinstance(geo.feature_classes['A'], FeatureClass)
+    with raises(KeyError):
+        _ = geo.feature_classes['a']
+    assert isinstance(geo['A'], FeatureClass)
+    assert isinstance(geo['a'], FeatureClass)
     for c in 'DEF':
         geo.create_table(c, fields=fields)
     assert set(geo.tables) == set('DEF')
     assert isinstance(geo.tables['F'], Table)
+    with raises(KeyError):
+        _ = geo.tables['f']
+    assert isinstance(geo['F'], Table)
+    assert isinstance(geo['f'], Table)
     geo.connection.close()
     if path.exists():
         path.unlink()
