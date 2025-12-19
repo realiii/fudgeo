@@ -8,7 +8,7 @@ from struct import pack
 
 from fudgeo.enumeration import EnvelopeCode
 
-
+SRS: str = 'srs'
 COMMA_SPACE: str = ', '
 GPKG_EXT: str = '.gpkg'
 SHAPE: str = 'SHAPE'

@@ -515,6 +515,13 @@ def test_insert_multi_poly(setup_geopackage, add_index):
         cursor = gpkg.connection.execute(SELECT_RTREE.format(
             fc.name, fc.geometry_column_name))
         assert cursor.fetchall() == [(1, 100000, 700000, 1, 4000000)]
+    assert poly.srs_id == srs.srs_id
+    new_srs_id = 1234
+    fc._update_srs_id([(poly, 'a', 'b')], srs_id=new_srs_id, parts=True)
+    poly.srs_id = new_srs_id
+    assert poly.srs_id == new_srs_id
+    for g in poly:
+        assert g.srs_id == new_srs_id
 # End test_insert_multi_poly function
 
 
