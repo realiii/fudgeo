@@ -432,6 +432,10 @@ Support provided for the following constraint types:
 
 ## Release History
 
+### 1.4.1
+* expand `copy` and `explode` methods to include `kwargs`
+* ensure `srs_id` is updated on geometry (when needed) during `copy` and `explode`
+
 ### 1.4.0
 * implement case-insensitive `__getitem__` support in `GeoPackage`, get `Table` or `FeatureClass` by name
 * implement `__bool__` support for `Table` and `FeatureClass`, uses `exists` property

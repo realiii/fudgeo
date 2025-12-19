@@ -19,7 +19,7 @@ from numpy import int16, int32, int64, int8, uint16, uint32, uint64, uint8
 
 from fudgeo.alias import FIELDS, FIELD_NAMES, INT, STRING
 from fudgeo.constant import (
-    COMMA_SPACE, FETCH_SIZE, FID, GPKG_EXT, MEMORY, SHAPE)
+    COMMA_SPACE, FETCH_SIZE, FID, GPKG_EXT, MEMORY, SHAPE, SRS)
 from fudgeo.context import ExecuteMany, ForeignKeys
 from fudgeo.enumeration import DataType, GPKGFlavors, GeometryType, SQLFieldType
 from fudgeo.extension.metadata import (
@@ -991,11 +991,11 @@ class FeatureClass(BaseTable):
         return insert_sql, select_sql
     # End _make_copy_sql method
 
-    def _shared_create_steps(self, name: str, description: str = '',
-                             where_clause: str = '', overwrite: bool = False,
-                             geopackage: Optional[GeoPackage] = None,
-                             geom_name: STRING = None, pk_name: STRING = None) \
-            -> tuple[str, str, 'FeatureClass']:
+    def _shared_create(self, name: str, description: str = '',
+                       where_clause: str = '', overwrite: bool = False,
+                       geopackage: Optional[GeoPackage] = None,
+                       geom_name: STRING = None, pk_name: STRING = None,
+                       **kwargs) -> tuple[str, str, 'FeatureClass']:
         """
         Shared Steps for Creating a Feature Class during Copy / Explode
         """
@@ -1006,7 +1006,7 @@ class FeatureClass(BaseTable):
         self._validate_overwrite(geopackage, name=name, overwrite=overwrite)
         target = self.create(
             geopackage=geopackage, name=name, shape_type=self.shape_type,
-            srs=self.spatial_reference_system,
+            srs=kwargs.get(SRS) or self.spatial_reference_system,
             fields=self._remove_special(self.fields),
             description=description or self.description, overwrite=overwrite,
             z_enabled=self.has_z, m_enabled=self.has_m,
@@ -1016,7 +1016,23 @@ class FeatureClass(BaseTable):
         )
         insert_sql, select_sql = self._make_copy_sql(target, where_clause)
         return insert_sql, select_sql, target
-    # End _shared_create_steps method
+    # End _shared_create method
+
+    def _update_srs_id(self, features: list, srs_id: int, parts: bool) -> None:
+        """
+        Update the spatial reference system id of geometries if needed.
+        """
+        if srs_id == self.spatial_reference_system.srs_id:
+            return
+        if parts and self.is_multi_part:
+            for geoms, *_ in features:
+                geoms.srs_id = srs_id
+                for geom in geoms:
+                    geom.srs_id = srs_id
+        else:
+            for geom, *_ in features:
+                geom.srs_id = srs_id
+    # End _update_srs_id method
 
     def add_spatial_index(self) -> bool:
         """
@@ -1215,11 +1231,10 @@ class FeatureClass(BaseTable):
             conn.execute(UPDATE_EXTENT, tuple([*value, self.name]))
     # End extent property
 
-    def copy(self, name: str, description: str = '',
-             where_clause: str = '', overwrite: bool = False,
-             geopackage: Optional[GeoPackage] = None,
-             geom_name: STRING = None,
-             pk_name: STRING = None) -> 'FeatureClass':
+    def copy(self, name: str, description: str = '', where_clause: str = '',
+             overwrite: bool = False, geopackage: Optional[GeoPackage] = None,
+             geom_name: STRING = None, pk_name: STRING = None,
+             **kwargs) -> 'FeatureClass':
         """
         Copy the structure and content of a feature class.  Create a new
         feature class or overwrite an existing.  Use a where clause to limit
@@ -1229,21 +1244,24 @@ class FeatureClass(BaseTable):
         to another geopackage there is a possibility that the embedded SRS ID
         of the geometry will be incorrect in the target geopackage.
         """
-        insert_sql, select_sql, target = self._shared_create_steps(
+        insert_sql, select_sql, target = self._shared_create(
             name=name, description=description, where_clause=where_clause,
             overwrite=overwrite, geopackage=geopackage, geom_name=geom_name,
-            pk_name=pk_name)
+            pk_name=pk_name, **kwargs)
         cursor = self.geopackage.connection.execute(select_sql)
         with (target.geopackage.connection as connection,
               ExecuteMany(connection=connection, table=target) as executor):
+            srs_id = target.spatial_reference_system.srs_id
             while features := cursor.fetchmany(FETCH_SIZE):
+                self._update_srs_id(features, srs_id=srs_id, parts=False)
                 executor(sql=insert_sql, data=features)
             target.extent = get_extent(target)
         return target
     # End copy method
 
     def explode(self, name: str, overwrite: bool = False,
-                geopackage: Optional[GeoPackage] = None) -> 'FeatureClass':
+                geopackage: Optional[GeoPackage] = None,
+                **kwargs) -> 'FeatureClass':
         """
         Explode feature class containing MultiPart geometry in a new feature
         class in the same or a different GeoPackage.  If the feature class
@@ -1256,13 +1274,16 @@ class FeatureClass(BaseTable):
         target geopackage.
         """
         if not self.is_multi_part:
-            return self.copy(name, overwrite=overwrite, geopackage=geopackage)
-        insert_sql, select_sql, target = self._shared_create_steps(
-            name=name, overwrite=overwrite, geopackage=geopackage)
+            return self.copy(
+                name, overwrite=overwrite, geopackage=geopackage, **kwargs)
+        insert_sql, select_sql, target = self._shared_create(
+            name=name, overwrite=overwrite, geopackage=geopackage, **kwargs)
         cursor = self.geopackage.connection.execute(select_sql)
         with (target.geopackage.connection as connection,
               ExecuteMany(connection=connection, table=target) as executor):
+            srs_id = target.spatial_reference_system.srs_id
             while features := cursor.fetchmany(FETCH_SIZE):
+                self._update_srs_id(features, srs_id=srs_id, parts=True)
                 rows = []
                 for geoms, *values in features:
                     rows.extend((geom, *values) for geom in geoms)
