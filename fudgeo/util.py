@@ -91,7 +91,10 @@ def convert_datetime(val: bytes) -> datetime:
     """
     colon = b':'
     dash = b'-'
-    # NOTE To split timestamps like that b'2022-09-06T13:50:33'
+    z = b'Z'
+    is_utc = val.endswith(z)
+    val = val.rstrip(z)
+    # NOTE split timestamps like b'2022-09-06T13:50:33'
     for separator in (b' ', b'T'):
         try:
             dt, tm = val.split(separator)
@@ -111,18 +114,27 @@ def convert_datetime(val: bytes) -> datetime:
             break
     hours, minutes, seconds = map(int, tm.split(colon))
     try:
-        micro = int('{:0<6.6}'.format(micro[0].decode())) if micro else 0
+        if micro:
+            micro = int('{:0<6.6}'.format(micro[0].decode()))
+        else:
+            micro = 0
     except (ValueError, TypeError):
         micro = 0
     if tz:
         tz_hr, *tz_min = map(int, tz[0].split(colon))
-        tz_min = tz_min[0] if tz_min else 0
-        tzinfo = timezone(timedelta(
+        if tz_min:
+            tz_min = tz_min[0]
+        else:
+            tz_min = 0
+        tz_info = timezone(timedelta(
             hours=factor * tz_hr, minutes=factor * tz_min))
     else:
-        tzinfo = None
+        if is_utc:
+            tz_info = timezone.utc
+        else:
+            tz_info = None
     return datetime(year, month, day, hours, minutes, seconds,
-                    micro, tzinfo=tzinfo)
+                    micro, tzinfo=tz_info)
 # End convert_datetime function
 
 
