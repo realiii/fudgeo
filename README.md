@@ -432,6 +432,9 @@ Support provided for the following constraint types:
 
 ## Release History
 
+### 1.4.2
+* add explicit handling for datetime conversion where Z is present in the bytes
+
 ### 1.4.1
 * expand `copy` and `explode` methods to include `kwargs`
 * ensure `srs_id` is updated on geometry (when needed) during `copy` and `explode`
