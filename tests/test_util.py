@@ -22,7 +22,12 @@ from fudgeo.util import convert_datetime
     (b'1977-06-15T03:18:54', datetime(1977, 6, 15, 3, 18, 54, 0)),
     (b'1977-06-15T03:18:54.123456', datetime(1977, 6, 15, 3, 18, 54, 123456)),
     (b'2000-06-06T11:43:37+00:00', datetime(2000, 6, 6, 11, 43, 37, 0, tzinfo=timezone.utc)),
-    (b'2022-02-14T08:37:41.0Z', datetime(2022, 2, 14, 8, 37, 41, 0)),
+    (b'2022-02-14T08:37:41.0Z', datetime(2022, 2, 14, 8, 37, 41, 0, tzinfo=timezone.utc)),
+    (b'2025-12-25T18:34:56.978Z', datetime(2025, 12, 25, 18, 34, 56, 978000, tzinfo=timezone.utc)),
+    (b'2026-01-01T06:00:00Z', datetime(2026, 1, 1, 6, 0, 0, 0, tzinfo=timezone.utc)),
+    (b'2025-02-14T17:22:33.161Z', datetime(2025, 2, 14, 17, 22, 33, 161000, tzinfo=timezone.utc)),
+    (b'2026-04-01T05:00:00.099Z', datetime(2026, 4, 1, 5, 0, 0, 99000, tzinfo=timezone.utc)),
+    (b'2025-12-25T18:34:56.978Z', datetime(2025, 12, 25, 18, 34, 56, 978000, tzinfo=timezone.utc)),
 ])
 def test_convert_datetime(val, expected):
     """
