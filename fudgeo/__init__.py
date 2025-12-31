@@ -9,7 +9,7 @@ from fudgeo.geopkg import (
     SpatialReferenceSystem, Field)
 
 
-__version__ = '1.4.2'
+__version__ = '1.5.0'
 
 
 __all__ = ['GeoPackage', 'MemoryGeoPackage', 'Table', 'FeatureClass',
