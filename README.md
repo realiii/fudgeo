@@ -433,7 +433,7 @@ Support provided for the following constraint types:
 ## Release History
 ### 1.5.0
 * add caching to function `has_ogr_contents`
-* add caching to properties `primary_key_field`, `description`, `has_spatial_index`, and `spatial_reference_system
+* add caching to properties `primary_key_field`, `description`, `has_spatial_index`, and `spatial_reference_system`
 * add indirect caching to `geometry_column_name`, `geometry_type`, `has_z`, and `has_m`
 
 ### 1.4.2
