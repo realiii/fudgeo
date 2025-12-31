@@ -208,7 +208,7 @@ class Schema:
         if constraint_name:
             cursor = self._geopackage.connection.execute(
                 SELECT_CONSTRAINT_NAME, (constraint_name,))
-            if not cursor.fetchall():
+            if not cursor.fetchone():
                 raise ValueError(
                     f'constraint name "{constraint_name}" '
                     f'not found in {self._geopackage!r}')

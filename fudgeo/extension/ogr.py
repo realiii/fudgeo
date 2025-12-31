@@ -4,6 +4,7 @@ OGR Extension (unofficial) for tracking row counts
 """
 
 
+from functools import lru_cache
 from sqlite3 import DatabaseError, OperationalError
 from typing import TYPE_CHECKING
 
@@ -20,6 +21,7 @@ if TYPE_CHECKING:  # pragma: no cover
 OGR_CONTENTS: str = 'gpkg_ogr_contents'
 
 
+@lru_cache()
 def has_ogr_contents(conn: 'Connection') -> bool:
     """
     Has gpkg_ogr_contents table
@@ -42,6 +44,7 @@ def add_ogr_contents(conn: 'Connection', name: str, escaped_name: str) -> None:
     conn.execute(INSERT_GPKG_OGR_CONTENTS, (name, 0))
     conn.execute(GPKG_OGR_CONTENTS_INSERT_TRIGGER.format(name, escaped_name))
     conn.execute(GPKG_OGR_CONTENTS_DELETE_TRIGGER.format(name, escaped_name))
+    has_ogr_contents.cache_clear()
 # End add_ogr_contents function
 
 

@@ -231,8 +231,10 @@ INSERT_GPKG_SRS: str = """
 
 
 TABLE_EXISTS: str = """
-    SELECT name FROM sqlite_master 
-    WHERE type = 'table' AND lower(name) = lower(?)
+    SELECT name 
+    FROM sqlite_master 
+    WHERE type = 'table' AND name = ? 
+    COLLATE NOCASE
 """
 
 
@@ -252,27 +254,13 @@ SELECT_SRS: str = """
            gpkg_spatial_ref_sys.srs_id
     FROM gpkg_contents LEFT JOIN gpkg_spatial_ref_sys ON 
             gpkg_contents.srs_id = gpkg_spatial_ref_sys.srs_id
-    WHERE lower(gpkg_contents.table_name) = lower(?)
+    WHERE gpkg_contents.table_name = ?
+    COLLATE NOCASE
 """
 
-
-SELECT_HAS_ZM: str = """
-    SELECT z, m
-    FROM gpkg_geometry_columns
-    WHERE lower(table_name) = lower(?)
-"""
-
-
-SELECT_GEOMETRY_COLUMN: str = """
-    SELECT column_name
-    FROM gpkg_geometry_columns
-    WHERE lower(table_name) = lower(?)
-"""
-
-
-SELECT_GEOMETRY_TYPE: str = """
-    SELECT GEOM || Z || M AS GT
-    FROM (SELECT CASE
+SELECT_GEOMETRY_DEFINITION: str = """
+    SELECT GEOM_COL_NAME, HAS_Z, HAS_M, GEOM || Z || M AS GEOM_TYPE
+    FROM (SELECT column_name AS GEOM_COL_NAME, z as HAS_Z, m as HAS_M, CASE
                      WHEN geometry_type_name == 'POINT'
                          THEN 'Point'
                      WHEN geometry_type_name == 'LINESTRING'
@@ -298,7 +286,8 @@ SELECT_GEOMETRY_TYPE: str = """
                      ELSE ''
                      END AS M
           FROM gpkg_geometry_columns
-          WHERE lower(table_name) = lower(?)
+          WHERE table_name = ?
+          COLLATE NOCASE
   )
 """
 
@@ -306,21 +295,24 @@ SELECT_GEOMETRY_TYPE: str = """
 SELECT_DESCRIPTION: str = """
     SELECT DESCRIPTION
     FROM gpkg_contents
-    WHERE lower(table_name) = lower(?)
+    WHERE table_name = ?
+    COLLATE NOCASE
 """
 
 
 UPDATE_EXTENT: str = """    
     UPDATE gpkg_contents 
     SET min_x = ?, min_y = ?, max_x = ?, max_y = ? 
-    WHERE lower(table_name) = lower(?)
+    WHERE table_name = ?
+    COLLATE NOCASE
 """
 
 
 SELECT_EXTENT: str = """
     SELECT min_x, min_y, max_x, max_y
     FROM gpkg_contents
-    WHERE lower(table_name) = lower(?)
+    WHERE table_name = ?
+    COLLATE NOCASE
 """
 
 
@@ -334,7 +326,8 @@ SELECT_TABLES_BY_TYPE: str = """
 SELECT_DATA_TYPE_AND_NAME: str = """
     SELECT data_type, table_name
     FROM gpkg_contents 
-    WHERE lower(table_name) = lower(?)
+    WHERE table_name = ?
+    COLLATE NOCASE
 """
 
 

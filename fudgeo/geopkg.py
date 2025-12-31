@@ -5,6 +5,7 @@ Geopackage
 
 
 from abc import ABCMeta, abstractmethod
+from functools import cached_property
 from math import isnan, nan
 from operator import itemgetter
 from os import PathLike
@@ -42,10 +43,9 @@ from fudgeo.sql import (
     REMOVE_FEATURE_CLASS, REMOVE_OGR, REMOVE_TABLE, RENAME_DATA_COLUMNS,
     RENAME_FEATURE_CLASS, RENAME_METADATA_REFERENCE, RENAME_TABLE, SELECT_COUNT,
     SELECT_DATA_TYPE_AND_NAME, SELECT_DESCRIPTION, SELECT_EXTENT,
-    SELECT_GEOMETRY_COLUMN, SELECT_GEOMETRY_TYPE, SELECT_HAS_ROWS,
-    SELECT_HAS_ZM, SELECT_PRIMARY_KEY, SELECT_SPATIAL_REFERENCES, SELECT_SRS,
-    SELECT_TABLES_BY_TYPE, TABLE_EXISTS, UPDATE_EXTENT,
-    UPDATE_GPKG_OGR_CONTENTS)
+    SELECT_GEOMETRY_DEFINITION, SELECT_HAS_ROWS, SELECT_PRIMARY_KEY,
+    SELECT_SPATIAL_REFERENCES, SELECT_SRS, SELECT_TABLES_BY_TYPE, TABLE_EXISTS,
+    UPDATE_EXTENT, UPDATE_GPKG_OGR_CONTENTS)
 from fudgeo.util import (
     check_geometry_name, check_primary_name, convert_datetime, escape_name,
     get_extent, now)
@@ -134,7 +134,7 @@ class AbstractGeoPackage(metaclass=ABCMeta):
         Check existence of table
         """
         cursor = self.connection.execute(TABLE_EXISTS, (table_name,))
-        return bool(cursor.fetchall())
+        return bool(cursor.fetchone())
     # End _check_table_exists method
 
     def _validate_inputs(self, fields: FIELDS, name: str,
@@ -218,7 +218,7 @@ class AbstractGeoPackage(metaclass=ABCMeta):
         Done purely by srs id here but could be done via wkt on definition.
         """
         cursor = self.connection.execute(CHECK_SRS_EXISTS, (srs_id,))
-        return bool(cursor.fetchall())
+        return bool(cursor.fetchone())
     # End check_srs_exists method
 
     def enable_metadata_extension(self) -> bool:
@@ -707,7 +707,7 @@ class BaseTable:
         return not bool(result)
     # End is_empty property
 
-    @property
+    @cached_property
     def primary_key_field(self) -> Optional['Field']:
         """
         Primary Key Field
@@ -779,7 +779,7 @@ class BaseTable:
         return True
     # End drop_fields method
 
-    @property
+    @cached_property
     def description(self) -> STRING:
         """
         Description
@@ -1042,6 +1042,7 @@ class FeatureClass(BaseTable):
             return False
         with self.geopackage.connection as conn:
             add_spatial_index(conn=conn, feature_class=self)
+        delattr(self, 'has_spatial_index')
         return True
     # End add_spatial_index method
 
@@ -1115,14 +1116,26 @@ class FeatureClass(BaseTable):
                 self.add_spatial_index()
     # End rename method
 
+    @cached_property
+    def _geometry_definition(self) -> tuple[str, bool, bool, str]:
+        """
+        Geometry Definition
+        """
+        cursor = self.geopackage.connection.execute(
+            SELECT_GEOMETRY_DEFINITION, (self.name,))
+        result = cursor.fetchone()
+        if not result:
+            return '', False, False, ''
+        geom_name, has_z, has_m, geom_type = result
+        return geom_name, bool(has_z), bool(has_m), geom_type
+    # End _geometry_definition property
+
     @property
     def geometry_column_name(self) -> STRING:
         """
         Geometry Column Name
         """
-        cursor = self.geopackage.connection.execute(
-            SELECT_GEOMETRY_COLUMN, (self.name,))
-        return self._check_result(cursor)
+        return self._geometry_definition[0]
     # End geometry_column_name property
 
     @property
@@ -1130,9 +1143,7 @@ class FeatureClass(BaseTable):
         """
         Geometry Type
         """
-        cursor = self.geopackage.connection.execute(
-            SELECT_GEOMETRY_TYPE, (self.name,))
-        return self._check_result(cursor)
+        return self._geometry_definition[3]
     # End geometry_type property
 
     @property
@@ -1155,7 +1166,7 @@ class FeatureClass(BaseTable):
             GeometryType.multi_polygon}
     # End is_multi_part property
 
-    @property
+    @cached_property
     def spatial_reference_system(self) -> 'SpatialReferenceSystem':
         """
         Spatial Reference System
@@ -1169,10 +1180,7 @@ class FeatureClass(BaseTable):
         """
         Has Z
         """
-        cursor = self.geopackage.connection.execute(
-            SELECT_HAS_ZM, (self.name,))
-        z, _ = cursor.fetchone()
-        return bool(z)
+        return self._geometry_definition[1]
     # End has_z property
 
     @property
@@ -1180,10 +1188,7 @@ class FeatureClass(BaseTable):
         """
         Has M
         """
-        cursor = self.geopackage.connection.execute(
-            SELECT_HAS_ZM, (self.name,))
-        _, m = cursor.fetchone()
-        return bool(m)
+        return self._geometry_definition[2]
     # End has_m property
 
     @property
@@ -1196,14 +1201,14 @@ class FeatureClass(BaseTable):
         return escape_name(self._spatial_index_name)
     # End spatial_index_name property
 
-    @property
+    @cached_property
     def has_spatial_index(self) -> bool:
         """
         Has Spatial Index
         """
         cursor = self.geopackage.connection.execute(
             TABLE_EXISTS, (self._spatial_index_name,))
-        return bool(cursor.fetchall())
+        return bool(cursor.fetchone())
     # End has_spatial_index property
 
     @property
