@@ -134,7 +134,7 @@ class AbstractGeoPackage(metaclass=ABCMeta):
         Check existence of table
         """
         cursor = self.connection.execute(TABLE_EXISTS, (table_name,))
-        return bool(cursor.fetchall())
+        return bool(cursor.fetchone())
     # End _check_table_exists method
 
     def _validate_inputs(self, fields: FIELDS, name: str,
@@ -218,7 +218,7 @@ class AbstractGeoPackage(metaclass=ABCMeta):
         Done purely by srs id here but could be done via wkt on definition.
         """
         cursor = self.connection.execute(CHECK_SRS_EXISTS, (srs_id,))
-        return bool(cursor.fetchall())
+        return bool(cursor.fetchone())
     # End check_srs_exists method
 
     def enable_metadata_extension(self) -> bool:
@@ -1208,7 +1208,7 @@ class FeatureClass(BaseTable):
         """
         cursor = self.geopackage.connection.execute(
             TABLE_EXISTS, (self._spatial_index_name,))
-        return bool(cursor.fetchall())
+        return bool(cursor.fetchone())
     # End has_spatial_index property
 
     @property
