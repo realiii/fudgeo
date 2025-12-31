@@ -431,6 +431,10 @@ Support provided for the following constraint types:
 [MIT](https://raw.githubusercontent.com/realiii/fudgeo/refs/heads/develop/LICENSE)
 
 ## Release History
+### 1.5.0
+* add caching to function `has_ogr_contents`
+* add caching to properties `primary_key_field`, `description`, `has_spatial_index`, and `spatial_reference_system
+* add indirect caching to `geometry_column_name`, `geometry_type`, `has_z`, and `has_m`
 
 ### 1.4.2
 * add explicit handling for datetime conversion where Z is present in the bytes
