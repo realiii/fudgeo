@@ -18,7 +18,7 @@ from typing import Any, Optional, TYPE_CHECKING, Type, Union
 # noinspection PyPackageRequirements
 from numpy import int16, int32, int64, int8, uint16, uint32, uint64, uint8
 
-from fudgeo.alias import FIELDS, FIELD_NAMES, INT, STRING
+from fudgeo.alias import FIELDS, FIELD_NAMES, GPKG, INT, STRING
 from fudgeo.constant import (
     COMMA_SPACE, FETCH_SIZE, FID, GPKG_EXT, MEMORY, SHAPE, SRS)
 from fudgeo.context import ExecuteMany, ForeignKeys
@@ -498,7 +498,7 @@ class BaseTable:
     """
     Base Geopackage Table
     """
-    def __init__(self, geopackage: GeoPackage, name: str) -> None:
+    def __init__(self, geopackage: GPKG, name: str) -> None:
         """
         Initialize the BaseTable class
         """
@@ -820,7 +820,7 @@ class Table(BaseTable):
     # End _make_copy_sql method
 
     @classmethod
-    def create(cls, geopackage: GeoPackage, name: str, fields: FIELDS,
+    def create(cls, geopackage: GPKG, name: str, fields: FIELDS,
                description: str = '', overwrite: bool = False,
                pk_name: STRING = FID) -> 'Table':
         """
@@ -932,7 +932,7 @@ class FeatureClass(BaseTable):
     # End repr built-in
 
     @staticmethod
-    def _find_geometry_column_name(geopackage: 'GeoPackage', name: str) -> str:
+    def _find_geometry_column_name(geopackage: GPKG, name: str) -> str:
         """
         Find Geometry Column Name for an Existing Feature Class
         """
@@ -1047,7 +1047,7 @@ class FeatureClass(BaseTable):
     # End add_spatial_index method
 
     @classmethod
-    def create(cls, geopackage: GeoPackage, name: str, shape_type: str,
+    def create(cls, geopackage: GPKG, name: str, shape_type: str,
                srs: 'SpatialReferenceSystem', z_enabled: bool = False,
                m_enabled: bool = False, fields: FIELDS = (),
                description: str = '', overwrite: bool = False,

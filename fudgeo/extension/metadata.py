@@ -9,7 +9,7 @@ from datetime import datetime
 from sqlite3 import DatabaseError, OperationalError
 from typing import TYPE_CHECKING
 
-from fudgeo.alias import DATE, INT, REFERENCES, REFERENCE_RECORD, TABLE
+from fudgeo.alias import DATE, GPKG, INT, REFERENCES, REFERENCE_RECORD, TABLE
 from fudgeo.enumeration import MetadataReferenceScope, MetadataScope
 from fudgeo.sql import (
     CREATE_METADATA, CREATE_METADATA_REFERENCE, HAS_METADATA, INSERT_EXTENSION,
@@ -20,7 +20,6 @@ from fudgeo.util import now
 
 if TYPE_CHECKING:  # pragma: no cover
     from sqlite3 import Connection
-    from fudgeo.geopkg import GeoPackage
 
 
 class AbstractReference(metaclass=ABCMeta):
@@ -48,7 +47,7 @@ class AbstractReference(metaclass=ABCMeta):
     # End as_record method
 
     @abstractmethod
-    def validate(self, geopackage: 'GeoPackage') -> None:  # pragma: no cover
+    def validate(self, geopackage: GPKG) -> None:  # pragma: no cover
         """
         Validate
         """
@@ -80,7 +79,7 @@ class AbstractTableReference(AbstractReference):
         pass
     # End as_record method
 
-    def _validate_table_name(self, geopackage: 'GeoPackage') -> TABLE:
+    def _validate_table_name(self, geopackage: GPKG) -> TABLE:
         """
         Validate Table Name
         """
@@ -120,7 +119,7 @@ class AbstractTableReference(AbstractReference):
                 f'row id {row_id} does not exist in table "{table.name}"')
     # End _validate_row_id method
 
-    def validate(self, geopackage: 'GeoPackage') -> None:
+    def validate(self, geopackage: GPKG) -> None:
         """
         Validate
         """
@@ -153,7 +152,7 @@ class AbstractColumnReference(AbstractTableReference):
         pass
     # End as_record method
 
-    def validate(self, geopackage: 'GeoPackage') -> None:
+    def validate(self, geopackage: GPKG) -> None:
         """
         Validate
         """
@@ -185,7 +184,7 @@ class GeoPackageReference(AbstractReference):
                 self._file_id, self._parent_id)
     # End as_record method
 
-    def validate(self, geopackage: 'GeoPackage') -> None:
+    def validate(self, geopackage: GPKG) -> None:
         """
         Validate, just pass for Geopackage
         """
@@ -266,7 +265,7 @@ class RowReference(AbstractTableReference):
                 self._timestamp, self._file_id, self._parent_id)
     # End as_record method
 
-    def validate(self, geopackage: 'GeoPackage') -> None:
+    def validate(self, geopackage: GPKG) -> None:
         """
         Validate
         """
@@ -301,7 +300,7 @@ class RowColumnReference(AbstractColumnReference):
                 self._timestamp, self._file_id, self._parent_id)
     # End as_record method
 
-    def validate(self, geopackage: 'GeoPackage') -> None:
+    def validate(self, geopackage: GPKG) -> None:
         """
         Validate
         """
@@ -316,12 +315,12 @@ class Metadata:
     """
     Metadata
     """
-    def __init__(self, geopackage: 'GeoPackage') -> None:
+    def __init__(self, geopackage: GPKG) -> None:
         """
         Initialize the Metadata class
         """
         super().__init__()
-        self._geopackage: 'GeoPackage' = geopackage
+        self._geopackage: GPKG = geopackage
     # End init built-in
 
     def add_metadata(self, uri: str, scope: str = MetadataScope.dataset,
