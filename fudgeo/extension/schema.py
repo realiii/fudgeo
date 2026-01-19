@@ -9,7 +9,7 @@ from numbers import Number
 from sqlite3 import DatabaseError, OperationalError
 from typing import TYPE_CHECKING, Union
 
-from fudgeo.alias import CONSTRAINTS, RECORDS, STRING
+from fudgeo.alias import CONSTRAINTS, GPKG, RECORDS, STRING
 from fudgeo.enumeration import ConstraintType, SQLFieldType
 from fudgeo.sql import (
     CREATE_DATA_COLUMNS, CREATE_DATA_COLUMN_CONSTRAINTS, HAS_SCHEMA,
@@ -19,7 +19,6 @@ from fudgeo.sql import (
 
 if TYPE_CHECKING:  # pragma: no cover
     from sqlite3 import Connection
-    from fudgeo.geopkg import GeoPackage
 
 
 class AbstractConstraint(metaclass=ABCMeta):
@@ -175,12 +174,12 @@ class Schema:
     """
     Schema
     """
-    def __init__(self, geopackage: 'GeoPackage') -> None:
+    def __init__(self, geopackage: GPKG) -> None:
         """
         Initialize the Schema class
         """
         super().__init__()
-        self._geopackage: 'GeoPackage' = geopackage
+        self._geopackage: GPKG = geopackage
     # End init built-in
 
     def add_column_definition(self, table_name: str, column_name: str,
