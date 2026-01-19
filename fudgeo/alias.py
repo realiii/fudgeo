@@ -10,7 +10,9 @@ from typing import Optional, TYPE_CHECKING, Union
 
 if TYPE_CHECKING:  # pragma: no cover
     # noinspection PyUnresolvedReferences
-    from fudgeo.geopkg import FeatureClass, Field, Table
+    from fudgeo.geopkg import (
+        AbstractGeoPackage, FeatureClass, Field, GeoPackage,
+        MemoryGeoPackage, Table)
     # noinspection PyUnresolvedReferences
     from fudgeo.extension.metadata import (
         GeoPackageReference, TableReference, ColumnReference,
@@ -26,6 +28,8 @@ if TYPE_CHECKING:  # pragma: no cover
         LinearRing, LinearRingZ, LinearRingM, LinearRingZM,
         Polygon, PolygonZ, PolygonM, PolygonZM)
 
+
+GPKG = Union['GeoPackage', 'MemoryGeoPackage', 'AbstractGeoPackage']
 
 INT = Optional[int]
 BOOL = Optional[bool]
