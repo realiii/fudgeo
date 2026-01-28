@@ -45,7 +45,10 @@ def setup_geopackage(tmp_path):
         Field('test_timestamp', SQLFieldType.timestamp))
     yield path, pkg, srs, fields
     if path.exists():
-        path.unlink()
+        try:
+            path.unlink()
+        except PermissionError:
+            pass
 # End setup_geopackage function
 
 
