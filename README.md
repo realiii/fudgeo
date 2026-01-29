@@ -430,6 +430,11 @@ Support provided for the following constraint types:
 [MIT](https://raw.githubusercontent.com/realiii/fudgeo/refs/heads/develop/LICENSE)
 
 ## Release History
+### 1.5.1
+* Rename `GeometryType` to `ShapeType`, add alias for backwards compatibility
+* Rename `SQLFieldType` to `FieldType`, add alias for backwards compatibility
+* Improve type hinting for `GeoPackage` and `MemoryGeoPackage`
+
 ### 1.5.0
 * add caching to function `has_ogr_contents`
 * add caching to properties `primary_key_field`, `description`, `has_spatial_index`, and `spatial_reference_system`
