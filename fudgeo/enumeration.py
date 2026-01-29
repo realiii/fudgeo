@@ -19,7 +19,7 @@ class GPKGFlavors:
 
 class DataType:
     """
-    Allowed Data Type values
+    Data Types
     """
     features: ClassVar[str] = 'features'
     attributes: ClassVar[str] = 'attributes'
@@ -29,7 +29,7 @@ class DataType:
 
 class ShapeType:
     """
-    Allowed Geometry Type values
+    Shape Types
     """
     point: ClassVar[str] = 'POINT'
     linestring: ClassVar[str] = 'LINESTRING'
@@ -42,7 +42,7 @@ class ShapeType:
 
 class FieldType(ShapeType):
     """
-    SQL Field Types
+    Field Types
     """
     boolean: ClassVar[str] = 'BOOLEAN'
     tinyint: ClassVar[str] = 'TINYINT'
@@ -62,7 +62,7 @@ class FieldType(ShapeType):
 
 class EnvelopeCode:
     """
-    Envelope Code
+    Envelope Codes
     """
     empty: ClassVar[int] = 0
     xy: ClassVar[int] = 1
@@ -74,7 +74,7 @@ class EnvelopeCode:
 
 class MetadataScope:
     """
-    Metadata Scope
+    Metadata Scopes
     """
     attribute: ClassVar[str] = 'attribute'
     attribute_type: ClassVar[str] = 'attributeType'
@@ -101,7 +101,7 @@ class MetadataScope:
 
 class MetadataReferenceScope:
     """
-    Metadata Reference Scope
+    Metadata Reference Scopes
     """
     geopackage: ClassVar[str] = 'geopackage'
     table: ClassVar[str] = 'table'
@@ -113,7 +113,7 @@ class MetadataReferenceScope:
 
 class ConstraintType:
     """
-    Constraint Type
+    Constraint Types
     """
     enum: ClassVar[str] = 'enum'
     glob: ClassVar[str] = 'glob'
