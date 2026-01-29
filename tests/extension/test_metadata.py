@@ -7,7 +7,7 @@ Metadata Extension Tests
 from pytest import fixture, mark, raises
 
 from crs import WGS_1984_UTM_Zone_23N
-from fudgeo.enumeration import GeometryType, MetadataScope, SQLFieldType
+from fudgeo.enumeration import FieldType, MetadataScope, ShapeType
 from fudgeo.extension.metadata import (
     ColumnReference, GeoPackageReference, Metadata, RowColumnReference,
     RowReference, TableReference)
@@ -57,12 +57,12 @@ def example1(tmp_path, random_utm_coordinates) -> GeoPackage:
     srs = SpatialReferenceSystem(
         name='WGS_1984_UTM_Zone_23N', organization='EPSG',
         org_coord_sys_id=32623, definition=WGS_1984_UTM_Zone_23N)
-    fields = Field(name='overhead_clearance', data_type=SQLFieldType.double),
+    fields = Field(name='overhead_clearance', data_type=FieldType.double),
     roads = pkg.create_feature_class(
-        name='roads', srs=srs, shape_type=GeometryType.linestring,
+        name='roads', srs=srs, shape_type=ShapeType.linestring,
         fields=fields)
     bridge = pkg.create_feature_class(
-        name='bridge', srs=srs, shape_type=GeometryType.linestring,
+        name='bridge', srs=srs, shape_type=ShapeType.linestring,
         fields=fields)
     eastings, northings = random_utm_coordinates
     records = []
@@ -107,8 +107,8 @@ def example2(tmp_path, random_utm_coordinates) -> GeoPackage:
     srs = SpatialReferenceSystem(
         name='WGS_1984_UTM_Zone_23N', organization='EPSG',
         org_coord_sys_id=32623, definition=WGS_1984_UTM_Zone_23N)
-    fields = [Field(name='category', data_type=SQLFieldType.integer),
-              Field(name='point', data_type=SQLFieldType.integer)]
+    fields = [Field(name='category', data_type=FieldType.integer),
+              Field(name='point', data_type=FieldType.integer)]
     poi = pkg.create_feature_class(name='poi', srs=srs, fields=fields)
     eastings, northings = random_utm_coordinates
     records = []

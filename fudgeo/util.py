@@ -17,7 +17,7 @@ except ModuleNotFoundError:
     from numpy import nanmax, nanmin
 
 from fudgeo.constant import FETCH_SIZE
-from fudgeo.enumeration import GeometryType
+from fudgeo.enumeration import ShapeType
 from fudgeo.sql import KEYWORDS
 
 
@@ -146,7 +146,7 @@ def get_extent(fc: 'FeatureClass') -> tuple[float, float, float, float]:
         return nan, nan, nan, nan
     xs, ys = [], []
     geom = f'{fc.geometry_column_name} "[{fc.geometry_type}]"'
-    is_point = fc.geometry_type.upper().startswith(GeometryType.point)
+    is_point = fc.geometry_type.upper().startswith(ShapeType.point)
     with fc.geopackage.connection as conn:
         cursor = conn.execute(f"""SELECT {geom} FROM {fc.escaped_name}""")
         while features := cursor.fetchmany(FETCH_SIZE):

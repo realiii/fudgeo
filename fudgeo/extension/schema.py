@@ -10,7 +10,7 @@ from sqlite3 import DatabaseError, OperationalError
 from typing import TYPE_CHECKING, Union
 
 from fudgeo.alias import CONSTRAINTS, GPKG, RECORDS, STRING
-from fudgeo.enumeration import ConstraintType, SQLFieldType
+from fudgeo.enumeration import ConstraintType, FieldType
 from fudgeo.sql import (
     CREATE_DATA_COLUMNS, CREATE_DATA_COLUMN_CONSTRAINTS, HAS_SCHEMA,
     INSERT_COLUMN_CONSTRAINTS, INSERT_COLUMN_DEFINITION, INSERT_EXTENSION,
@@ -201,7 +201,7 @@ class Schema:
             raise ValueError(f'column name "{column_name}" '
                              f'not found in table "{table.name}"')
         field = table.fields[table.field_names.index(column_name)]
-        if field.data_type == SQLFieldType.blob and not mime_type:
+        if field.data_type == FieldType.blob and not mime_type:
             raise ValueError(
                 f'expected mime_type value for blob column {column_name}')
         if constraint_name:
