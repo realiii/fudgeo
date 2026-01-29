@@ -18,11 +18,11 @@ from typing import Any, Optional, TYPE_CHECKING, Type, Union
 # noinspection PyPackageRequirements
 from numpy import int16, int32, int64, int8, uint16, uint32, uint64, uint8
 
-from fudgeo.alias import FIELDS, FIELD_NAMES, INT, STRING
+from fudgeo.alias import FIELDS, FIELD_NAMES, GPKG, INT, STRING
 from fudgeo.constant import (
     COMMA_SPACE, FETCH_SIZE, FID, GPKG_EXT, MEMORY, SHAPE, SRS)
 from fudgeo.context import ExecuteMany, ForeignKeys
-from fudgeo.enumeration import DataType, GPKGFlavors, GeometryType, SQLFieldType
+from fudgeo.enumeration import DataType, FieldType, GPKGFlavors, ShapeType
 from fudgeo.extension.metadata import (
     Metadata, add_metadata_extension, has_metadata_extension)
 from fudgeo.extension.ogr import add_ogr_contents, has_ogr_contents
@@ -95,7 +95,7 @@ def _add_st_functions(conn: 'Connection') -> None:
     Add ST Functions
     """
     for name, func in ST_FUNCS.items():
-        conn.create_function(name=name, narg=1, func=func)
+        conn.create_function(name, 1, func)
 # End _add_st_functions function
 
 
@@ -270,7 +270,7 @@ class AbstractGeoPackage(metaclass=ABCMeta):
     # End exists method
 
     def create_feature_class(self, name: str, srs: 'SpatialReferenceSystem',
-                             shape_type: str = GeometryType.point,
+                             shape_type: str = ShapeType.point,
                              z_enabled: bool = False, m_enabled: bool = False,
                              fields: FIELDS = (), description: str = '',
                              overwrite: bool = False,
@@ -498,7 +498,7 @@ class BaseTable:
     """
     Base Geopackage Table
     """
-    def __init__(self, geopackage: GeoPackage, name: str) -> None:
+    def __init__(self, geopackage: GPKG, name: str) -> None:
         """
         Initialize the BaseTable class
         """
@@ -713,7 +713,7 @@ class BaseTable:
         Primary Key Field
         """
         cursor = self.geopackage.connection.execute(
-            SELECT_PRIMARY_KEY.format(self.name, SQLFieldType.integer))
+            SELECT_PRIMARY_KEY.format(self.name, FieldType.integer))
         result = cursor.fetchone()
         if not result:  # pragma: no cover
             return None
@@ -820,7 +820,7 @@ class Table(BaseTable):
     # End _make_copy_sql method
 
     @classmethod
-    def create(cls, geopackage: GeoPackage, name: str, fields: FIELDS,
+    def create(cls, geopackage: GPKG, name: str, fields: FIELDS,
                description: str = '', overwrite: bool = False,
                pk_name: STRING = FID) -> 'Table':
         """
@@ -932,7 +932,7 @@ class FeatureClass(BaseTable):
     # End repr built-in
 
     @staticmethod
-    def _find_geometry_column_name(geopackage: 'GeoPackage', name: str) -> str:
+    def _find_geometry_column_name(geopackage: GPKG, name: str) -> str:
         """
         Find Geometry Column Name for an Existing Feature Class
         """
@@ -1047,7 +1047,7 @@ class FeatureClass(BaseTable):
     # End add_spatial_index method
 
     @classmethod
-    def create(cls, geopackage: GeoPackage, name: str, shape_type: str,
+    def create(cls, geopackage: GPKG, name: str, shape_type: str,
                srs: 'SpatialReferenceSystem', z_enabled: bool = False,
                m_enabled: bool = False, fields: FIELDS = (),
                description: str = '', overwrite: bool = False,
@@ -1162,9 +1162,10 @@ class FeatureClass(BaseTable):
         Is Multi Part Geometry
         """
         return self.shape_type in {
-            GeometryType.multi_point, GeometryType.multi_linestring,
-            GeometryType.multi_polygon}
+            ShapeType.multi_point, ShapeType.multi_linestring,
+            ShapeType.multi_polygon}
     # End is_multi_part property
+    is_multipart = is_multi_part
 
     @cached_property
     def spatial_reference_system(self) -> 'SpatialReferenceSystem':
@@ -1401,7 +1402,7 @@ class Field:
         String representation
         """
         definition = f'{self.escaped_name} {self.data_type}'
-        is_type = self.data_type in (SQLFieldType.blob, SQLFieldType.text)
+        is_type = self.data_type in (FieldType.blob, FieldType.text)
         if self.size and is_type:
             definition = f'{definition}({self.size})'
         if default := self.default:

@@ -9,7 +9,7 @@ from random import randint
 
 from pytest import fixture
 
-from fudgeo.enumeration import SQLFieldType
+from fudgeo.enumeration import FieldType
 from fudgeo.geopkg import (
     Field, GeoPackage, MemoryGeoPackage, SpatialReferenceSystem)
 from tests.geo import make_gpkg_geom_header
@@ -38,14 +38,17 @@ def setup_geopackage(tmp_path):
         'WGS_1984_UTM_Zone_23N', 'EPSG', 32623, WGS_1984_UTM_Zone_23N)
     pkg.add_spatial_reference(srs)
     fields = (
-        Field('int.fld', SQLFieldType.integer),
-        Field('text_fld', SQLFieldType.text),
-        Field('test_fld_size', SQLFieldType.text, 100),
-        Field('test_bool', SQLFieldType.boolean),
-        Field('test_timestamp', SQLFieldType.timestamp))
+        Field('int.fld', FieldType.integer),
+        Field('text_fld', FieldType.text),
+        Field('test_fld_size', FieldType.text, 100),
+        Field('test_bool', FieldType.boolean),
+        Field('test_timestamp', FieldType.timestamp))
     yield path, pkg, srs, fields
     if path.exists():
-        path.unlink()
+        try:
+            path.unlink()
+        except PermissionError:
+            pass
 # End setup_geopackage function
 
 
@@ -54,12 +57,12 @@ def fields():
     """
     Fields
     """
-    return [Field('AAA', SQLFieldType.integer),
-            Field('BBB', SQLFieldType.text, size=10),
-            Field('CCC', SQLFieldType.text),
-            Field('DDD', SQLFieldType.double),
-            Field('EEE', SQLFieldType.datetime),
-            Field('SELECT', SQLFieldType.timestamp)]
+    return [Field('AAA', FieldType.integer),
+            Field('BBB', FieldType.text, size=10),
+            Field('CCC', FieldType.text),
+            Field('DDD', FieldType.double),
+            Field('EEE', FieldType.datetime),
+            Field('SELECT', FieldType.timestamp)]
 # End fields function
 
 
