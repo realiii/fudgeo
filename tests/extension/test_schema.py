@@ -39,7 +39,10 @@ def test_create_geopackage(tmp_path, on_create, post_create):
     tbl.drop()
     pkg.connection.close()
     if path.exists():
-        path.unlink()
+        try:
+            path.unlink()
+        except PermissionError:
+            pass
 # End test_create_geopackage function
 
 
