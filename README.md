@@ -433,7 +433,9 @@ Support provided for the following constraint types:
 ### 1.5.1
 * Rename `GeometryType` to `ShapeType`, add alias for backwards compatibility
 * Rename `SQLFieldType` to `FieldType`, add alias for backwards compatibility
+* Add alias `is_multpart` for `is_multi_part` property on `FeatureClass`
 * Improve type hinting for `GeoPackage` and `MemoryGeoPackage`
+* Improve tests when running on Windows
 
 ### 1.5.0
 * add caching to function `has_ogr_contents`

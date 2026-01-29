@@ -1165,6 +1165,7 @@ class FeatureClass(BaseTable):
             ShapeType.multi_point, ShapeType.multi_linestring,
             ShapeType.multi_polygon}
     # End is_multi_part property
+    is_multipart = is_multi_part
 
     @cached_property
     def spatial_reference_system(self) -> 'SpatialReferenceSystem':
