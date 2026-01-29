@@ -27,7 +27,7 @@ class DataType:
 # End DataType class
 
 
-class GeometryType:
+class ShapeType:
     """
     Allowed Geometry Type values
     """
@@ -37,10 +37,10 @@ class GeometryType:
     multi_point: ClassVar[str] = 'MULTIPOINT'
     multi_linestring: ClassVar[str] = 'MULTILINESTRING'
     multi_polygon: ClassVar[str] = 'MULTIPOLYGON'
-# End GeometryType class
+# End ShapeType class
 
 
-class SQLFieldType(GeometryType):
+class FieldType(ShapeType):
     """
     SQL Field Types
     """
@@ -57,7 +57,7 @@ class SQLFieldType(GeometryType):
     date: ClassVar[str] = 'DATE'
     timestamp: ClassVar[str] = 'TIMESTAMP'
     datetime: ClassVar[str] = 'DATETIME'
-# End SQLFieldType class
+# End FieldType class
 
 
 class EnvelopeCode:
@@ -119,6 +119,11 @@ class ConstraintType:
     glob: ClassVar[str] = 'glob'
     range_: ClassVar[str] = 'range'
 # End ConstraintType class
+
+
+# NOTE aliases for backwards compatibility
+GeometryType = ShapeType
+SQLFieldType = FieldType
 
 
 if __name__ == '__main__':  # pragma: no cover

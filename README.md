@@ -79,7 +79,7 @@ Feature Class **must** include a value for the option specified.
 
 ```python
 from fudgeo import FeatureClass, Field, GeoPackage, SpatialReferenceSystem
-from fudgeo.enumeration import GeometryType, SQLFieldType
+from fudgeo.enumeration import FieldType, ShapeType
 
 SRS_WKT: str = (
     'PROJCS["WGS_1984_UTM_Zone_23N",'
@@ -100,21 +100,21 @@ srs: SpatialReferenceSystem = SpatialReferenceSystem(
     name='WGS_1984_UTM_Zone_23N', organization='EPSG',
     org_coord_sys_id=32623, definition=SRS_WKT)
 fields: tuple[Field, ...] = (
-    Field('road_id', SQLFieldType.integer),
-    Field('name', SQLFieldType.text, size=100),
-    Field('begin_easting', SQLFieldType.double),
-    Field('begin_northing', SQLFieldType.double),
-    Field('end_easting', SQLFieldType.double),
-    Field('end_northing', SQLFieldType.double),
-    Field('begin_longitude', SQLFieldType.double),
-    Field('begin_latitude', SQLFieldType.double),
-    Field('end_longitude', SQLFieldType.double),
-    Field('end_latitude', SQLFieldType.double),
-    Field('is_one_way', SQLFieldType.boolean))
+    Field('road_id', FieldType.integer),
+    Field('name', FieldType.text, size=100),
+    Field('begin_easting', FieldType.double),
+    Field('begin_northing', FieldType.double),
+    Field('end_easting', FieldType.double),
+    Field('end_northing', FieldType.double),
+    Field('begin_longitude', FieldType.double),
+    Field('begin_latitude', FieldType.double),
+    Field('end_longitude', FieldType.double),
+    Field('end_latitude', FieldType.double),
+    Field('is_one_way', FieldType.boolean))
 
 gpkg: GeoPackage = GeoPackage.create('../temp/test.gpkg')
 fc: FeatureClass = gpkg.create_feature_class(
-    'road_l', srs=srs, fields=fields, shape_type=GeometryType.linestring,
+    'road_l', srs=srs, fields=fields, shape_type=ShapeType.linestring,
     m_enabled=True, overwrite=True, spatial_index=True)
 ```
 
@@ -251,8 +251,7 @@ added at create time or added on an existing feature class.
 
 ```python
 from fudgeo import FeatureClass, Field, GeoPackage, SpatialReferenceSystem
-from fudgeo.enumeration import SQLFieldType
-
+from fudgeo.enumeration import FieldType
 
 SRS_WKT: str = (
     'PROJCS["WGS_1984_UTM_Zone_23N",'
@@ -283,8 +282,8 @@ assert event
 
 # NOTE can add fields after creation as of v1.0.0 
 fields: tuple[Field, ...] = (
-    Field('id', SQLFieldType.integer),
-    Field('name', SQLFieldType.text, size=100))
+    Field('id', FieldType.integer),
+    Field('name', FieldType.text, size=100))
 event.add_fields(fields)
 
 # add spatial index on an existing feature class / post create

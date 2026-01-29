@@ -6,7 +6,7 @@ Schema Extension Tests
 
 from pytest import mark, raises
 
-from fudgeo.enumeration import ConstraintType, SQLFieldType
+from fudgeo.enumeration import ConstraintType, FieldType
 from fudgeo.extension.schema import (
     EnumerationConstraint, GlobConstraint, RangeConstraint, Schema)
 from fudgeo.geopkg import Field, GeoPackage
@@ -24,8 +24,8 @@ def test_create_geopackage(tmp_path, on_create, post_create):
     """
     path = tmp_path / 'test.gpkg'
     pkg = GeoPackage.create(path, enable_schema=on_create)
-    fields = [Field(name='some_field_name', data_type=SQLFieldType.double),
-              Field(name='bobloblaw', data_type=SQLFieldType.blob)]
+    fields = [Field(name='some_field_name', data_type=FieldType.double),
+              Field(name='bobloblaw', data_type=FieldType.blob)]
     tbl = pkg.create_table(name='the_table', fields=fields)
     assert pkg.is_schema_enabled is on_create
     if not on_create:
@@ -77,8 +77,8 @@ def test_add_column_definition_validation(tmp_path, table_name, column_name, nam
     """
     path = tmp_path / 'test.gpkg'
     pkg = GeoPackage.create(path, enable_schema=True)
-    fields = [Field(name='some_field_name', data_type=SQLFieldType.double),
-              Field(name='bobloblaw', data_type=SQLFieldType.blob)]
+    fields = [Field(name='some_field_name', data_type=FieldType.double),
+              Field(name='bobloblaw', data_type=FieldType.blob)]
     pkg.create_table(name='the_table', fields=fields)
     schema = pkg.schema
     if msg:
