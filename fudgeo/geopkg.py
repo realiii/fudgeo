@@ -95,7 +95,7 @@ def _add_st_functions(conn: 'Connection') -> None:
     Add ST Functions
     """
     for name, func in ST_FUNCS.items():
-        conn.create_function(name=name, narg=1, func=func)
+        conn.create_function(name, 1, func)
 # End _add_st_functions function
 
 
