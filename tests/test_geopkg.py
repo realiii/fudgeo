@@ -220,7 +220,7 @@ def test_create_feature_class(tmp_path, fields, name, ogr_contents, trigger_coun
     with raises(ValueError):
         geo.create_feature_class(name, srs=srs, fields=fields)
     assert fc.count == 0
-    fc = geo.create_feature_class('ANOTHER', srs=srs)
+    fc = geo.create_feature_class('ANOTHER', srs=srs, spatial_index=False)
     assert isinstance(fc, FeatureClass)
     # noinspection SqlNoDataSourceInspection
     cursor = geo.connection.execute(
