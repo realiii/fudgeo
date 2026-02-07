@@ -275,7 +275,7 @@ class AbstractGeoPackage(metaclass=ABCMeta):
                              z_enabled: bool = False, m_enabled: bool = False,
                              fields: FIELDS = (), description: str = '',
                              overwrite: bool = False,
-                             spatial_index: bool = False,
+                             spatial_index: bool = True,
                              geom_name: str = SHAPE,
                              pk_name: STRING = FID) -> 'FeatureClass':
         """
@@ -1068,7 +1068,7 @@ class FeatureClass(BaseTable):
                srs: 'SpatialReferenceSystem', z_enabled: bool = False,
                m_enabled: bool = False, fields: FIELDS = (),
                description: str = '', overwrite: bool = False,
-               spatial_index: bool = False, geom_name: str = SHAPE,
+               spatial_index: bool = True, geom_name: str = SHAPE,
                pk_name: STRING = FID) -> 'FeatureClass':
         """
         Create Feature Class
