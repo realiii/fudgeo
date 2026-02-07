@@ -874,7 +874,7 @@ class Table(BaseTable):
 
     def copy(self, name: str, description: str = '',
              where_clause: str = '', overwrite: bool = False,
-             geopackage: Optional[GeoPackage] = None) -> 'Table':
+             geopackage: Optional[GPKG] = None) -> 'Table':
         """
         Copy the structure and content of a table.  Create a new table or
         overwrite an existing.  Use a where clause to limit the records.
@@ -994,7 +994,7 @@ class FeatureClass(BaseTable):
 
     def _shared_create(self, name: str, description: str = '',
                        where_clause: str = '', overwrite: bool = False,
-                       geopackage: Optional[GeoPackage] = None,
+                       geopackage: Optional[GPKG] = None,
                        geom_name: STRING = None, pk_name: STRING = None,
                        **kwargs) -> tuple[str, str, 'FeatureClass']:
         """
@@ -1255,7 +1255,7 @@ class FeatureClass(BaseTable):
     # End extent property
 
     def copy(self, name: str, description: str = '', where_clause: str = '',
-             overwrite: bool = False, geopackage: Optional[GeoPackage] = None,
+             overwrite: bool = False, geopackage: Optional[GPKG] = None,
              geom_name: STRING = None, pk_name: STRING = None,
              **kwargs) -> 'FeatureClass':
         """
@@ -1283,8 +1283,7 @@ class FeatureClass(BaseTable):
     # End copy method
 
     def explode(self, name: str, overwrite: bool = False,
-                geopackage: Optional[GeoPackage] = None,
-                **kwargs) -> 'FeatureClass':
+                geopackage: Optional[GPKG] = None, **kwargs) -> 'FeatureClass':
         """
         Explode feature class containing MultiPart geometry in a new feature
         class in the same or a different GeoPackage.  If the feature class
