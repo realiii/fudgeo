@@ -13,7 +13,7 @@ from pathlib import Path
 from sqlite3 import (
     PARSE_COLNAMES, PARSE_DECLTYPES, connect, register_adapter,
     register_converter)
-from typing import Any, Optional, TYPE_CHECKING, Type, Union
+from typing import Any, Callable, Optional, TYPE_CHECKING, Type, Union
 
 # noinspection PyPackageRequirements
 from numpy import int16, int32, int64, int8, uint16, uint32, uint64, uint8
@@ -28,7 +28,8 @@ from fudgeo.extension.metadata import (
 from fudgeo.extension.ogr import add_ogr_contents, has_ogr_contents
 from fudgeo.extension.schema import (
     Schema, add_schema_extension, has_schema_extension)
-from fudgeo.extension.spatial import ST_FUNCS, add_spatial_index
+from fudgeo.extension.spatial import (
+    ST_FUNCS, add_spatial_index, remove_spatial_index)
 from fudgeo.geometry import (
     LineString, LineStringM, LineStringZ, LineStringZM, MultiLineString,
     MultiLineStringM, MultiLineStringZ, MultiLineStringZM, MultiPoint,
@@ -873,7 +874,7 @@ class Table(BaseTable):
 
     def copy(self, name: str, description: str = '',
              where_clause: str = '', overwrite: bool = False,
-             geopackage: Optional[GeoPackage] = None) -> 'Table':
+             geopackage: Optional[GPKG] = None) -> 'Table':
         """
         Copy the structure and content of a table.  Create a new table or
         overwrite an existing.  Use a where clause to limit the records.
@@ -993,7 +994,7 @@ class FeatureClass(BaseTable):
 
     def _shared_create(self, name: str, description: str = '',
                        where_clause: str = '', overwrite: bool = False,
-                       geopackage: Optional[GeoPackage] = None,
+                       geopackage: Optional[GPKG] = None,
                        geom_name: STRING = None, pk_name: STRING = None,
                        **kwargs) -> tuple[str, str, 'FeatureClass']:
         """
@@ -1034,17 +1035,33 @@ class FeatureClass(BaseTable):
                 geom.srs_id = srs_id
     # End _update_srs_id method
 
+    def _add_remove_spatial_index(self, func: Callable) -> bool:
+        """
+        Add or Remove Spatial Index
+        """
+        with self.geopackage.connection as conn:
+            func(conn=conn, feature_class=self)
+        delattr(self, 'has_spatial_index')
+        return True
+    # End _add_remove_spatial_index method
+
     def add_spatial_index(self) -> bool:
         """
         Add Spatial Index if does not already exist
         """
         if self.has_spatial_index:
             return False
-        with self.geopackage.connection as conn:
-            add_spatial_index(conn=conn, feature_class=self)
-        delattr(self, 'has_spatial_index')
-        return True
+        return self._add_remove_spatial_index(add_spatial_index)
     # End add_spatial_index method
+
+    def remove_spatial_index(self) -> bool:
+        """
+        Remove Spatial Index
+        """
+        if not self.has_spatial_index:
+            return False
+        return self._add_remove_spatial_index(remove_spatial_index)
+    # End remove_spatial_index method
 
     @classmethod
     def create(cls, geopackage: GPKG, name: str, shape_type: str,
@@ -1238,7 +1255,7 @@ class FeatureClass(BaseTable):
     # End extent property
 
     def copy(self, name: str, description: str = '', where_clause: str = '',
-             overwrite: bool = False, geopackage: Optional[GeoPackage] = None,
+             overwrite: bool = False, geopackage: Optional[GPKG] = None,
              geom_name: STRING = None, pk_name: STRING = None,
              **kwargs) -> 'FeatureClass':
         """
@@ -1266,8 +1283,7 @@ class FeatureClass(BaseTable):
     # End copy method
 
     def explode(self, name: str, overwrite: bool = False,
-                geopackage: Optional[GeoPackage] = None,
-                **kwargs) -> 'FeatureClass':
+                geopackage: Optional[GPKG] = None, **kwargs) -> 'FeatureClass':
         """
         Explode feature class containing MultiPart geometry in a new feature
         class in the same or a different GeoPackage.  If the feature class

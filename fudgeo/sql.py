@@ -126,6 +126,24 @@ REMOVE_FEATURE_CLASS: str = """
 """
 
 
+# NOTE 0 - table name, 1 - geometry column name
+REMOVE_SPATIAL_INDEX: str = """
+    DELETE FROM gpkg_extensions 
+    WHERE lower(table_name) = lower('{0}') AND 
+          lower(extension_name) = 'gpkg_rtree_index';
+    DROP TRIGGER IF EXISTS "rtree_{0}_{1}_delete";
+    DROP TRIGGER IF EXISTS "rtree_{0}_{1}_insert";
+    DROP TRIGGER IF EXISTS "rtree_{0}_{1}_update1";
+    DROP TRIGGER IF EXISTS "rtree_{0}_{1}_update2";
+    DROP TRIGGER IF EXISTS "rtree_{0}_{1}_update3";
+    DROP TRIGGER IF EXISTS "rtree_{0}_{1}_update4";
+    DROP TRIGGER IF EXISTS "rtree_{0}_{1}_update5";
+    DROP TRIGGER IF EXISTS "rtree_{0}_{1}_update6";
+    DROP TRIGGER IF EXISTS "rtree_{0}_{1}_update7";
+    DROP TABLE IF EXISTS "rtree_{0}_{1}";
+"""
+
+
 # NOTE 0 - table name, 1 - escaped name, 2 - geometry column name,
 #  3 - new name, 4 - new name escaped
 RENAME_FEATURE_CLASS: str = """

@@ -296,6 +296,10 @@ def test_create_feature_drop_feature(tmp_path, fields, name, ogr_contents, has_t
     if not add_index:
         assert fc.add_spatial_index()
         assert fc.has_spatial_index
+        assert fc.remove_spatial_index()
+        assert not fc.has_spatial_index
+        assert fc.add_spatial_index()
+        assert fc.has_spatial_index
     assert isinstance(fc, FeatureClass)
     fc = geo.create_feature_class(name, srs=srs, fields=fields, overwrite=True, spatial_index=add_index)
     assert fc.exists
