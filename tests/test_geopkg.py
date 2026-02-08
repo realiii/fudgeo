@@ -8,6 +8,7 @@ import sys
 from datetime import datetime, timedelta
 from math import isnan
 from random import randint, choice
+from sqlite3 import IntegrityError
 from string import ascii_uppercase, digits
 
 from pytest import mark, raises
@@ -220,7 +221,7 @@ def test_create_feature_class(tmp_path, fields, name, ogr_contents, trigger_coun
     with raises(ValueError):
         geo.create_feature_class(name, srs=srs, fields=fields)
     assert fc.count == 0
-    fc = geo.create_feature_class('ANOTHER', srs=srs)
+    fc = geo.create_feature_class('ANOTHER', srs=srs, spatial_index=False)
     assert isinstance(fc, FeatureClass)
     # noinspection SqlNoDataSourceInspection
     cursor = geo.connection.execute(
@@ -294,6 +295,10 @@ def test_create_feature_drop_feature(tmp_path, fields, name, ogr_contents, has_t
     fc = geo.create_feature_class(name, srs=srs, fields=fields, spatial_index=add_index)
     assert fc.has_spatial_index is add_index
     if not add_index:
+        assert fc.add_spatial_index()
+        assert fc.has_spatial_index
+        assert fc.drop_spatial_index()
+        assert not fc.has_spatial_index
         assert fc.add_spatial_index()
         assert fc.has_spatial_index
     assert isinstance(fc, FeatureClass)
@@ -482,6 +487,9 @@ def test_insert_poly(setup_geopackage, rings, add_index):
         cursor = gpkg.connection.execute(SELECT_RTREE.format(
             fc.name, fc.geometry_column_name))
         assert cursor.fetchall() == [(1, 300000, 700000, 1, 4000000)]
+    assert not fc.is_empty
+    fc.delete()
+    assert fc.is_empty
 # End test_insert_poly function
 
 
@@ -1214,6 +1222,38 @@ def test_explode_feature_class(setup_geopackage, data_path, name, count, out_cou
     assert result.exists
     assert result.count == out_count
 # End test_explode_feature_class function
+
+
+@mark.parametrize('is_unique, is_ascending', [
+    (True, True), (True, False), (False, True), (False, False)
+])
+def test_add_remove_index(data_path, mem_gpkg, is_unique, is_ascending):
+    """
+    Test add / remove index on a Feature Class
+    """
+    path = data_path / 'copy.gpkg'
+    assert path.is_file()
+    gpkg = GeoPackage(path)
+    name = 'detail_l'
+    fc = gpkg[name].copy(name=name, geopackage=mem_gpkg, where_clause='FID <= 500')
+    assert fc.exists
+    assert fc.count == 252
+    index_name = 'detail_l_idx'
+    assert not fc._check_index_exists(index_name)
+
+    if is_unique:
+        with raises(IntegrityError):
+            fc.add_attribute_index(
+                index_name, fields=('Type', 'Type_Desc'),
+                is_unique=is_unique, is_ascending=is_ascending)
+    else:
+        assert fc.add_attribute_index(
+            index_name, fields=('Type', 'Type_Desc'),
+            is_unique=is_unique, is_ascending=is_ascending)
+        assert fc._check_index_exists(index_name)
+        assert fc.drop_attribute_index(index_name)
+        assert not fc._check_index_exists(index_name)
+# End test_add_remove_index function
 
 
 def test_table_add_drop_fields(setup_geopackage):

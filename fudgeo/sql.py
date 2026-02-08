@@ -126,6 +126,24 @@ REMOVE_FEATURE_CLASS: str = """
 """
 
 
+# NOTE 0 - table name, 1 - geometry column name
+DROP_SPATIAL_INDEX: str = """
+    DELETE FROM gpkg_extensions 
+    WHERE lower(table_name) = lower('{0}') AND 
+          lower(extension_name) = 'gpkg_rtree_index';
+    DROP TRIGGER IF EXISTS "rtree_{0}_{1}_delete";
+    DROP TRIGGER IF EXISTS "rtree_{0}_{1}_insert";
+    DROP TRIGGER IF EXISTS "rtree_{0}_{1}_update1";
+    DROP TRIGGER IF EXISTS "rtree_{0}_{1}_update2";
+    DROP TRIGGER IF EXISTS "rtree_{0}_{1}_update3";
+    DROP TRIGGER IF EXISTS "rtree_{0}_{1}_update4";
+    DROP TRIGGER IF EXISTS "rtree_{0}_{1}_update5";
+    DROP TRIGGER IF EXISTS "rtree_{0}_{1}_update6";
+    DROP TRIGGER IF EXISTS "rtree_{0}_{1}_update7";
+    DROP TABLE IF EXISTS "rtree_{0}_{1}";
+"""
+
+
 # NOTE 0 - table name, 1 - escaped name, 2 - geometry column name,
 #  3 - new name, 4 - new name escaped
 RENAME_FEATURE_CLASS: str = """
@@ -234,6 +252,14 @@ TABLE_EXISTS: str = """
     SELECT name 
     FROM sqlite_master 
     WHERE type = 'table' AND name = ? 
+    COLLATE NOCASE
+"""
+
+
+INDEX_EXISTS: str = """
+    SELECT name 
+    FROM sqlite_master 
+    WHERE type = 'index' AND name = ? 
     COLLATE NOCASE
 """
 
@@ -367,6 +393,18 @@ DEFAULT_EPSG_RECS: tuple[tuple[str, int, str, int, str, str], ...] = (
         DEFAULT_SRS_RECS + (('WGS 84', 4326, 'EPSG', 4326, EPSG_4326, ''),))
 DEFAULT_ESRI_RECS: tuple[tuple[str, int, str, int, str, str], ...] = (
         DEFAULT_SRS_RECS + (('GCS_WGS_1984', 4326, 'EPSG', 4326, ESRI_4326, ''),))
+
+
+# NOTE  0 - escaped index name, 1 - escaped table name, 2 - column names
+CREATE_UNIQUE_INDEX: str = """
+    CREATE UNIQUE INDEX IF NOT EXISTS {0} ON {1} ({2});
+"""
+CREATE_INDEX: str = """
+    CREATE INDEX IF NOT EXISTS {0} ON {1} ({2});
+"""
+DROP_INDEX: str = """
+    DROP INDEX IF EXISTS {0};
+"""
 
 
 # NOTE 0 - table name, 1 - geometry column name, 2 - primary key column name

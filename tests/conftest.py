@@ -6,6 +6,7 @@ Fixtures
 
 from pathlib import Path
 from random import randint
+from typing import Generator
 
 from pytest import fixture
 
@@ -79,12 +80,23 @@ def random_utm_coordinates():
 
 
 @fixture(scope='session')
-def data_path():
+def data_path() -> Path:
     """
     Data Path
     """
     return Path(__file__).parent.parent.joinpath('data')
 # End data_path function
+
+
+@fixture(scope='function')
+def mem_gpkg(tmp_path) -> Generator[MemoryGeoPackage, None, None]:
+    """
+    Fresh MemoryGeoPackage
+    """
+    gpkg = MemoryGeoPackage.create()
+    yield gpkg
+    gpkg.connection.close()
+# End mem_gpkg function
 
 
 if __name__ == '__main__':  # pragma: no cover

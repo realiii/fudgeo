@@ -13,7 +13,7 @@ from pathlib import Path
 from sqlite3 import (
     PARSE_COLNAMES, PARSE_DECLTYPES, connect, register_adapter,
     register_converter)
-from typing import Any, Optional, TYPE_CHECKING, Type, Union
+from typing import Any, Callable, Optional, TYPE_CHECKING, Type, Union
 
 # noinspection PyPackageRequirements
 from numpy import int16, int32, int64, int8, uint16, uint32, uint64, uint8
@@ -28,7 +28,8 @@ from fudgeo.extension.metadata import (
 from fudgeo.extension.ogr import add_ogr_contents, has_ogr_contents
 from fudgeo.extension.schema import (
     Schema, add_schema_extension, has_schema_extension)
-from fudgeo.extension.spatial import ST_FUNCS, add_spatial_index
+from fudgeo.extension.spatial import (
+    ST_FUNCS, add_spatial_index, drop_spatial_index)
 from fudgeo.geometry import (
     LineString, LineStringM, LineStringZ, LineStringZM, MultiLineString,
     MultiLineStringM, MultiLineStringZ, MultiLineStringZM, MultiPoint,
@@ -36,9 +37,10 @@ from fudgeo.geometry import (
     MultiPolygonZ, MultiPolygonZM, Point, PointM, PointZ, PointZM, Polygon,
     PolygonM, PolygonZ, PolygonZM)
 from fudgeo.sql import (
-    ADD_COLUMN, CHECK_SRS_EXISTS, CREATE_FEATURE_TABLE, CREATE_OGR_CONTENTS,
-    CREATE_TABLE, DEFAULT_EPSG_RECS, DEFAULT_ESRI_RECS, DELETE_DATA_COLUMNS,
-    DELETE_METADATA_REFERENCE, DELETE_OGR_CONTENTS, DROP_COLUMN,
+    ADD_COLUMN, CHECK_SRS_EXISTS, CREATE_FEATURE_TABLE, CREATE_INDEX,
+    CREATE_OGR_CONTENTS, CREATE_TABLE, CREATE_UNIQUE_INDEX, DEFAULT_EPSG_RECS,
+    DEFAULT_ESRI_RECS, DELETE_DATA_COLUMNS, DELETE_METADATA_REFERENCE,
+    DELETE_OGR_CONTENTS, DROP_COLUMN, DROP_INDEX, INDEX_EXISTS,
     INSERT_GPKG_CONTENTS_SHORT, INSERT_GPKG_GEOM_COL, INSERT_GPKG_SRS,
     REMOVE_FEATURE_CLASS, REMOVE_OGR, REMOVE_TABLE, RENAME_DATA_COLUMNS,
     RENAME_FEATURE_CLASS, RENAME_METADATA_REFERENCE, RENAME_TABLE, SELECT_COUNT,
@@ -274,7 +276,7 @@ class AbstractGeoPackage(metaclass=ABCMeta):
                              z_enabled: bool = False, m_enabled: bool = False,
                              fields: FIELDS = (), description: str = '',
                              overwrite: bool = False,
-                             spatial_index: bool = False,
+                             spatial_index: bool = True,
                              geom_name: str = SHAPE,
                              pk_name: STRING = FID) -> 'FeatureClass':
         """
@@ -652,6 +654,15 @@ class BaseTable:
                 f'Table {name} already exists in {geopackage.path}')
     # End _validate_overwrite method
 
+    def _check_index_exists(self, index_name: str) -> bool:
+        """
+        Check existence of index
+        """
+        cursor = self.geopackage.connection.execute(
+            INDEX_EXISTS, (index_name,))
+        return bool(cursor.fetchone())
+    # End _check_index_exists method
+
     @staticmethod
     def _validate_same(source: 'BaseTable', target: 'BaseTable') -> None:
         """
@@ -666,6 +677,54 @@ class BaseTable:
                 return
         raise ValueError(f'Cannot copy table {source.name} to itself')
     # End _validate_same method
+
+    def delete(self, where_clause: str = '') -> None:
+        """
+        Delete records
+        """
+        # noinspection SqlNoDataSourceInspection
+        sql = f"""DELETE FROM {self.escaped_name}"""
+        if where_clause:
+            sql = f"""{sql} WHERE {where_clause}"""
+        with self.geopackage.connection as conn:
+            conn.execute(sql)
+    # End delete method
+
+    def add_attribute_index(self, name: str, fields: Union[FIELDS, FIELD_NAMES],
+                            is_unique: bool = False, is_ascending: bool = True) -> bool:
+        """
+        Add Attribute Index if does not already exist
+        """
+        if self._check_index_exists(name):
+            return False
+        if not (fields := self._validate_fields(fields)):
+            return False
+        if is_unique:
+            sql = CREATE_UNIQUE_INDEX
+        else:
+            sql = CREATE_INDEX
+        if is_ascending:
+            short = ''
+        else:
+            short = ' DESC'
+        field_names = COMMA_SPACE.join(
+            f'{f.escaped_name}{short}' for f in fields)
+        with self.geopackage.connection as conn:
+            conn.execute(sql.format(
+                escape_name(name), self.escaped_name, field_names))
+        return True
+    # End add_attribute_index method
+
+    def drop_attribute_index(self, name: str) -> bool:
+        """
+        Drop Attribute Index
+        """
+        if not self._check_index_exists(name):
+            return False
+        with self.geopackage.connection as conn:
+            conn.execute(DROP_INDEX.format(escape_name(name)))
+        return True
+    # End drop_attribute_index method
 
     @property
     def count(self) -> int:
@@ -873,7 +932,7 @@ class Table(BaseTable):
 
     def copy(self, name: str, description: str = '',
              where_clause: str = '', overwrite: bool = False,
-             geopackage: Optional[GeoPackage] = None) -> 'Table':
+             geopackage: Optional[GPKG] = None) -> 'Table':
         """
         Copy the structure and content of a table.  Create a new table or
         overwrite an existing.  Use a where clause to limit the records.
@@ -993,7 +1052,7 @@ class FeatureClass(BaseTable):
 
     def _shared_create(self, name: str, description: str = '',
                        where_clause: str = '', overwrite: bool = False,
-                       geopackage: Optional[GeoPackage] = None,
+                       geopackage: Optional[GPKG] = None,
                        geom_name: STRING = None, pk_name: STRING = None,
                        **kwargs) -> tuple[str, str, 'FeatureClass']:
         """
@@ -1034,24 +1093,40 @@ class FeatureClass(BaseTable):
                 geom.srs_id = srs_id
     # End _update_srs_id method
 
+    def _add_remove_spatial_index(self, func: Callable) -> bool:
+        """
+        Add or Remove Spatial Index
+        """
+        with self.geopackage.connection as conn:
+            func(conn=conn, feature_class=self)
+        delattr(self, 'has_spatial_index')
+        return True
+    # End _add_remove_spatial_index method
+
     def add_spatial_index(self) -> bool:
         """
         Add Spatial Index if does not already exist
         """
         if self.has_spatial_index:
             return False
-        with self.geopackage.connection as conn:
-            add_spatial_index(conn=conn, feature_class=self)
-        delattr(self, 'has_spatial_index')
-        return True
+        return self._add_remove_spatial_index(add_spatial_index)
     # End add_spatial_index method
+
+    def drop_spatial_index(self) -> bool:
+        """
+        Drop Spatial Index
+        """
+        if not self.has_spatial_index:
+            return False
+        return self._add_remove_spatial_index(drop_spatial_index)
+    # End drop_spatial_index method
 
     @classmethod
     def create(cls, geopackage: GPKG, name: str, shape_type: str,
                srs: 'SpatialReferenceSystem', z_enabled: bool = False,
                m_enabled: bool = False, fields: FIELDS = (),
                description: str = '', overwrite: bool = False,
-               spatial_index: bool = False, geom_name: str = SHAPE,
+               spatial_index: bool = True, geom_name: str = SHAPE,
                pk_name: STRING = FID) -> 'FeatureClass':
         """
         Create Feature Class
@@ -1238,7 +1313,7 @@ class FeatureClass(BaseTable):
     # End extent property
 
     def copy(self, name: str, description: str = '', where_clause: str = '',
-             overwrite: bool = False, geopackage: Optional[GeoPackage] = None,
+             overwrite: bool = False, geopackage: Optional[GPKG] = None,
              geom_name: STRING = None, pk_name: STRING = None,
              **kwargs) -> 'FeatureClass':
         """
@@ -1266,8 +1341,7 @@ class FeatureClass(BaseTable):
     # End copy method
 
     def explode(self, name: str, overwrite: bool = False,
-                geopackage: Optional[GeoPackage] = None,
-                **kwargs) -> 'FeatureClass':
+                geopackage: Optional[GPKG] = None, **kwargs) -> 'FeatureClass':
         """
         Explode feature class containing MultiPart geometry in a new feature
         class in the same or a different GeoPackage.  If the feature class

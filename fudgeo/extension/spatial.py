@@ -31,8 +31,8 @@ from fudgeo.geometry.polygon import (
     Polygon, PolygonZ, PolygonM, PolygonZM,
     MultiPolygon, MultiPolygonZ, MultiPolygonM, MultiPolygonZM)
 from fudgeo.sql import (
-    SPATIAL_INDEX_CREATE_TABLE, INSERT_EXTENSION, SPATIAL_INDEX_INSERT,
-    SPATIAL_INDEX_RECORD, SPATIAL_INDEX_TRIGGERS)
+    DROP_SPATIAL_INDEX, SPATIAL_INDEX_CREATE_TABLE, INSERT_EXTENSION,
+    SPATIAL_INDEX_INSERT, SPATIAL_INDEX_RECORD, SPATIAL_INDEX_TRIGGERS)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -60,6 +60,16 @@ def add_spatial_index(conn: 'Connection', feature_class: 'FeatureClass') -> None
         return
     conn.execute(SPATIAL_INDEX_INSERT.format(name, geom_name, pk_name))
 # End add_spatial_index function
+
+
+def drop_spatial_index(conn: 'Connection', feature_class: 'FeatureClass') -> None:
+    """
+    Remove Spatial Index Table, Table Entry, and Triggers
+    """
+    name = feature_class.name
+    geom_name = feature_class.geometry_column_name
+    conn.executescript(DROP_SPATIAL_INDEX.format(name, geom_name))
+# End drop_spatial_index function
 
 
 @lru_cache()
