@@ -1251,7 +1251,7 @@ def test_add_remove_index(data_path, mem_gpkg, is_unique, is_ascending):
             index_name, fields=('Type', 'Type_Desc'),
             is_unique=is_unique, is_ascending=is_ascending)
         assert fc._check_index_exists(index_name)
-        assert fc.remove_attribute_index(index_name)
+        assert fc.drop_attribute_index(index_name)
         assert not fc._check_index_exists(index_name)
 # End test_add_remove_index function
 

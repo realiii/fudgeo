@@ -31,7 +31,7 @@ from fudgeo.geometry.polygon import (
     Polygon, PolygonZ, PolygonM, PolygonZM,
     MultiPolygon, MultiPolygonZ, MultiPolygonM, MultiPolygonZM)
 from fudgeo.sql import (
-    REMOVE_SPATIAL_INDEX, SPATIAL_INDEX_CREATE_TABLE, INSERT_EXTENSION,
+    DROP_SPATIAL_INDEX, SPATIAL_INDEX_CREATE_TABLE, INSERT_EXTENSION,
     SPATIAL_INDEX_INSERT, SPATIAL_INDEX_RECORD, SPATIAL_INDEX_TRIGGERS)
 
 
@@ -62,14 +62,14 @@ def add_spatial_index(conn: 'Connection', feature_class: 'FeatureClass') -> None
 # End add_spatial_index function
 
 
-def remove_spatial_index(conn: 'Connection', feature_class: 'FeatureClass') -> None:
+def drop_spatial_index(conn: 'Connection', feature_class: 'FeatureClass') -> None:
     """
     Remove Spatial Index Table, Table Entry, and Triggers
     """
     name = feature_class.name
     geom_name = feature_class.geometry_column_name
-    conn.executescript(REMOVE_SPATIAL_INDEX.format(name, geom_name))
-# End remove_spatial_index function
+    conn.executescript(DROP_SPATIAL_INDEX.format(name, geom_name))
+# End drop_spatial_index function
 
 
 @lru_cache()

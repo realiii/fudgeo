@@ -127,7 +127,7 @@ REMOVE_FEATURE_CLASS: str = """
 
 
 # NOTE 0 - table name, 1 - geometry column name
-REMOVE_SPATIAL_INDEX: str = """
+DROP_SPATIAL_INDEX: str = """
     DELETE FROM gpkg_extensions 
     WHERE lower(table_name) = lower('{0}') AND 
           lower(extension_name) = 'gpkg_rtree_index';

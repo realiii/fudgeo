@@ -29,7 +29,7 @@ from fudgeo.extension.ogr import add_ogr_contents, has_ogr_contents
 from fudgeo.extension.schema import (
     Schema, add_schema_extension, has_schema_extension)
 from fudgeo.extension.spatial import (
-    ST_FUNCS, add_spatial_index, remove_spatial_index)
+    ST_FUNCS, add_spatial_index, drop_spatial_index)
 from fudgeo.geometry import (
     LineString, LineStringM, LineStringZ, LineStringZM, MultiLineString,
     MultiLineStringM, MultiLineStringZ, MultiLineStringZM, MultiPoint,
@@ -715,16 +715,16 @@ class BaseTable:
         return True
     # End add_attribute_index method
 
-    def remove_attribute_index(self, name: str) -> bool:
+    def drop_attribute_index(self, name: str) -> bool:
         """
-        Remove Attribute Index
+        Drop Attribute Index
         """
         if not self._check_index_exists(name):
             return False
         with self.geopackage.connection as conn:
             conn.execute(DROP_INDEX.format(escape_name(name)))
         return True
-    # End remove_attribute_index method
+    # End drop_attribute_index method
 
     @property
     def count(self) -> int:
@@ -1112,14 +1112,14 @@ class FeatureClass(BaseTable):
         return self._add_remove_spatial_index(add_spatial_index)
     # End add_spatial_index method
 
-    def remove_spatial_index(self) -> bool:
+    def drop_spatial_index(self) -> bool:
         """
-        Remove Spatial Index
+        Drop Spatial Index
         """
         if not self.has_spatial_index:
             return False
-        return self._add_remove_spatial_index(remove_spatial_index)
-    # End remove_spatial_index method
+        return self._add_remove_spatial_index(drop_spatial_index)
+    # End drop_spatial_index method
 
     @classmethod
     def create(cls, geopackage: GPKG, name: str, shape_type: str,
