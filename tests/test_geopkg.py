@@ -8,6 +8,7 @@ import sys
 from datetime import datetime, timedelta
 from math import isnan
 from random import randint, choice
+from sqlite3 import IntegrityError
 from string import ascii_uppercase, digits
 
 from pytest import mark, raises
@@ -1221,6 +1222,38 @@ def test_explode_feature_class(setup_geopackage, data_path, name, count, out_cou
     assert result.exists
     assert result.count == out_count
 # End test_explode_feature_class function
+
+
+@mark.parametrize('is_unique, is_ascending', [
+    (True, True), (True, False), (False, True), (False, False)
+])
+def test_add_remove_index(data_path, mem_gpkg, is_unique, is_ascending):
+    """
+    Test add / remove index on a Feature Class
+    """
+    path = data_path / 'copy.gpkg'
+    assert path.is_file()
+    gpkg = GeoPackage(path)
+    name = 'detail_l'
+    fc = gpkg[name].copy(name=name, geopackage=mem_gpkg, where_clause='FID <= 500')
+    assert fc.exists
+    assert fc.count == 252
+    index_name = 'detail_l_idx'
+    assert not fc._check_index_exists(index_name)
+
+    if is_unique:
+        with raises(IntegrityError):
+            fc.add_attribute_index(
+                index_name, fields=('Type', 'Type_Desc'),
+                is_unique=is_unique, is_ascending=is_ascending)
+    else:
+        assert fc.add_attribute_index(
+            index_name, fields=('Type', 'Type_Desc'),
+            is_unique=is_unique, is_ascending=is_ascending)
+        assert fc._check_index_exists(index_name)
+        assert fc.remove_attribute_index(index_name)
+        assert not fc._check_index_exists(index_name)
+# End test_add_remove_index function
 
 
 def test_table_add_drop_fields(setup_geopackage):

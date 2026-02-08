@@ -256,6 +256,14 @@ TABLE_EXISTS: str = """
 """
 
 
+INDEX_EXISTS: str = """
+    SELECT name 
+    FROM sqlite_master 
+    WHERE type = 'index' AND name = ? 
+    COLLATE NOCASE
+"""
+
+
 CHECK_SRS_EXISTS: str = """
     SELECT srs_id 
     FROM gpkg_spatial_ref_sys 
@@ -385,6 +393,18 @@ DEFAULT_EPSG_RECS: tuple[tuple[str, int, str, int, str, str], ...] = (
         DEFAULT_SRS_RECS + (('WGS 84', 4326, 'EPSG', 4326, EPSG_4326, ''),))
 DEFAULT_ESRI_RECS: tuple[tuple[str, int, str, int, str, str], ...] = (
         DEFAULT_SRS_RECS + (('GCS_WGS_1984', 4326, 'EPSG', 4326, ESRI_4326, ''),))
+
+
+# NOTE  0 - escaped index name, 1 - escaped table name, 2 - column names
+CREATE_UNIQUE_INDEX: str = """
+    CREATE UNIQUE INDEX IF NOT EXISTS {0} ON {1} ({2});
+"""
+CREATE_INDEX: str = """
+    CREATE INDEX IF NOT EXISTS {0} ON {1} ({2});
+"""
+DROP_INDEX: str = """
+    DROP INDEX IF EXISTS {0};
+"""
 
 
 # NOTE 0 - table name, 1 - geometry column name, 2 - primary key column name

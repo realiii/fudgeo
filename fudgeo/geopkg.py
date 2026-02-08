@@ -37,9 +37,10 @@ from fudgeo.geometry import (
     MultiPolygonZ, MultiPolygonZM, Point, PointM, PointZ, PointZM, Polygon,
     PolygonM, PolygonZ, PolygonZM)
 from fudgeo.sql import (
-    ADD_COLUMN, CHECK_SRS_EXISTS, CREATE_FEATURE_TABLE, CREATE_OGR_CONTENTS,
-    CREATE_TABLE, DEFAULT_EPSG_RECS, DEFAULT_ESRI_RECS, DELETE_DATA_COLUMNS,
-    DELETE_METADATA_REFERENCE, DELETE_OGR_CONTENTS, DROP_COLUMN,
+    ADD_COLUMN, CHECK_SRS_EXISTS, CREATE_FEATURE_TABLE, CREATE_INDEX,
+    CREATE_OGR_CONTENTS, CREATE_TABLE, CREATE_UNIQUE_INDEX, DEFAULT_EPSG_RECS,
+    DEFAULT_ESRI_RECS, DELETE_DATA_COLUMNS, DELETE_METADATA_REFERENCE,
+    DELETE_OGR_CONTENTS, DROP_COLUMN, DROP_INDEX, INDEX_EXISTS,
     INSERT_GPKG_CONTENTS_SHORT, INSERT_GPKG_GEOM_COL, INSERT_GPKG_SRS,
     REMOVE_FEATURE_CLASS, REMOVE_OGR, REMOVE_TABLE, RENAME_DATA_COLUMNS,
     RENAME_FEATURE_CLASS, RENAME_METADATA_REFERENCE, RENAME_TABLE, SELECT_COUNT,
@@ -653,6 +654,15 @@ class BaseTable:
                 f'Table {name} already exists in {geopackage.path}')
     # End _validate_overwrite method
 
+    def _check_index_exists(self, index_name: str) -> bool:
+        """
+        Check existence of index
+        """
+        cursor = self.geopackage.connection.execute(
+            INDEX_EXISTS, (index_name,))
+        return bool(cursor.fetchone())
+    # End _check_index_exists method
+
     @staticmethod
     def _validate_same(source: 'BaseTable', target: 'BaseTable') -> None:
         """
@@ -679,6 +689,42 @@ class BaseTable:
         with self.geopackage.connection as conn:
             conn.execute(sql)
     # End delete method
+
+    def add_attribute_index(self, name: str, fields: Union[FIELDS, FIELD_NAMES],
+                            is_unique: bool = False, is_ascending: bool = True) -> bool:
+        """
+        Add Attribute Index if does not already exist
+        """
+        if self._check_index_exists(name):
+            return False
+        if not (fields := self._validate_fields(fields)):
+            return False
+        if is_unique:
+            sql = CREATE_UNIQUE_INDEX
+        else:
+            sql = CREATE_INDEX
+        if is_ascending:
+            short = ''
+        else:
+            short = ' DESC'
+        field_names = COMMA_SPACE.join(
+            f'{f.escaped_name}{short}' for f in fields)
+        with self.geopackage.connection as conn:
+            conn.execute(sql.format(
+                escape_name(name), self.escaped_name, field_names))
+        return True
+    # End add_attribute_index method
+
+    def remove_attribute_index(self, name: str) -> bool:
+        """
+        Remove Attribute Index
+        """
+        if not self._check_index_exists(name):
+            return False
+        with self.geopackage.connection as conn:
+            conn.execute(DROP_INDEX.format(escape_name(name)))
+        return True
+    # End remove_attribute_index method
 
     @property
     def count(self) -> int:
