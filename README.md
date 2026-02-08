@@ -430,6 +430,12 @@ Support provided for the following constraint types:
 [MIT](https://raw.githubusercontent.com/realiii/fudgeo/refs/heads/develop/LICENSE)
 
 ## Release History
+### 1.5.2
+* Add `drop_spatial_index` method to `FeatureClass`
+* Add `add_attribute_index` and `drop_attribute_index` methods to `Table` and `FeatureClass`
+* Add `delete` method to `Table` and `FeatureClass` to delete records / features
+* Change default to `True` for `spatial_index` parameter on `create_feature_class` and `FeatureClass.create` methods
+
 ### 1.5.1
 * Rename `GeometryType` to `ShapeType`, add alias for backwards compatibility
 * Rename `SQLFieldType` to `FieldType`, add alias for backwards compatibility
