@@ -486,6 +486,9 @@ def test_insert_poly(setup_geopackage, rings, add_index):
         cursor = gpkg.connection.execute(SELECT_RTREE.format(
             fc.name, fc.geometry_column_name))
         assert cursor.fetchall() == [(1, 300000, 700000, 1, 4000000)]
+    assert not fc.is_empty
+    fc.delete()
+    assert fc.is_empty
 # End test_insert_poly function
 
 

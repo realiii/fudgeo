@@ -668,6 +668,18 @@ class BaseTable:
         raise ValueError(f'Cannot copy table {source.name} to itself')
     # End _validate_same method
 
+    def delete(self, where_clause: str = '') -> None:
+        """
+        Delete records
+        """
+        # noinspection SqlNoDataSourceInspection
+        sql = f"""DELETE FROM {self.escaped_name}"""
+        if where_clause:
+            sql = f"""{sql} WHERE {where_clause}"""
+        with self.geopackage.connection as conn:
+            conn.execute(sql)
+    # End delete method
+
     @property
     def count(self) -> int:
         """
