@@ -552,7 +552,7 @@ class BaseTable:
     # End _drop method
 
     def _rename(self, conn: 'Connection', sql: str, new_name: str,
-                escaped_new_name, has_ogr: bool) -> None:
+                escaped_new_name: str, has_ogr: bool) -> None:
         """
         Rename Table or Feature Class
         """
