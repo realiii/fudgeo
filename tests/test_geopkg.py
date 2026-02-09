@@ -1277,6 +1277,7 @@ def test_table_add_drop_fields(setup_geopackage):
     assert 'a' in tbl.field_names
 
     flds = fld, Field('b', FieldType.text, 20), Field('c', FieldType.real)
+    assert len(set(flds)) == 3
     assert tbl.add_fields(fields=flds)
     assert 'b' in tbl.field_names
     assert 'c' in tbl.field_names
