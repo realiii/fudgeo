@@ -544,11 +544,11 @@ class BaseTable:
         """
         conn.executescript(sql.format(name, escaped_name, geom_name))
         if has_ogr:
-            conn.execute(DELETE_OGR_CONTENTS.format(name))
+            conn.execute(DELETE_OGR_CONTENTS, (name,))
         if has_meta:
-            conn.execute(DELETE_METADATA_REFERENCE.format(name))
+            conn.execute(DELETE_METADATA_REFERENCE, (name,))
         if has_schema:
-            conn.execute(DELETE_DATA_COLUMNS.format(name))
+            conn.execute(DELETE_DATA_COLUMNS, (name,))
     # End _drop method
 
     def _rename(self, conn: 'Connection', sql: str, new_name: str,
@@ -570,9 +570,9 @@ class BaseTable:
                 conn=conn, name=new_name, escaped_name=escaped_new_name)
             conn.execute(UPDATE_GPKG_OGR_CONTENTS, (count, new_name))
         if self.geopackage.is_metadata_enabled:
-            conn.execute(RENAME_METADATA_REFERENCE.format(new_name, self.name))
+            conn.execute(RENAME_METADATA_REFERENCE, (new_name, self.name))
         if self.geopackage.is_schema_enabled:
-            conn.execute(RENAME_DATA_COLUMNS.format(new_name, self.name))
+            conn.execute(RENAME_DATA_COLUMNS, (new_name, self.name))
         self.name = new_name
     # End _rename method
 

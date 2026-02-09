@@ -71,45 +71,54 @@ HAS_OGR_CONTENTS: str = """
 
 DELETE_OGR_CONTENTS: str = """
     DELETE FROM gpkg_ogr_contents 
-    WHERE lower(table_name) = lower('{0}')
+    WHERE table_name = ?
+    COLLATE NOCASE
 """
 
 
 DELETE_METADATA_REFERENCE: str = """
     DELETE FROM gpkg_metadata_reference 
-    WHERE lower(table_name) = lower('{0}')
+    WHERE table_name = ?
+    COLLATE NOCASE
 """
 
 
 DELETE_DATA_COLUMNS: str = """
     DELETE FROM gpkg_data_columns 
-    WHERE lower(table_name) = lower('{0}')
+    WHERE table_name = ?
+    COLLATE NOCASE
 """
 
 
 # NOTE 0 - new name, 1 - name
 RENAME_METADATA_REFERENCE: str = """
     UPDATE gpkg_metadata_reference
-    SET table_name = '{0}' 
-    WHERE lower(table_name) = lower('{1}')
+    SET table_name = ? 
+    WHERE table_name = ?
+    COLLATE NOCASE
 """
 
 
 # NOTE 0 - new name, 1 - name
 RENAME_DATA_COLUMNS: str = """
     UPDATE gpkg_data_columns
-    SET table_name = '{0}' 
-    WHERE lower(table_name) = lower('{1}')
+    SET table_name = ?
+    WHERE table_name = ?
+    COLLATE NOCASE
 """
 
 
 # NOTE 0 - table name, 1 - escaped name, 2 - geometry column name
 REMOVE_FEATURE_CLASS: str = """
-    DELETE FROM gpkg_geometry_columns WHERE lower(table_name) = lower('{0}');
-    DELETE FROM gpkg_contents WHERE lower(table_name) = lower('{0}');
+    DELETE FROM gpkg_geometry_columns 
+    WHERE table_name = '{0}'
+    COLLATE NOCASE;
+    DELETE FROM gpkg_contents 
+    WHERE table_name = '{0}'
+    COLLATE NOCASE;
     DELETE FROM gpkg_extensions 
-    WHERE lower(table_name) = lower('{0}') AND 
-          lower(extension_name) = 'gpkg_rtree_index';
+    WHERE table_name = '{0}' AND extension_name = 'gpkg_rtree_index'
+    COLLATE NOCASE;
     DROP TRIGGER IF EXISTS "trigger_insert_feature_count_{0}";
     DROP TRIGGER IF EXISTS "trigger_delete_feature_count_{0}";
     DROP TRIGGER IF EXISTS "rtree_{0}_{2}_delete";
@@ -129,8 +138,8 @@ REMOVE_FEATURE_CLASS: str = """
 # NOTE 0 - table name, 1 - geometry column name
 DROP_SPATIAL_INDEX: str = """
     DELETE FROM gpkg_extensions 
-    WHERE lower(table_name) = lower('{0}') AND 
-          lower(extension_name) = 'gpkg_rtree_index';
+    WHERE table_name = '{0}' AND extension_name = 'gpkg_rtree_index'
+    COLLATE NOCASE;
     DROP TRIGGER IF EXISTS "rtree_{0}_{1}_delete";
     DROP TRIGGER IF EXISTS "rtree_{0}_{1}_insert";
     DROP TRIGGER IF EXISTS "rtree_{0}_{1}_update1";
@@ -150,14 +159,16 @@ RENAME_FEATURE_CLASS: str = """
     -- update the name in gpkg_geometry_columns and gpkg_contents tables 
     UPDATE gpkg_contents 
     SET table_name = '{3}'
-    WHERE lower(table_name) = lower('{0}');
+    WHERE table_name = '{0}'
+    COLLATE NOCASE;
     UPDATE gpkg_geometry_columns 
     SET table_name = '{3}'
-    WHERE lower(table_name) = lower('{0}');
+    WHERE table_name = '{0}'
+    COLLATE NOCASE;
     -- delete the table name from the gpkg_extensions table for spatial indexes 
     DELETE FROM gpkg_extensions 
-    WHERE lower(table_name) = lower('{0}') AND 
-          lower(extension_name) = 'gpkg_rtree_index';
+    WHERE table_name = '{0}' AND extension_name = 'gpkg_rtree_index'
+    COLLATE NOCASE;
     -- drop triggers and the virtual table, recreate the triggers in code
     DROP TABLE IF EXISTS "rtree_{0}_{2}";
     DROP TRIGGER IF EXISTS "rtree_{0}_{2}_delete";
@@ -175,7 +186,9 @@ RENAME_FEATURE_CLASS: str = """
 
 # NOTE 0 - name, 1 - escaped name
 REMOVE_TABLE: str = """
-    DELETE FROM gpkg_contents WHERE lower(table_name) = lower('{0}');
+    DELETE FROM gpkg_contents 
+    WHERE table_name = '{0}'
+    COLLATE NOCASE;
     DROP TRIGGER IF EXISTS "trigger_insert_feature_count_{0}";
     DROP TRIGGER IF EXISTS "trigger_delete_feature_count_{0}";
     DROP TABLE IF EXISTS {1};
@@ -187,7 +200,8 @@ REMOVE_TABLE: str = """
 RENAME_TABLE: str = """
     UPDATE gpkg_contents 
     SET table_name = '{3}'
-    WHERE lower(table_name) = lower('{0}');
+    WHERE table_name = '{0}'
+    COLLATE NOCASE;
     ALTER TABLE {1} RENAME TO {4};
 """
 
@@ -195,7 +209,9 @@ RENAME_TABLE: str = """
 # NOTE 0 - name
 REMOVE_OGR: str = """
     -- remove OGR table reference and associated triggers, recreate in code
-    DELETE FROM gpkg_ogr_contents WHERE lower(table_name) = lower('{0}');    
+    DELETE FROM gpkg_ogr_contents 
+    WHERE table_name = '{0}'
+    COLLATE NOCASE;
     DROP TRIGGER IF EXISTS "trigger_insert_feature_count_{0}";
     DROP TRIGGER IF EXISTS "trigger_delete_feature_count_{0}";
 """
@@ -206,7 +222,9 @@ GPKG_OGR_CONTENTS_INSERT_TRIGGER: str = """
     CREATE TRIGGER "trigger_insert_feature_count_{0}"
     AFTER INSERT ON {1}
     BEGIN UPDATE gpkg_ogr_contents SET feature_count = feature_count + 1 
-          WHERE lower(table_name) = lower('{0}'); END;
+          WHERE table_name = '{0}'
+          COLLATE NOCASE; 
+    END;
 """
 
 
@@ -215,7 +233,9 @@ GPKG_OGR_CONTENTS_DELETE_TRIGGER: str = """
     CREATE TRIGGER "trigger_delete_feature_count_{0}"
     AFTER DELETE ON {1}
     BEGIN UPDATE gpkg_ogr_contents SET feature_count = feature_count - 1 
-          WHERE lower(table_name) = lower('{0}'); END;
+          WHERE table_name = '{0}'
+          COLLATE NOCASE; 
+    END;
 """
 
 
