@@ -39,7 +39,8 @@ from fudgeo.geometry import (
 from fudgeo.sql import (
     ADD_COLUMN, CHECK_SRS_EXISTS, CREATE_FEATURE_TABLE, CREATE_INDEX,
     CREATE_OGR_CONTENTS, CREATE_TABLE, CREATE_UNIQUE_INDEX, DEFAULT_EPSG_RECS,
-    DEFAULT_ESRI_RECS, DELETE_DATA_COLUMNS, DELETE_METADATA_REFERENCE,
+    DEFAULT_ESRI_RECS, DELETE_COLUMN_METADATA_REFERENCE,
+    DELETE_COLUMN_DATA_COLUMNS, DELETE_DATA_COLUMNS, DELETE_METADATA_REFERENCE,
     DELETE_OGR_CONTENTS, DROP_COLUMN, DROP_INDEX, INDEX_EXISTS,
     INSERT_GPKG_CONTENTS_SHORT, INSERT_GPKG_GEOM_COL, INSERT_GPKG_SRS,
     REMOVE_FEATURE_CLASS, REMOVE_OGR, REMOVE_TABLE, RENAME_DATA_COLUMNS,
@@ -832,10 +833,18 @@ class BaseTable:
         """
         if not (fields := self._validate_fields(fields)):
             return False
+        table_name = self.escaped_name
         with self.geopackage.connection as conn:
             for field in fields:
-                conn.execute(DROP_COLUMN.format(
-                    self.escaped_name, field.escaped_name))
+                conn.execute(DROP_COLUMN.format(table_name, field.escaped_name))
+        if self.geopackage.is_metadata_enabled:
+            for field in fields:
+                conn.execute(
+                    DELETE_COLUMN_METADATA_REFERENCE, (table_name, field.name))
+        if self.geopackage.is_schema_enabled:
+            for field in fields:
+                conn.execute(
+                    DELETE_COLUMN_DATA_COLUMNS, (table_name, field.name))
         return True
     # End drop_fields method
 

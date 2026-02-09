@@ -110,6 +110,20 @@ RENAME_DATA_COLUMNS: str = """
 """
 
 
+DELETE_COLUMN_METADATA_REFERENCE: str = """
+    DELETE FROM gpkg_metadata_reference 
+    WHERE table_name = ? AND column_name = ?
+    COLLATE NOCASE
+"""
+
+
+DELETE_COLUMN_DATA_COLUMNS: str = """
+    DELETE FROM gpkg_data_columns 
+    WHERE table_name = ? AND column_name = ?
+    COLLATE NOCASE
+"""
+
+
 # NOTE 0 - table name, 1 - escaped name, 2 - geometry column name
 REMOVE_FEATURE_CLASS: str = """
     DELETE FROM gpkg_geometry_columns 
