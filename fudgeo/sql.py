@@ -52,6 +52,7 @@ UPDATE_GPKG_OGR_CONTENTS: str = """
     UPDATE gpkg_ogr_contents 
     SET feature_count = ? 
     WHERE table_name = ?
+    COLLATE NOCASE
 """
 
 
