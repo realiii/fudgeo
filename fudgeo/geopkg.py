@@ -39,7 +39,8 @@ from fudgeo.geometry import (
 from fudgeo.sql import (
     ADD_COLUMN, CHECK_SRS_EXISTS, CREATE_FEATURE_TABLE, CREATE_INDEX,
     CREATE_OGR_CONTENTS, CREATE_TABLE, CREATE_UNIQUE_INDEX, DEFAULT_EPSG_RECS,
-    DEFAULT_ESRI_RECS, DELETE_DATA_COLUMNS, DELETE_METADATA_REFERENCE,
+    DEFAULT_ESRI_RECS, DELETE_COLUMN_METADATA_REFERENCE,
+    DELETE_COLUMN_DATA_COLUMNS, DELETE_DATA_COLUMNS, DELETE_METADATA_REFERENCE,
     DELETE_OGR_CONTENTS, DROP_COLUMN, DROP_INDEX, INDEX_EXISTS,
     INSERT_GPKG_CONTENTS_SHORT, INSERT_GPKG_GEOM_COL, INSERT_GPKG_SRS,
     REMOVE_FEATURE_CLASS, REMOVE_OGR, REMOVE_TABLE, RENAME_DATA_COLUMNS,
@@ -119,16 +120,17 @@ class AbstractGeoPackage(metaclass=ABCMeta):
         Get Item
         """
         cursor = self.connection.execute(SELECT_DATA_TYPE_AND_NAME, (item,))
-        if not (result := cursor.fetchone()):
+        if not (result := cursor.fetchone()):  # pragma: no cover
             return None
-        if None in result:
+        if None in result:  # pragma: no cover
             return None
         data_type, name = result
         if data_type == DataType.attributes:
             return Table(geopackage=self, name=name)
         elif data_type == DataType.features:
             return FeatureClass(geopackage=self, name=name)
-        return None
+        else:  # pragma: no cover
+            return None
     # End get_item built-in
 
     def _check_table_exists(self, table_name: str) -> bool:
@@ -187,7 +189,7 @@ class AbstractGeoPackage(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def path(self) -> Union[Path, str]:
+    def path(self) -> Union[Path, str]:  # pragma: no cover
         """
         Path
         """
@@ -264,7 +266,7 @@ class AbstractGeoPackage(metaclass=ABCMeta):
     # End is_schema_enabled property
 
     @abstractmethod
-    def exists(self, table_name: str) -> bool:
+    def exists(self, table_name: str) -> bool:  # pragma: no cover
         """
         Check if the table exists in the GeoPackage
         """
@@ -544,15 +546,15 @@ class BaseTable:
         """
         conn.executescript(sql.format(name, escaped_name, geom_name))
         if has_ogr:
-            conn.execute(DELETE_OGR_CONTENTS.format(name))
+            conn.execute(DELETE_OGR_CONTENTS, (name,))
         if has_meta:
-            conn.execute(DELETE_METADATA_REFERENCE.format(name))
+            conn.execute(DELETE_METADATA_REFERENCE, (name,))
         if has_schema:
-            conn.execute(DELETE_DATA_COLUMNS.format(name))
+            conn.execute(DELETE_DATA_COLUMNS, (name,))
     # End _drop method
 
     def _rename(self, conn: 'Connection', sql: str, new_name: str,
-                escaped_new_name, has_ogr: bool) -> None:
+                escaped_new_name: str, has_ogr: bool) -> None:
         """
         Rename Table or Feature Class
         """
@@ -570,9 +572,9 @@ class BaseTable:
                 conn=conn, name=new_name, escaped_name=escaped_new_name)
             conn.execute(UPDATE_GPKG_OGR_CONTENTS, (count, new_name))
         if self.geopackage.is_metadata_enabled:
-            conn.execute(RENAME_METADATA_REFERENCE.format(new_name, self.name))
+            conn.execute(RENAME_METADATA_REFERENCE, (new_name, self.name))
         if self.geopackage.is_schema_enabled:
-            conn.execute(RENAME_DATA_COLUMNS.format(new_name, self.name))
+            conn.execute(RENAME_DATA_COLUMNS, (new_name, self.name))
         self.name = new_name
     # End _rename method
 
@@ -581,9 +583,9 @@ class BaseTable:
         """
         Check Result
         """
-        if not (result := cursor.fetchone()):
+        if not (result := cursor.fetchone()):  # pragma: no cover
             return None
-        if None in result:
+        if None in result:  # pragma: no cover
             return None
         value, = result
         return value
@@ -831,10 +833,18 @@ class BaseTable:
         """
         if not (fields := self._validate_fields(fields)):
             return False
+        table_name = self.escaped_name
         with self.geopackage.connection as conn:
             for field in fields:
-                conn.execute(DROP_COLUMN.format(
-                    self.escaped_name, field.escaped_name))
+                conn.execute(DROP_COLUMN.format(table_name, field.escaped_name))
+        if self.geopackage.is_metadata_enabled:
+            for field in fields:
+                conn.execute(
+                    DELETE_COLUMN_METADATA_REFERENCE, (table_name, field.name))
+        if self.geopackage.is_schema_enabled:
+            for field in fields:
+                conn.execute(
+                    DELETE_COLUMN_DATA_COLUMNS, (table_name, field.name))
         return True
     # End drop_fields method
 
@@ -998,7 +1008,7 @@ class FeatureClass(BaseTable):
         sans_case = {k.casefold(): v
                      for k, v in geopackage.feature_classes.items()}
         existing = sans_case.get(name.casefold())
-        if existing is None:
+        if existing is None:  # pragma: no cover
             return ''
         return existing.geometry_column_name
     # End _find_geometry_column_name method
@@ -1199,7 +1209,7 @@ class FeatureClass(BaseTable):
         cursor = self.geopackage.connection.execute(
             SELECT_GEOMETRY_DEFINITION, (self.name,))
         result = cursor.fetchone()
-        if not result:
+        if not result:  # pragma: no cover
             return '', False, False, ''
         geom_name, has_z, has_m, geom_type = result
         return geom_name, bool(has_z), bool(has_m), geom_type
@@ -1426,7 +1436,7 @@ class SpatialReferenceSystem:
         """
         Equals
         """
-        if not isinstance(other, SpatialReferenceSystem):
+        if not isinstance(other, SpatialReferenceSystem):  # pragma: no cover
             return NotImplemented
         getter = itemgetter(*(1, 2, 3, 4))
         return getter(self.as_record()) == getter(other.as_record())
@@ -1492,7 +1502,7 @@ class Field:
         """
         Equality Implementation
         """
-        if not isinstance(other, self.__class__):
+        if not isinstance(other, self.__class__):  # pragma: no cover
             return NotImplemented
         return repr(self).casefold() == repr(other).casefold()
     # End eq built-int
