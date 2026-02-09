@@ -66,6 +66,7 @@ CREATE_OGR_CONTENTS: str = """
 HAS_OGR_CONTENTS: str = """
     SELECT name FROM sqlite_master 
     WHERE type = 'table' AND name = 'gpkg_ogr_contents'
+    COLLATE NOCASE
 """
 
 
