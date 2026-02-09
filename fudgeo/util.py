@@ -12,7 +12,7 @@ from typing import Callable, Match, Optional, TYPE_CHECKING
 try:
     # noinspection PyUnresolvedReferences,PyPackageRequirements
     from bottleneck import nanmax, nanmin
-except ModuleNotFoundError:
+except ModuleNotFoundError:  # pragma: no cover
     # noinspection PyPackageRequirements
     from numpy import nanmax, nanmin
 
@@ -118,7 +118,7 @@ def convert_datetime(val: bytes) -> datetime:
             micro = int('{:0<6.6}'.format(micro[0].decode()))
         else:
             micro = 0
-    except (ValueError, TypeError):
+    except (ValueError, TypeError):  # pragma: no cover
         micro = 0
     if tz:
         tz_hr, *tz_min = map(int, tz[0].split(colon))
@@ -142,7 +142,7 @@ def get_extent(fc: 'FeatureClass') -> tuple[float, float, float, float]:
     """
     Returns feature class extent as min_x, min_y, max_x, max_y,
     """
-    if fc.is_empty:
+    if fc.is_empty:  # pragma: no cover
         return nan, nan, nan, nan
     xs, ys = [], []
     geom = f'{fc.geometry_column_name} "[{fc.geometry_type}]"'

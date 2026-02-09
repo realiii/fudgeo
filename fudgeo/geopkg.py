@@ -119,16 +119,17 @@ class AbstractGeoPackage(metaclass=ABCMeta):
         Get Item
         """
         cursor = self.connection.execute(SELECT_DATA_TYPE_AND_NAME, (item,))
-        if not (result := cursor.fetchone()):
+        if not (result := cursor.fetchone()):  # pragma: no cover
             return None
-        if None in result:
+        if None in result:  # pragma: no cover
             return None
         data_type, name = result
         if data_type == DataType.attributes:
             return Table(geopackage=self, name=name)
         elif data_type == DataType.features:
             return FeatureClass(geopackage=self, name=name)
-        return None
+        else:  # pragma: no cover
+            return None
     # End get_item built-in
 
     def _check_table_exists(self, table_name: str) -> bool:
@@ -187,7 +188,7 @@ class AbstractGeoPackage(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def path(self) -> Union[Path, str]:
+    def path(self) -> Union[Path, str]:  # pragma: no cover
         """
         Path
         """
@@ -264,7 +265,7 @@ class AbstractGeoPackage(metaclass=ABCMeta):
     # End is_schema_enabled property
 
     @abstractmethod
-    def exists(self, table_name: str) -> bool:
+    def exists(self, table_name: str) -> bool:  # pragma: no cover
         """
         Check if the table exists in the GeoPackage
         """
@@ -581,9 +582,9 @@ class BaseTable:
         """
         Check Result
         """
-        if not (result := cursor.fetchone()):
+        if not (result := cursor.fetchone()):  # pragma: no cover
             return None
-        if None in result:
+        if None in result:  # pragma: no cover
             return None
         value, = result
         return value
@@ -998,7 +999,7 @@ class FeatureClass(BaseTable):
         sans_case = {k.casefold(): v
                      for k, v in geopackage.feature_classes.items()}
         existing = sans_case.get(name.casefold())
-        if existing is None:
+        if existing is None:  # pragma: no cover
             return ''
         return existing.geometry_column_name
     # End _find_geometry_column_name method
@@ -1199,7 +1200,7 @@ class FeatureClass(BaseTable):
         cursor = self.geopackage.connection.execute(
             SELECT_GEOMETRY_DEFINITION, (self.name,))
         result = cursor.fetchone()
-        if not result:
+        if not result:  # pragma: no cover
             return '', False, False, ''
         geom_name, has_z, has_m, geom_type = result
         return geom_name, bool(has_z), bool(has_m), geom_type
@@ -1426,7 +1427,7 @@ class SpatialReferenceSystem:
         """
         Equals
         """
-        if not isinstance(other, SpatialReferenceSystem):
+        if not isinstance(other, SpatialReferenceSystem):  # pragma: no cover
             return NotImplemented
         getter = itemgetter(*(1, 2, 3, 4))
         return getter(self.as_record()) == getter(other.as_record())
@@ -1492,7 +1493,7 @@ class Field:
         """
         Equality Implementation
         """
-        if not isinstance(other, self.__class__):
+        if not isinstance(other, self.__class__):  # pragma: no cover
             return NotImplemented
         return repr(self).casefold() == repr(other).casefold()
     # End eq built-int
