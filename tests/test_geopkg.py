@@ -1391,6 +1391,84 @@ def test_rename_feature_class(setup_geopackage, use_index, use_ogr, use_meta, us
 # End test_rename_feature_class function
 
 
+@mark.parametrize('use_meta, use_schema', [
+    (False, False),
+    (False, True),
+    (True, False),
+    (True, True),
+])
+def test_rename_table(setup_geopackage, use_meta, use_schema):
+    """
+    Test Rename Table
+    """
+    _, gpkg, srs, flds = setup_geopackage
+    name = 'asdf'
+    tbl = gpkg.create_table(name=name, fields=flds)
+    assert isinstance(tbl, Table)
+    count = 100
+    rows = random_points_and_attrs(count, srs.srs_id)
+    rows = [row[1:] for row in rows]
+    with gpkg.connection as conn:
+        conn.executemany(INSERT_ROWS.format(tbl.escaped_name), rows)
+    if use_meta:
+        gpkg.enable_metadata_extension()
+        assert gpkg.is_metadata_enabled
+        metadata = gpkg.metadata
+        scopes = (MetadataScope.undefined, MetadataScope.undefined,
+                  MetadataScope.undefined, MetadataScope.series)
+        for scope in scopes:
+            metadata.add_metadata(
+                uri='https://schemas.opengis.net/iso/19139/',
+                scope=scope)
+        reference = TableReference(table_name=name, file_id=4, parent_id=1)
+        metadata.add_references(reference)
+    if use_schema:
+        gpkg.enable_schema_extension()
+        assert gpkg.is_schema_enabled
+        schema = gpkg.schema
+        constraint = GlobConstraint(name='numeric', pattern='[0-9]')
+        schema.add_constraints(constraint)
+        schema.add_column_definition(
+            table_name=name, column_name=flds[0].name,
+            constraint_name=constraint.name)
+
+    assert tbl.name == name
+    new_name = f'{name}_renamed'
+    tbl.rename(new_name)
+    assert tbl.name == new_name
+    assert tbl.exists
+    assert tbl.count == count
+
+    if use_meta:
+        with tbl.geopackage.connection as conn:
+            cursor = conn.execute(
+                f"""SELECT COUNT(1) AS CNT 
+                    FROM gpkg_metadata_reference 
+                    WHERE table_name = '{new_name}'""")
+            rec_count, = cursor.fetchone()
+            assert rec_count == 1
+    if use_schema:
+        with tbl.geopackage.connection as conn:
+            cursor = conn.execute(
+                f"""SELECT COUNT(1) AS CNT 
+                    FROM gpkg_data_columns 
+                    WHERE table_name = '{new_name}'""")
+            rec_count, = cursor.fetchone()
+            assert rec_count == 1
+
+    tbl.drop_fields(flds[0])
+
+    if use_schema:
+        with tbl.geopackage.connection as conn:
+            cursor = conn.execute(
+                f"""SELECT COUNT(1) AS CNT 
+                    FROM gpkg_data_columns 
+                    WHERE table_name = '{new_name}'""")
+            rec_count, = cursor.fetchone()
+            assert rec_count == 0
+# End test_rename_table function
+
+
 @mark.parametrize('pk_name', [
     FID, 'id', 'OBJECTID',
 ])
