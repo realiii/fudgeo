@@ -631,10 +631,27 @@ SELECT_TABLE_METADATA_ID: str = """
 """
 
 
+SELECT_TABLE_SCHEMA: str = """
+    SELECT table_name
+    FROM gpkg_data_columns
+    WHERE table_name = ?
+    COLLATE NOCASE
+"""
+
+
 SELECT_METADATA_REFERENCE_BY_TABLE_NAME: str = """
     SELECT reference_scope, table_name, column_name, row_id_value, 
            timestamp, md_file_id, md_parent_id 
     FROM gpkg_metadata_reference 
+    WHERE table_name = ? 
+    COLLATE NOCASE
+"""
+
+
+SELECT_DATA_COLUMNS_BY_TABLE_NAME: str = """
+    SELECT table_name, column_name, name, title, description, mime_type, 
+           constraint_name 
+    FROM gpkg_data_columns 
     WHERE table_name = ? 
     COLLATE NOCASE
 """
@@ -716,6 +733,22 @@ SELECT_CONSTRAINT_NAME: str = """
     SELECT constraint_name 
     FROM gpkg_data_column_constraints 
     WHERE constraint_name = ?
+    COLLATE NOCASE
+"""
+
+
+SELECT_DISTINCT_CONSTRAINT_NAMES: str = """
+    SELECT DISTINCT lower(constraint_name) AS CN
+    FROM gpkg_data_column_constraints 
+"""
+
+
+SELECT_CONSTRAINT_RECORD: str = """
+    SELECT constraint_type, constraint_name, value, 
+           min, min_is_inclusive, max, max_is_inclusive, description 
+    FROM gpkg_data_column_constraints 
+    WHERE constraint_name = ?
+    COLLATE NOCASE
 """
 
 

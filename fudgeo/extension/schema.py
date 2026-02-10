@@ -9,12 +9,14 @@ from numbers import Number
 from sqlite3 import DatabaseError, OperationalError
 from typing import TYPE_CHECKING, Union
 
-from fudgeo.alias import CONSTRAINTS, GPKG, RECORDS, STRING
+from fudgeo.alias import CONSTRAINTS, GPKG, RECORDS, STRING, TABLE
 from fudgeo.enumeration import ConstraintType, FieldType
 from fudgeo.sql import (
     CREATE_DATA_COLUMNS, CREATE_DATA_COLUMN_CONSTRAINTS, HAS_SCHEMA,
     INSERT_COLUMN_CONSTRAINTS, INSERT_COLUMN_DEFINITION, INSERT_EXTENSION,
-    SCHEMA_RECORDS, SELECT_CONSTRAINT_NAME)
+    SCHEMA_RECORDS, SELECT_CONSTRAINT_NAME, SELECT_CONSTRAINT_RECORD,
+    SELECT_DATA_COLUMNS_BY_TABLE_NAME, SELECT_DISTINCT_CONSTRAINT_NAMES,
+    SELECT_TABLE_SCHEMA)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -170,6 +172,84 @@ class RangeConstraint(AbstractConstraint):
 # End RangeConstraint class
 
 
+class DataColumnRecord:
+    """
+    Data Column Record
+    """
+    def __init__(self, table_name: str, column_name: str, name: STRING = None,
+                 title: STRING = None, description: STRING = None,
+                 mime_type: STRING = None, constraint_name: STRING = None) -> None:
+        """
+        Initialize the DataColumnRecord class
+        """
+        super().__init__()
+        self._table_name: str = table_name
+        self._column_name: str = column_name
+        self._name: STRING = name
+        self._title: STRING = title
+        self._description: STRING = description
+        self._mime_type: STRING = mime_type
+        self._constraint_name: STRING = constraint_name
+    # End init built-in
+
+    @property
+    def table_name(self) -> str:
+        """
+        Table Name
+        """
+        return self._table_name
+
+    @table_name.setter
+    def table_name(self, value: str) -> None:
+        self._table_name = value
+    # End table_name property
+
+    @property
+    def name(self) -> STRING:
+        """
+        Alias Name / Short Name
+        """
+        return self._name
+
+    @name.setter
+    def name(self, value: STRING) -> None:
+        self._name = value
+    # End name property
+
+    @property
+    def description(self) -> STRING:
+        """
+        Description / Comment
+        """
+        return self._description
+
+    @description.setter
+    def description(self, value: STRING) -> None:
+        self._description = value
+    # End description property
+
+    @property
+    def constraint_name(self) -> STRING:
+        """
+        Constraint Name
+        """
+        return self._constraint_name
+
+    @constraint_name.setter
+    def constraint_name(self, value: STRING) -> None:
+        self._constraint_name = value
+    # End constraint_name property
+
+    def as_record(self) -> tuple[str, str, STRING, STRING, STRING, STRING, STRING]:
+        """
+        As Record
+        """
+        return (self.table_name, self._column_name, self.name, self._title,
+                self.description, self._mime_type, self.constraint_name)
+    # End as_record method
+# End DataColumnRecord class
+
+
 class Schema:
     """
     Schema
@@ -234,6 +314,83 @@ class Schema:
             conn.executemany(INSERT_COLUMN_CONSTRAINTS, records)
     # End add_constraints method
 # End Schema class
+
+
+def copy_schema(source: TABLE, target: TABLE) -> None:
+    """
+    Copy Schema for a Table or Feature Class
+    """
+    if not source.geopackage.is_schema_enabled:
+        return
+    # noinspection PyProtectedMember
+    is_same = source._check_same_geopackage(
+        source.geopackage, target.geopackage)
+    with source.geopackage.connection as conn:
+        if not has_schema(conn, name=source.name):
+            return
+        constraints, records = fetch_schema(conn, name=source.name)
+    target.geopackage.enable_schema_extension()
+    for record in records:
+        record.table_name = target.name
+    if not is_same:
+        names = {name for _, name, *_ in constraints}
+        with target.geopackage.connection as conn:
+            cursor = conn.execute(SELECT_DISTINCT_CONSTRAINT_NAMES)
+            target_names = {name for name, in cursor.fetchall()}
+            lut = {name: make_unique_name(name, target_names) for name in names}
+            constraints = [(type_, lut[name], *data)
+                           for type_, name, *data in constraints]
+            conn.executemany(INSERT_COLUMN_CONSTRAINTS, constraints)
+        for record in records:
+            if record.constraint_name:
+                record.constraint_name = lut[record.constraint_name]
+    for record in records:
+        target.geopackage.schema.add_column_definition(*record.as_record())
+# End copy_schema function
+
+
+def make_unique_name(name: str, names: set[str]) -> str:
+    """
+    Make Unique Name accounting for case sensitivity
+    """
+    if name.casefold() not in names:
+        names.add(name.casefold())
+        return name
+    counter = 1
+    new_name = f'{name}_{counter}'
+    while new_name.casefold() in names:
+        counter += 1
+        new_name = f'{name}_{counter}'
+    names.add(new_name.casefold())
+    return new_name
+# End make_unique_name function
+
+
+def fetch_schema(conn: 'Connection', name: str) \
+        -> tuple[CONSTRAINTS, list[DataColumnRecord]]:
+    """
+    Fetch Schema Records and Constraints
+    """
+    cursor = conn.execute(SELECT_DATA_COLUMNS_BY_TABLE_NAME, (name,))
+    records = [DataColumnRecord(*record) for record in cursor.fetchall()]
+    names = {rec.constraint_name for rec in records if rec.constraint_name}
+    constraints = []
+    for name in names:
+        cursor = conn.execute(SELECT_CONSTRAINT_RECORD, (name,))
+        constraints.extend(cursor.fetchall())
+    return constraints, records
+# End fetch_metadata function
+
+
+def has_schema(conn: 'Connection', name: str) -> bool:
+    """
+    Has Schema entries for a Table or Feature Class
+    """
+    if not has_schema_extension(conn):
+        return False
+    cursor = conn.execute(SELECT_TABLE_SCHEMA, (name,))
+    return bool(cursor.fetchall())
+# End has_schema function
 
 
 def has_schema_extension(conn: 'Connection') -> bool:
