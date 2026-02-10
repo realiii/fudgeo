@@ -1000,9 +1000,9 @@ class Table(BaseTable):
             description=description or self.description, overwrite=overwrite)
         insert_sql, select_sql = self._make_copy_sql(target, where_clause)
         cursor = self.geopackage.connection.execute(select_sql)
-        with target.geopackage.connection as connection:
+        with target.geopackage.connection as conn:
             while records := cursor.fetchmany(FETCH_SIZE):
-                connection.executemany(insert_sql, records)
+                conn.executemany(insert_sql, records)
         return target
     # End copy method
 
@@ -1382,8 +1382,8 @@ class FeatureClass(BaseTable):
             overwrite=overwrite, geopackage=geopackage, geom_name=geom_name,
             pk_name=pk_name, **kwargs)
         cursor = self.geopackage.connection.execute(select_sql)
-        with (target.geopackage.connection as connection,
-              ExecuteMany(connection=connection, table=target) as executor):
+        with (target.geopackage.connection as conn,
+              ExecuteMany(connection=conn, table=target) as executor):
             srs_id = target.spatial_reference_system.srs_id
             while features := cursor.fetchmany(FETCH_SIZE):
                 self._update_srs_id(features, srs_id=srs_id, parts=False)
@@ -1411,8 +1411,8 @@ class FeatureClass(BaseTable):
         insert_sql, select_sql, target = self._shared_create(
             name=name, overwrite=overwrite, geopackage=geopackage, **kwargs)
         cursor = self.geopackage.connection.execute(select_sql)
-        with (target.geopackage.connection as connection,
-              ExecuteMany(connection=connection, table=target) as executor):
+        with (target.geopackage.connection as conn,
+              ExecuteMany(connection=conn, table=target) as executor):
             srs_id = target.spatial_reference_system.srs_id
             while features := cursor.fetchmany(FETCH_SIZE):
                 self._update_srs_id(features, srs_id=srs_id, parts=True)
