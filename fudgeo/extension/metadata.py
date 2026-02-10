@@ -38,6 +38,30 @@ class AbstractReference(metaclass=ABCMeta):
         self._timestamp: datetime = timestamp or now()
     # End init built-in
 
+    @property
+    def file_id(self) -> int:
+        """
+        File ID
+        """
+        return self._file_id
+
+    @file_id.setter
+    def file_id(self, value: int) -> None:
+        self._file_id = value
+    # End file_id property
+
+    @property
+    def parent_id(self) -> INT:
+        """
+        Parent ID
+        """
+        return self._parent_id
+
+    @parent_id.setter
+    def parent_id(self, value: INT) -> None:
+        self._parent_id = value
+    # End parent_id property
+
     @abstractmethod
     def as_record(self) -> REFERENCE_RECORD:  # pragma: no cover
         """
@@ -71,6 +95,18 @@ class AbstractTableReference(AbstractReference):
         self._table_name: str = table_name
     # End init built-in
 
+    @property
+    def table_name(self) -> str:
+        """
+        Table Name
+        """
+        return self._table_name
+
+    @table_name.setter
+    def table_name(self, value: str) -> None:
+        self._table_name = value
+    # End table_name property
+
     @abstractmethod
     def as_record(self) -> REFERENCE_RECORD:  # pragma: no cover
         """
@@ -83,7 +119,7 @@ class AbstractTableReference(AbstractReference):
         """
         Validate Table Name
         """
-        table_name = self._table_name
+        table_name = self.table_name
         table = geopackage.feature_classes.get(
             table_name, geopackage.tables.get(table_name))
         if table is None:
@@ -181,7 +217,7 @@ class GeoPackageReference(AbstractReference):
         As Record
         """
         return (self._scope, None, None, None, self._timestamp,
-                self._file_id, self._parent_id)
+                self.file_id, self.parent_id)
     # End as_record method
 
     def validate(self, geopackage: GPKG) -> None:
@@ -211,8 +247,8 @@ class TableReference(AbstractTableReference):
         """
         As Record
         """
-        return (self._scope, self._table_name, None, None, self._timestamp,
-                self._file_id, self._parent_id)
+        return (self._scope, self.table_name, None, None, self._timestamp,
+                self.file_id, self.parent_id)
     # End as_record method
 # End TableReference class
 
@@ -236,8 +272,8 @@ class ColumnReference(AbstractColumnReference):
         """
         As Record
         """
-        return (self._scope, self._table_name, self._column_name, None,
-                self._timestamp, self._file_id, self._parent_id)
+        return (self._scope, self.table_name, self._column_name, None,
+                self._timestamp, self.file_id, self.parent_id)
     # End as_record method
 # End ColumnReference class
 
@@ -261,8 +297,8 @@ class RowReference(AbstractTableReference):
         """
         As Record
         """
-        return (self._scope, self._table_name, None, self._row_id,
-                self._timestamp, self._file_id, self._parent_id)
+        return (self._scope, self.table_name, None, self._row_id,
+                self._timestamp, self.file_id, self.parent_id)
     # End as_record method
 
     def validate(self, geopackage: GPKG) -> None:
@@ -296,8 +332,8 @@ class RowColumnReference(AbstractColumnReference):
         """
         As Record
         """
-        return (self._scope, self._table_name, self._column_name, self._row_id,
-                self._timestamp, self._file_id, self._parent_id)
+        return (self._scope, self.table_name, self._column_name, self._row_id,
+                self._timestamp, self.file_id, self.parent_id)
     # End as_record method
 
     def validate(self, geopackage: GPKG) -> None:
