@@ -811,8 +811,7 @@ class BaseTable:
         """
         if not isinstance(fields, (list, tuple)):
             fields = [fields]
-        names = {n.casefold() for n in self.field_names}
-        names.update([f.escaped_name.casefold() for f in self.fields])
+        names = self._get_field_names()
         fields = [f for f in fields if
                   f.name.casefold() not in names and
                   f.escaped_name.casefold() not in names]
@@ -824,6 +823,15 @@ class BaseTable:
                     self.escaped_name, repr(field)))
         return True
     # End add_fields method
+
+    def _get_field_names(self) -> set[str]:
+        """
+        Get Field Names including special fields and Escaped Names
+        """
+        names = {n.casefold() for n in self.field_names}
+        names.update([f.escaped_name.casefold() for f in self.fields])
+        return names
+    # End _get_field_names method
 
     def drop_fields(self, fields: Union[FIELDS, FIELD_NAMES]) -> bool:
         """
