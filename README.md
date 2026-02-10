@@ -396,7 +396,7 @@ constraints = [
     GlobConstraint(name='pin', pattern='[0-9][0-9][0-9][0-9]'),
     RangeConstraint(name='exertion', min_value=6, max_value=20),
     RangeConstraint(name='longitude', min_value=-180, max_value=180),
-    RangeConstraint(name='latitude', min_value=90, max_value=90),
+    RangeConstraint(name='latitude', min_value=-90, max_value=90),
 ]
 gpkg.schema.add_constraints(constraints)
 

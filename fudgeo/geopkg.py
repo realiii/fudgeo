@@ -43,12 +43,14 @@ from fudgeo.sql import (
     DELETE_COLUMN_DATA_COLUMNS, DELETE_DATA_COLUMNS, DELETE_METADATA_REFERENCE,
     DELETE_OGR_CONTENTS, DROP_COLUMN, DROP_INDEX, INDEX_EXISTS,
     INSERT_GPKG_CONTENTS_SHORT, INSERT_GPKG_GEOM_COL, INSERT_GPKG_SRS,
-    REMOVE_FEATURE_CLASS, REMOVE_OGR, REMOVE_TABLE, RENAME_DATA_COLUMNS,
-    RENAME_FEATURE_CLASS, RENAME_METADATA_REFERENCE, RENAME_TABLE, SELECT_COUNT,
-    SELECT_DATA_TYPE_AND_NAME, SELECT_DESCRIPTION, SELECT_EXTENT,
-    SELECT_GEOMETRY_DEFINITION, SELECT_HAS_ROWS, SELECT_PRIMARY_KEY,
-    SELECT_SPATIAL_REFERENCES, SELECT_SRS, SELECT_TABLES_BY_TYPE, TABLE_EXISTS,
-    UPDATE_EXTENT, UPDATE_GPKG_OGR_CONTENTS)
+    REMOVE_FEATURE_CLASS, REMOVE_OGR, REMOVE_TABLE, RENAME_COLUMN,
+    RENAME_COLUMN_DATA_COLUMNS, RENAME_COLUMN_METADATA_REFERENCE,
+    RENAME_DATA_COLUMNS, RENAME_FEATURE_CLASS, RENAME_METADATA_REFERENCE,
+    RENAME_TABLE, SELECT_COUNT, SELECT_DATA_TYPE_AND_NAME, SELECT_DESCRIPTION,
+    SELECT_EXTENT, SELECT_GEOMETRY_DEFINITION, SELECT_HAS_ROWS,
+    SELECT_PRIMARY_KEY, SELECT_SPATIAL_REFERENCES, SELECT_SRS,
+    SELECT_TABLES_BY_TYPE, TABLE_EXISTS, UPDATE_EXTENT,
+    UPDATE_GPKG_OGR_CONTENTS)
 from fudgeo.util import (
     check_geometry_name, check_primary_name, convert_datetime, escape_name,
     get_extent, now)
@@ -602,7 +604,7 @@ class BaseTable:
         return fields
     # End _remove_special method
 
-    def _validate_fields(self, fields: Union[FIELDS, FIELD_NAMES]) -> list['Field']:
+    def _validate_fields(self, fields: Union['Field', str, FIELDS, FIELD_NAMES]) -> list['Field']:
         """
         Validate Input Fields
         """
@@ -811,8 +813,7 @@ class BaseTable:
         """
         if not isinstance(fields, (list, tuple)):
             fields = [fields]
-        names = {n.casefold() for n in self.field_names}
-        names.update([f.escaped_name.casefold() for f in self.fields])
+        names = self._get_field_names()
         fields = [f for f in fields if
                   f.name.casefold() not in names and
                   f.escaped_name.casefold() not in names]
@@ -825,6 +826,15 @@ class BaseTable:
         return True
     # End add_fields method
 
+    def _get_field_names(self) -> set[str]:
+        """
+        Get Field Names including special fields and Escaped Names
+        """
+        names = {n.casefold() for n in self.field_names}
+        names.update([f.escaped_name.casefold() for f in self.fields])
+        return names
+    # End _get_field_names method
+
     def drop_fields(self, fields: Union[FIELDS, FIELD_NAMES]) -> bool:
         """
         Drop Fields, can use field objects or field names.  Special fields
@@ -833,20 +843,43 @@ class BaseTable:
         """
         if not (fields := self._validate_fields(fields)):
             return False
-        table_name = self.escaped_name
         with self.geopackage.connection as conn:
             for field in fields:
-                conn.execute(DROP_COLUMN.format(table_name, field.escaped_name))
+                conn.execute(DROP_COLUMN.format(
+                    self.escaped_name, field.escaped_name))
         if self.geopackage.is_metadata_enabled:
             for field in fields:
                 conn.execute(
-                    DELETE_COLUMN_METADATA_REFERENCE, (table_name, field.name))
+                    DELETE_COLUMN_METADATA_REFERENCE, (self.name, field.name))
         if self.geopackage.is_schema_enabled:
             for field in fields:
                 conn.execute(
-                    DELETE_COLUMN_DATA_COLUMNS, (table_name, field.name))
+                    DELETE_COLUMN_DATA_COLUMNS, (self.name, field.name))
         return True
     # End drop_fields method
+
+    def rename_field(self, field: Union['Field', str], name: str) -> bool:
+        """
+        Rename a specified field to a new name, special fields are not renamed.
+        """
+        if not (fields := self._validate_fields(field)):
+            return False
+        field, *_ = fields
+        new_name = escape_name(str(name))
+        names = self._get_field_names()
+        if name.casefold() in names or new_name.casefold() in names:
+            return False
+        with self.geopackage.connection as conn:
+            conn.execute(RENAME_COLUMN.format(
+                self.escaped_name, field.escaped_name, new_name))
+        if self.geopackage.is_metadata_enabled:
+            conn.execute(RENAME_COLUMN_METADATA_REFERENCE,
+                         (new_name, self.name, field.name))
+        if self.geopackage.is_schema_enabled:
+            conn.execute(RENAME_COLUMN_DATA_COLUMNS,
+                         (new_name, self.name, field.name))
+        return True
+    # End rename_field method
 
     @cached_property
     def description(self) -> STRING:
