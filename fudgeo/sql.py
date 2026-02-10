@@ -617,8 +617,31 @@ INSERT_METADATA: str = """
 """
 
 
-SELECT_METADATA_ID: str = """
+SELECT_MAX_METADATA_ID: str = """
     SELECT MAX(ID) AS MAX_ID 
+    FROM gpkg_metadata
+"""
+
+
+SELECT_TABLE_METADATA_ID: str = """
+    SELECT md_file_id
+    FROM gpkg_metadata_reference
+    WHERE table_name = ?
+    COLLATE NOCASE
+"""
+
+
+SELECT_METADATA_REFERENCE_BY_TABLE_NAME: str = """
+    SELECT reference_scope, table_name, column_name, row_id_value, 
+           timestamp, md_file_id, md_parent_id 
+    FROM gpkg_metadata_reference 
+    WHERE table_name = ? 
+    COLLATE NOCASE
+"""
+
+
+SELECT_METADATA: str = """
+    SELECT id, md_scope, md_standard_uri, mime_type, metadata
     FROM gpkg_metadata
 """
 
