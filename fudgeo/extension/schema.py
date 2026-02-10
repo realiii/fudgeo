@@ -211,6 +211,7 @@ class Schema:
                 raise ValueError(
                     f'constraint name "{constraint_name}" '
                     f'not found in {self._geopackage!r}')
+            constraint_name = constraint_name.casefold()
         with self._geopackage.connection as conn:
             record = (table_name, column_name, name, title,
                       description, mime_type, constraint_name)
