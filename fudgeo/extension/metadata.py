@@ -347,6 +347,32 @@ class RowColumnReference(AbstractColumnReference):
 # End RowColumnReference class
 
 
+class MetadataRecord:
+    """
+    Metadata Record
+    """
+    def __init__(self, id_: int, uri: str, scope: str = MetadataScope.dataset,
+                 metadata: str = '', mime_type: str = 'text/xml') -> None:
+        """
+        Initialize the MetadataRecord class
+        """
+        super().__init__()
+        self._id: int = id_
+        self._uri: str = uri
+        self._scope: str = scope
+        self._metadata: str = metadata
+        self._mime_type: str = mime_type
+    # End init built-in
+
+    def as_record(self) -> tuple[int, str, str, str, str]:
+        """
+        As Record
+        """
+        return self._id, self._uri, self._scope, self._metadata, self._mime_type
+    # End as_record method
+# End MetadataRecord class
+
+
 class Metadata:
     """
     Metadata
