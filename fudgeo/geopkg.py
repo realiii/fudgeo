@@ -602,7 +602,7 @@ class BaseTable:
         return fields
     # End _remove_special method
 
-    def _validate_fields(self, fields: Union[FIELDS, FIELD_NAMES]) -> list['Field']:
+    def _validate_fields(self, fields: Union['Field', str, FIELDS, FIELD_NAMES]) -> list['Field']:
         """
         Validate Input Fields
         """
