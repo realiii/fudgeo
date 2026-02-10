@@ -24,10 +24,10 @@ from fudgeo.constant import (
 from fudgeo.context import ExecuteMany, ForeignKeys
 from fudgeo.enumeration import DataType, FieldType, GPKGFlavors, ShapeType
 from fudgeo.extension.metadata import (
-    Metadata, add_metadata_extension, has_metadata_extension)
+    Metadata, add_metadata_extension, copy_metadata, has_metadata_extension)
 from fudgeo.extension.ogr import add_ogr_contents, has_ogr_contents
 from fudgeo.extension.schema import (
-    Schema, add_schema_extension, has_schema_extension)
+    Schema, add_schema_extension, copy_schema, has_schema_extension)
 from fudgeo.extension.spatial import (
     ST_FUNCS, add_spatial_index, drop_spatial_index)
 from fudgeo.geometry import (
@@ -1003,6 +1003,8 @@ class Table(BaseTable):
         with target.geopackage.connection as conn:
             while records := cursor.fetchmany(FETCH_SIZE):
                 conn.executemany(insert_sql, records)
+        copy_metadata(self, target)
+        copy_schema(self, target)
         return target
     # End copy method
 
@@ -1389,6 +1391,8 @@ class FeatureClass(BaseTable):
                 self._update_srs_id(features, srs_id=srs_id, parts=False)
                 executor(sql=insert_sql, data=features)
             target.extent = get_extent(target)
+        copy_metadata(self, target)
+        copy_schema(self, target)
         return target
     # End copy method
 
@@ -1421,6 +1425,8 @@ class FeatureClass(BaseTable):
                     rows.extend((geom, *values) for geom in geoms)
                 executor(sql=insert_sql, data=rows)
             target.extent = self.extent
+        copy_metadata(self, target, exclude_row=True)
+        copy_schema(self, target)
         return target
     # End explode method
 
