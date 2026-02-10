@@ -15,6 +15,7 @@ SHAPE: str = 'SHAPE'
 FID: str = 'fid'
 FETCH_SIZE: int = 100_000
 MEMORY: str = ':memory:'
+TABLE_NAME: str = 'table_name'
 
 WGS84: int = 4326
 

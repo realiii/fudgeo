@@ -102,6 +102,80 @@ def test_add_column_definition_validation(tmp_path, table_name, column_name, nam
 # End test_add_column_definition_validation function
 
 
+def test_copy_testing(tmp_path, mem_gpkg):
+    """
+    Test copy schema testing
+    """
+    table_name = 'the_table'
+    constraint_name = 'sample_glob'
+    column_name = 'some_field_name'
+    name = 'Some Field Name'
+    title = 'The title for Some Field Name'
+    description = 'The description for Some Field Name'
+
+    path = tmp_path / 'test.gpkg'
+    pkg = GeoPackage.create(path, enable_schema=True)
+    fields = [Field(name=column_name, data_type=FieldType.double),
+              Field(name='bobloblaw', data_type=FieldType.blob)]
+    tbl = pkg.create_table(name=table_name, fields=fields)
+    schema = pkg.schema
+
+    constraint = GlobConstraint(name=constraint_name, pattern='[0-9]')
+    schema.add_constraints(constraint)
+    sql_constraints = """
+        SELECT COUNT(1) AS CNT
+        FROM gpkg_data_column_constraints"""
+    sql = """
+        SELECT COUNT(1) AS CNT
+        FROM gpkg_data_columns"""
+
+    cursor = pkg.connection.execute(sql_constraints)
+    count,  = cursor.fetchone()
+    assert count == 1
+
+    schema.add_column_definition(
+        table_name, column_name=column_name, name=name, title=title,
+        description=description, constraint_name=constraint_name)
+
+    cursor = pkg.connection.execute(sql)
+    count,  = cursor.fetchone()
+    assert count == 1
+
+    tbl.copy('the_copy')
+
+    cursor = pkg.connection.execute(sql_constraints)
+    count,  = cursor.fetchone()
+    assert count == 1
+    cursor = pkg.connection.execute(sql)
+    count,  = cursor.fetchone()
+    assert count == 2
+
+    tbl.copy('outside', geopackage=mem_gpkg)
+    cursor = mem_gpkg.connection.execute(sql_constraints)
+    count,  = cursor.fetchone()
+    assert count == 1
+    cursor = mem_gpkg.connection.execute(sql)
+    count,  = cursor.fetchone()
+    assert count == 1
+
+    tbl = tbl.copy('outside2', geopackage=mem_gpkg)
+    cursor = mem_gpkg.connection.execute(sql_constraints)
+    count,  = cursor.fetchone()
+    assert count == 2
+    cursor = mem_gpkg.connection.execute(sql)
+    count,  = cursor.fetchone()
+    assert count == 2
+
+    tbl.copy('outside3', geopackage=mem_gpkg)
+    cursor = mem_gpkg.connection.execute(sql_constraints)
+    count,  = cursor.fetchone()
+    assert count == 2
+    cursor = mem_gpkg.connection.execute(sql)
+    count,  = cursor.fetchone()
+    assert count == 3
+# End test_add_column_definition_validation function
+
+
 @mark.parametrize('name, values, description, count, exception', [
     ('a', [1, 2, 3], 'asdf', 3, None),
     ('b', (1, 2, 3), 'asdf', 3, None),

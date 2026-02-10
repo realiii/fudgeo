@@ -9,12 +9,15 @@ from datetime import datetime
 from sqlite3 import DatabaseError, OperationalError
 from typing import TYPE_CHECKING
 
-from fudgeo.alias import DATE, GPKG, INT, REFERENCES, REFERENCE_RECORD, TABLE
+from fudgeo.alias import (
+    DATE, GPKG, INT, REFERENCE, REFERENCES, REFERENCE_RECORD, TABLE)
+from fudgeo.constant import TABLE_NAME
 from fudgeo.enumeration import MetadataReferenceScope, MetadataScope
 from fudgeo.sql import (
     CREATE_METADATA, CREATE_METADATA_REFERENCE, HAS_METADATA, INSERT_EXTENSION,
     INSERT_METADATA, INSERT_METADATA_REFERENCE, METADATA_RECORDS,
-    SELECT_METADATA_ID)
+    SELECT_MAX_METADATA_ID, SELECT_METADATA,
+    SELECT_METADATA_REFERENCE_BY_TABLE_NAME, SELECT_TABLE_METADATA_ID)
 from fudgeo.util import now
 
 
@@ -37,6 +40,30 @@ class AbstractReference(metaclass=ABCMeta):
         self._parent_id: INT = parent_id
         self._timestamp: datetime = timestamp or now()
     # End init built-in
+
+    @property
+    def file_id(self) -> int:
+        """
+        File ID
+        """
+        return self._file_id
+
+    @file_id.setter
+    def file_id(self, value: int) -> None:
+        self._file_id = value
+    # End file_id property
+
+    @property
+    def parent_id(self) -> INT:
+        """
+        Parent ID
+        """
+        return self._parent_id
+
+    @parent_id.setter
+    def parent_id(self, value: INT) -> None:
+        self._parent_id = value
+    # End parent_id property
 
     @abstractmethod
     def as_record(self) -> REFERENCE_RECORD:  # pragma: no cover
@@ -71,6 +98,18 @@ class AbstractTableReference(AbstractReference):
         self._table_name: str = table_name
     # End init built-in
 
+    @property
+    def table_name(self) -> str:
+        """
+        Table Name
+        """
+        return self._table_name
+
+    @table_name.setter
+    def table_name(self, value: str) -> None:
+        self._table_name = value
+    # End table_name property
+
     @abstractmethod
     def as_record(self) -> REFERENCE_RECORD:  # pragma: no cover
         """
@@ -83,7 +122,7 @@ class AbstractTableReference(AbstractReference):
         """
         Validate Table Name
         """
-        table_name = self._table_name
+        table_name = self.table_name
         table = geopackage.feature_classes.get(
             table_name, geopackage.tables.get(table_name))
         if table is None:
@@ -181,7 +220,7 @@ class GeoPackageReference(AbstractReference):
         As Record
         """
         return (self._scope, None, None, None, self._timestamp,
-                self._file_id, self._parent_id)
+                self.file_id, self.parent_id)
     # End as_record method
 
     def validate(self, geopackage: GPKG) -> None:
@@ -211,8 +250,8 @@ class TableReference(AbstractTableReference):
         """
         As Record
         """
-        return (self._scope, self._table_name, None, None, self._timestamp,
-                self._file_id, self._parent_id)
+        return (self._scope, self.table_name, None, None, self._timestamp,
+                self.file_id, self.parent_id)
     # End as_record method
 # End TableReference class
 
@@ -236,8 +275,8 @@ class ColumnReference(AbstractColumnReference):
         """
         As Record
         """
-        return (self._scope, self._table_name, self._column_name, None,
-                self._timestamp, self._file_id, self._parent_id)
+        return (self._scope, self.table_name, self._column_name, None,
+                self._timestamp, self.file_id, self.parent_id)
     # End as_record method
 # End ColumnReference class
 
@@ -261,8 +300,8 @@ class RowReference(AbstractTableReference):
         """
         As Record
         """
-        return (self._scope, self._table_name, None, self._row_id,
-                self._timestamp, self._file_id, self._parent_id)
+        return (self._scope, self.table_name, None, self._row_id,
+                self._timestamp, self.file_id, self.parent_id)
     # End as_record method
 
     def validate(self, geopackage: GPKG) -> None:
@@ -296,8 +335,8 @@ class RowColumnReference(AbstractColumnReference):
         """
         As Record
         """
-        return (self._scope, self._table_name, self._column_name, self._row_id,
-                self._timestamp, self._file_id, self._parent_id)
+        return (self._scope, self.table_name, self._column_name, self._row_id,
+                self._timestamp, self.file_id, self.parent_id)
     # End as_record method
 
     def validate(self, geopackage: GPKG) -> None:
@@ -309,6 +348,32 @@ class RowColumnReference(AbstractColumnReference):
         self._validate_row_id(self._row_id, table)
     # End validate method
 # End RowColumnReference class
+
+
+class MetadataRecord:
+    """
+    Metadata Record
+    """
+    def __init__(self, id_: int, uri: str, scope: str = MetadataScope.dataset,
+                 metadata: str = '', mime_type: str = 'text/xml') -> None:
+        """
+        Initialize the MetadataRecord class
+        """
+        super().__init__()
+        self._id: int = id_
+        self._uri: str = uri
+        self._scope: str = scope
+        self._metadata: str = metadata
+        self._mime_type: str = mime_type
+    # End init built-in
+
+    def as_record(self) -> tuple[int, str, str, str, str]:
+        """
+        As Record
+        """
+        return self._id, self._uri, self._scope, self._metadata, self._mime_type
+    # End as_record method
+# End MetadataRecord class
 
 
 class Metadata:
@@ -332,7 +397,7 @@ class Metadata:
             return None
         with self._geopackage.connection as conn:
             conn.execute(INSERT_METADATA, (scope, uri, mime_type, metadata))
-        cursor = conn.execute(SELECT_METADATA_ID)
+        cursor = conn.execute(SELECT_MAX_METADATA_ID)
         id_, = cursor.fetchone()
         return id_
     # End add_metadata method
@@ -353,6 +418,109 @@ class Metadata:
             conn.executemany(INSERT_METADATA_REFERENCE, records)
     # End add_references method
 # End Metadata class
+
+
+def copy_metadata(source: TABLE, target: TABLE, exclude_row: bool = False) -> None:
+    """
+    Copy Metadata for a Table or Feature Class
+    """
+    if not source.geopackage.is_metadata_enabled:
+        return
+    # noinspection PyProtectedMember
+    is_same = source._check_same_geopackage(
+        source.geopackage, target.geopackage)
+    with source.geopackage.connection as conn:
+        if not has_metadata(conn, name=source.name):
+            return
+        references, records = fetch_metadata(
+            conn, name=source.name, exclude_row=exclude_row)
+    target.geopackage.enable_metadata_extension()
+    keepers = []
+    for reference in references:
+        if hasattr(reference, TABLE_NAME):
+            reference.table_name = target.name
+            keepers.append(reference)
+    if not is_same:
+        lut = {}
+        for record in records:
+            id_, *record = record.as_record()
+            new_id = target.geopackage.metadata.add_metadata(*record)
+            lut[id_] = new_id
+        for reference in keepers:
+            reference.file_id = lut[reference.file_id]
+            if reference.parent_id:
+                reference.parent_id = lut[reference.parent_id]
+    target.geopackage.metadata.add_references(keepers)
+# End copy_metadata function
+
+
+def fetch_metadata(conn: 'Connection', name: str, exclude_row: bool = False) \
+        -> tuple[REFERENCES, list[MetadataRecord]]:
+    """
+    Fetch Metadata and Metadata References
+    """
+    references = []
+    cursor = conn.execute(SELECT_METADATA_REFERENCE_BY_TABLE_NAME, (name,))
+    for record in cursor.fetchall():
+        try:
+            references.append(from_record(record))
+        except ValueError:  # pragma: no cover
+            pass
+    if exclude_row:
+        references = [r for r in references
+                      if not isinstance(r, (RowReference, RowColumnReference))]
+    ids = {ref.file_id for ref in references}
+    ids.update(ref.parent_id for ref in references if ref.parent_id)
+    records = []
+    cursor = conn.execute(SELECT_METADATA)
+    for record in cursor:
+        id_, *_ = record
+        if id_ not in ids:
+            continue
+        records.append(MetadataRecord(*record))
+    return references, records
+# End fetch_metadata function
+
+
+def from_record(record: REFERENCE_RECORD) -> REFERENCE:
+    """
+    From Record to Reference
+    """
+    (scope, table_name, column_name, row_id, timestamp,
+     file_id, parent_id) = record
+    if scope == MetadataReferenceScope.geopackage:
+        return GeoPackageReference(
+            file_id=file_id, parent_id=parent_id, timestamp=timestamp)
+    elif scope == MetadataReferenceScope.table:
+        return TableReference(
+            table_name=table_name, file_id=file_id, parent_id=parent_id,
+            timestamp=timestamp)
+    elif scope == MetadataReferenceScope.column:
+        return ColumnReference(
+            table_name=table_name, column_name=column_name, file_id=file_id,
+            parent_id=parent_id, timestamp=timestamp)
+    elif scope == MetadataReferenceScope.row:
+        return RowReference(
+            table_name=table_name, row_id=row_id, file_id=file_id,
+            parent_id=parent_id, timestamp=timestamp)
+    elif scope == MetadataReferenceScope.row_col:
+        return RowColumnReference(
+            table_name=table_name, column_name=column_name, row_id=row_id,
+            file_id=file_id, parent_id=parent_id, timestamp=timestamp)
+    else:  # pragma: no cover
+        raise ValueError(f'Unknown metadata scope "{scope}"')
+# End from_record function
+
+
+def has_metadata(conn: 'Connection', name: str) -> bool:
+    """
+    Has Metadata entries for a Table or Feature Class
+    """
+    if not has_metadata_extension(conn):
+        return False
+    cursor = conn.execute(SELECT_TABLE_METADATA_ID, (name,))
+    return bool(cursor.fetchall())
+# End has_metadata function
 
 
 def has_metadata_extension(conn: 'Connection') -> bool:

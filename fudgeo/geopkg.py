@@ -24,10 +24,10 @@ from fudgeo.constant import (
 from fudgeo.context import ExecuteMany, ForeignKeys
 from fudgeo.enumeration import DataType, FieldType, GPKGFlavors, ShapeType
 from fudgeo.extension.metadata import (
-    Metadata, add_metadata_extension, has_metadata_extension)
+    Metadata, add_metadata_extension, copy_metadata, has_metadata_extension)
 from fudgeo.extension.ogr import add_ogr_contents, has_ogr_contents
 from fudgeo.extension.schema import (
-    Schema, add_schema_extension, has_schema_extension)
+    Schema, add_schema_extension, copy_schema, has_schema_extension)
 from fudgeo.extension.spatial import (
     ST_FUNCS, add_spatial_index, drop_spatial_index)
 from fudgeo.geometry import (
@@ -660,25 +660,34 @@ class BaseTable:
 
     def _check_index_exists(self, index_name: str) -> bool:
         """
-        Check existence of index
+        Check the existence of an index
         """
-        cursor = self.geopackage.connection.execute(
-            INDEX_EXISTS, (index_name,))
+        cursor = self.geopackage.connection.execute(INDEX_EXISTS, (index_name,))
         return bool(cursor.fetchone())
     # End _check_index_exists method
 
     @staticmethod
-    def _validate_same(source: 'BaseTable', target: 'BaseTable') -> None:
+    def _check_same_geopackage(source: GPKG, target: GPKG) -> bool:
+        """
+        Check if same geopackage
+        """
+        if not isinstance(source, type(target)):
+            return False
+        if isinstance(path := source.path, Path):
+            if not path.samefile(target.path):
+                return False
+        return source.connection is target.connection
+    # End _check_same_geopackage method
+
+    def _validate_same(self, source: 'BaseTable', target: 'BaseTable') -> None:
         """
         Validate Same Table
         """
         if source.name.casefold() != target.name.casefold():
             return
-        if not isinstance(source.geopackage, type(target.geopackage)):
+        if not self._check_same_geopackage(
+                source.geopackage, target.geopackage):
             return
-        if isinstance(path := source.geopackage.path, Path):
-            if not path.samefile(target.geopackage.path):
-                return
         raise ValueError(f'Cannot copy table {source.name} to itself')
     # End _validate_same method
 
@@ -991,9 +1000,11 @@ class Table(BaseTable):
             description=description or self.description, overwrite=overwrite)
         insert_sql, select_sql = self._make_copy_sql(target, where_clause)
         cursor = self.geopackage.connection.execute(select_sql)
-        with target.geopackage.connection as connection:
+        with target.geopackage.connection as conn:
             while records := cursor.fetchmany(FETCH_SIZE):
-                connection.executemany(insert_sql, records)
+                conn.executemany(insert_sql, records)
+        copy_metadata(self, target)
+        copy_schema(self, target)
         return target
     # End copy method
 
@@ -1373,22 +1384,24 @@ class FeatureClass(BaseTable):
             overwrite=overwrite, geopackage=geopackage, geom_name=geom_name,
             pk_name=pk_name, **kwargs)
         cursor = self.geopackage.connection.execute(select_sql)
-        with (target.geopackage.connection as connection,
-              ExecuteMany(connection=connection, table=target) as executor):
+        with (target.geopackage.connection as conn,
+              ExecuteMany(connection=conn, table=target) as executor):
             srs_id = target.spatial_reference_system.srs_id
             while features := cursor.fetchmany(FETCH_SIZE):
                 self._update_srs_id(features, srs_id=srs_id, parts=False)
                 executor(sql=insert_sql, data=features)
             target.extent = get_extent(target)
+        copy_metadata(self, target)
+        copy_schema(self, target)
         return target
     # End copy method
 
     def explode(self, name: str, overwrite: bool = False,
                 geopackage: Optional[GPKG] = None, **kwargs) -> 'FeatureClass':
         """
-        Explode feature class containing MultiPart geometry in a new feature
+        Explode a feature class containing MultiPart geometry in a new feature
         class in the same or a different GeoPackage.  If the feature class
-        does not contain a MultiPart geometry then a copy of the feature
+        does not contain MultiPart geometry, then a copy of the feature
         class is made.
 
         When a feature class has a custom SRS and copying / exploding from one
@@ -1402,8 +1415,8 @@ class FeatureClass(BaseTable):
         insert_sql, select_sql, target = self._shared_create(
             name=name, overwrite=overwrite, geopackage=geopackage, **kwargs)
         cursor = self.geopackage.connection.execute(select_sql)
-        with (target.geopackage.connection as connection,
-              ExecuteMany(connection=connection, table=target) as executor):
+        with (target.geopackage.connection as conn,
+              ExecuteMany(connection=conn, table=target) as executor):
             srs_id = target.spatial_reference_system.srs_id
             while features := cursor.fetchmany(FETCH_SIZE):
                 self._update_srs_id(features, srs_id=srs_id, parts=True)
@@ -1412,6 +1425,8 @@ class FeatureClass(BaseTable):
                     rows.extend((geom, *values) for geom in geoms)
                 executor(sql=insert_sql, data=rows)
             target.extent = self.extent
+        copy_metadata(self, target, exclude_row=True)
+        copy_schema(self, target)
         return target
     # End explode method
 

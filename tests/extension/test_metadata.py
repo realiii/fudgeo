@@ -162,6 +162,63 @@ def test_add_metadata_hierarchical_example1(example1):
 # End test_add_metadata_hierarchical_example1 function
 
 
+def test_add_metadata_hierarchical_example1_and_copy(example1, mem_gpkg):
+    """
+    Test add metadata using Hierarchical Metadata Example and copying
+    """
+    pkg = example1
+    metadata = pkg.metadata
+    connection = metadata._geopackage.connection
+    cursor = connection.execute("""SELECT COUNT(1) AS C FROM gpkg_metadata""")
+    count, = cursor.fetchone()
+    assert count == 9
+    cursor = connection.execute("""SELECT id FROM gpkg_metadata""")
+    assert [i for i, in cursor.fetchall()] == list(range(1, 10))
+    reference = TableReference(table_name='roads', file_id=4, parent_id=1)
+    references = [
+        TableReference(table_name='roads', file_id=5, parent_id=4),
+        TableReference(table_name='roads', file_id=6, parent_id=5),
+        ColumnReference(table_name='roads', column_name='overhead_clearance',
+                        file_id=8, parent_id=5),
+        RowReference(table_name='bridge', row_id=987, file_id=7, parent_id=5),
+        RowColumnReference(
+            table_name='bridge', column_name='overhead_clearance',
+            row_id=987, file_id=7, parent_id=5)
+    ]
+    metadata.add_references(reference)
+    metadata.add_references(references)
+    sql_ref = """SELECT COUNT(1) AS C FROM gpkg_metadata_reference"""
+    sql = """SELECT COUNT(1) AS C FROM gpkg_metadata"""
+    cursor = connection.execute(sql_ref)
+    count, = cursor.fetchone()
+    assert count == 6
+    cursor = connection.execute(sql)
+    count, = cursor.fetchone()
+    assert count == 9
+
+    fc = pkg['roads']
+    assert fc is not None
+    fc.copy('roads_copy')
+
+    cursor = connection.execute(sql_ref)
+    count, = cursor.fetchone()
+    assert count == 10
+    cursor = connection.execute(sql)
+    count, = cursor.fetchone()
+    assert count == 9
+
+    assert mem_gpkg.is_metadata_enabled is False
+    fc.copy('roads_copy', geopackage=mem_gpkg)
+    assert mem_gpkg.is_metadata_enabled is True
+    cursor = mem_gpkg.connection.execute(sql_ref)
+    count, = cursor.fetchone()
+    assert count == 4
+    cursor = mem_gpkg.connection.execute(sql)
+    count, = cursor.fetchone()
+    assert count == 5
+# End test_add_metadata_hierarchical_example1_and_copy function
+
+
 def test_add_metadata_hierarchical_example2(example2):
     """
     Test add metadata using Hierarchical Metadata Example
@@ -190,17 +247,75 @@ def test_add_metadata_hierarchical_example2(example2):
         RowColumnReference(table_name=table_name, column_name='category', row_id=1, file_id=19, parent_id=1)
     ]
     metadata.add_references(references)
-    cursor = connection.execute(
-        """SELECT COUNT(1) AS C FROM gpkg_metadata_reference""")
+    sql = """SELECT COUNT(1) AS C FROM gpkg_metadata_reference"""
+    cursor = connection.execute(sql)
     count, = cursor.fetchone()
     assert count == 12
     table = pkg.feature_classes[table_name]
     table.drop()
-    cursor = connection.execute(
-        """SELECT COUNT(1) AS C FROM gpkg_metadata_reference""")
+    cursor = connection.execute(sql)
     count, = cursor.fetchone()
     assert count == 1
 # End test_add_metadata_hierarchical_example2 function
+
+
+def test_add_metadata_hierarchical_example2_with_copy(example2, mem_gpkg):
+    """
+    Test add metadata using Hierarchical Metadata Example and copying
+    """
+    pkg = example2
+    metadata = pkg.metadata
+    connection = metadata._geopackage.connection
+    cursor = connection.execute("""SELECT COUNT(1) AS C FROM gpkg_metadata""")
+    count, = cursor.fetchone()
+    assert count == 19
+    cursor = connection.execute("""SELECT id FROM gpkg_metadata""")
+    assert [i for i, in cursor.fetchall()] == list(range(1, 20))
+    table_name = 'poi'
+    references = [
+        GeoPackageReference(file_id=1),
+        TableReference(table_name=table_name, file_id=1),
+        TableReference(table_name=table_name, file_id=10, parent_id=1),
+        RowReference(table_name=table_name, row_id=1, file_id=11, parent_id=1),
+        RowReference(table_name=table_name, row_id=2, file_id=14, parent_id=1),
+        RowReference(table_name=table_name, row_id=3, file_id=17, parent_id=1),
+        RowColumnReference(table_name=table_name, column_name='point', row_id=1, file_id=12, parent_id=1),
+        RowColumnReference(table_name=table_name, column_name='point', row_id=1, file_id=15, parent_id=1),
+        RowColumnReference(table_name=table_name, column_name='point', row_id=1, file_id=18, parent_id=1),
+        RowColumnReference(table_name=table_name, column_name='category', row_id=1, file_id=13, parent_id=1),
+        RowColumnReference(table_name=table_name, column_name='category', row_id=1, file_id=16, parent_id=1),
+        RowColumnReference(table_name=table_name, column_name='category', row_id=1, file_id=19, parent_id=1)
+    ]
+    metadata.add_references(references)
+    sql_ref = """SELECT COUNT(1) AS C FROM gpkg_metadata_reference"""
+    sql = """SELECT COUNT(1) AS C FROM gpkg_metadata"""
+    cursor = connection.execute(sql_ref)
+    count, = cursor.fetchone()
+    assert count == 12
+    cursor = connection.execute(sql)
+    count, = cursor.fetchone()
+    assert count == 19
+
+    table = pkg.feature_classes[table_name]
+
+    table.copy('poi_copy')
+    cursor = connection.execute(sql_ref)
+    count, = cursor.fetchone()
+    assert count == 23
+    cursor = connection.execute(sql)
+    count, = cursor.fetchone()
+    assert count == 19
+
+    assert mem_gpkg.is_metadata_enabled is False
+    table.copy('poi_copy', geopackage=mem_gpkg)
+    assert mem_gpkg.is_metadata_enabled is True
+    cursor = mem_gpkg.connection.execute(sql_ref)
+    count, = cursor.fetchone()
+    assert count == 11
+    cursor = mem_gpkg.connection.execute(sql)
+    count, = cursor.fetchone()
+    assert count == 11
+# End test_add_metadata_hierarchical_example2_with_copy function
 
 
 @mark.parametrize('reference', [
