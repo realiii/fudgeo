@@ -660,10 +660,9 @@ class BaseTable:
 
     def _check_index_exists(self, index_name: str) -> bool:
         """
-        Check existence of index
+        Check the existence of an index
         """
-        cursor = self.geopackage.connection.execute(
-            INDEX_EXISTS, (index_name,))
+        cursor = self.geopackage.connection.execute(INDEX_EXISTS, (index_name,))
         return bool(cursor.fetchone())
     # End _check_index_exists method
 
