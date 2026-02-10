@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 
 from fudgeo.alias import (
     DATE, GPKG, INT, REFERENCE, REFERENCES, REFERENCE_RECORD, TABLE)
+from fudgeo.constant import TABLE_NAME
 from fudgeo.enumeration import MetadataReferenceScope, MetadataScope
 from fudgeo.sql import (
     CREATE_METADATA, CREATE_METADATA_REFERENCE, HAS_METADATA, INSERT_EXTENSION,
@@ -431,25 +432,25 @@ def copy_metadata(source: TABLE, target: TABLE, exclude_row: bool = False) -> No
     with source.geopackage.connection as conn:
         if not has_metadata(conn, name=source.name):
             return
-        target.geopackage.enable_metadata_extension()
         references, records = fetch_metadata(
             conn, name=source.name, exclude_row=exclude_row)
-        keepers = []
-        for reference in references:
-            if hasattr(reference, 'table_name'):
-                reference.table_name = target.name
-                keepers.append(reference)
-        if not is_same:
-            lut = {}
-            for record in records:
-                id_, *record = record.as_record()
-                new_id = target.geopackage.metadata.add_metadata(*record)
-                lut[id_] = new_id
-            for reference in keepers:
-                reference.file_id = lut[reference.file_id]
-                if reference.parent_id:
-                    reference.parent_id = lut[reference.parent_id]
-        target.geopackage.metadata.add_references(keepers)
+    target.geopackage.enable_metadata_extension()
+    keepers = []
+    for reference in references:
+        if hasattr(reference, TABLE_NAME):
+            reference.table_name = target.name
+            keepers.append(reference)
+    if not is_same:
+        lut = {}
+        for record in records:
+            id_, *record = record.as_record()
+            new_id = target.geopackage.metadata.add_metadata(*record)
+            lut[id_] = new_id
+        for reference in keepers:
+            reference.file_id = lut[reference.file_id]
+            if reference.parent_id:
+                reference.parent_id = lut[reference.parent_id]
+    target.geopackage.metadata.add_references(keepers)
 # End copy_metadata function
 
 
