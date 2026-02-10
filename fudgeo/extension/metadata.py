@@ -514,7 +514,7 @@ def from_record(record: REFERENCE_RECORD) -> REFERENCE:
 
 def has_metadata(conn: 'Connection', name: str) -> bool:
     """
-    Has Metadata on a Table or Feature Class
+    Has Metadata entries for a Table or Feature Class
     """
     if not has_metadata_extension(conn):
         return False
