@@ -41,7 +41,7 @@ class AbstractConstraint(metaclass=ABCMeta):
         """
         Name
         """
-        return self._name
+        return self._name.casefold()
     # End name property
 
     def validate(self) -> None:
