@@ -403,19 +403,19 @@ gpkg.schema.add_constraints(constraints)
 # use constrains and set some additional details for column name
 gpkg.schema.add_column_definition(
     table_name='road_l', column_name='begin_longitude', 
-    name='Beginning Longitude for Road', title='Begin Longitude', 
+    name='Begin Longitude', title='Beginning Longitude for Road',  
     constraint_name='longitude')
 gpkg.schema.add_column_definition(
     table_name='road_l', column_name='begin_latitude', 
-    name='Beginning Latitude for Road', title='Begin Latitude', 
+    name='Begin Latitude', title='Beginning Latitude for Road', 
     constraint_name='latitude')
 gpkg.schema.add_column_definition(
     table_name='road_l', column_name='end_longitude', 
-    name='Ending Longitude for Road', title='End Longitude', 
+    name='End Longitude', title='Ending Longitude for Road', 
     constraint_name='longitude')
 gpkg.schema.add_column_definition(
     table_name='road_l', column_name='end_latitude', 
-    name='Ending Latitude for Road', title='End Latitude', 
+    name='End Latitude', title='Ending Latitude for Road',  
     constraint_name='latitude')
 ```
 
