@@ -48,7 +48,7 @@ class AbstractConstraint(metaclass=ABCMeta):
         """
         Validate
         """
-        if not isinstance(self.name, str):
+        if not isinstance(self._name, str):
             raise TypeError('constraint name must be a string')
     # End validate method
 
