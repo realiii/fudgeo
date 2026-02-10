@@ -34,6 +34,7 @@ ROOT: str = 'https://www.geopackage.org/spec131/'
 
 ADD_COLUMN: str = """ALTER TABLE {} ADD COLUMN {}"""
 DROP_COLUMN: str = """ALTER TABLE {} DROP COLUMN {}"""
+RENAME_COLUMN: str = """ALTER TABLE {} RENAME COLUMN {} TO {}"""
 
 
 INSERT_GPKG_CONTENTS_SHORT: str = """
@@ -120,6 +121,24 @@ DELETE_COLUMN_METADATA_REFERENCE: str = """
 DELETE_COLUMN_DATA_COLUMNS: str = """
     DELETE FROM gpkg_data_columns 
     WHERE table_name = ? AND column_name = ?
+    COLLATE NOCASE
+"""
+
+
+# NOTE 0 - new name, 1 - name, 2 - column name
+RENAME_COLUMN_METADATA_REFERENCE: str = """
+    UPDATE gpkg_metadata_reference 
+    SET column_name = ?
+    WHERE table_name = ? AND column_name = ?
+    COLLATE NOCASE
+"""
+
+
+# NOTE 0 - new name, 1 - name, 2 - column name
+RENAME_COLUMN_DATA_COLUMNS: str = """
+    UPDATE gpkg_data_columns 
+    SET column_name = ? 
+    WHERE table_name = ? AND column_name = ? 
     COLLATE NOCASE
 """
 

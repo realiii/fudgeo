@@ -1439,6 +1439,9 @@ def test_rename_table(setup_geopackage, use_meta, use_schema):
     assert tbl.exists
     assert tbl.count == count
 
+    sql = f"""SELECT COUNT(1) AS CNT 
+              FROM gpkg_data_columns 
+              WHERE table_name = '{new_name}'"""
     if use_meta:
         with tbl.geopackage.connection as conn:
             cursor = conn.execute(
@@ -1449,21 +1452,24 @@ def test_rename_table(setup_geopackage, use_meta, use_schema):
             assert rec_count == 1
     if use_schema:
         with tbl.geopackage.connection as conn:
-            cursor = conn.execute(
-                f"""SELECT COUNT(1) AS CNT 
-                    FROM gpkg_data_columns 
-                    WHERE table_name = '{new_name}'""")
+            cursor = conn.execute(sql)
             rec_count, = cursor.fetchone()
             assert rec_count == 1
 
-    tbl.drop_fields(flds[0])
+    col_name = 'interstellar'
+    tbl.rename_field(flds[0], col_name)
 
     if use_schema:
         with tbl.geopackage.connection as conn:
-            cursor = conn.execute(
-                f"""SELECT COUNT(1) AS CNT 
-                    FROM gpkg_data_columns 
-                    WHERE table_name = '{new_name}'""")
+            cursor = conn.execute(f"""{sql} AND column_name = '{col_name}'""")
+            rec_count, = cursor.fetchone()
+            assert rec_count == 1
+
+    tbl.drop_fields(col_name)
+
+    if use_schema:
+        with tbl.geopackage.connection as conn:
+            cursor = conn.execute(sql)
             rec_count, = cursor.fetchone()
             assert rec_count == 0
 # End test_rename_table function
