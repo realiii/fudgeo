@@ -9,12 +9,14 @@ from datetime import datetime
 from sqlite3 import DatabaseError, OperationalError
 from typing import TYPE_CHECKING
 
-from fudgeo.alias import DATE, GPKG, INT, REFERENCES, REFERENCE_RECORD, TABLE
+from fudgeo.alias import (
+    DATE, GPKG, INT, REFERENCE, REFERENCES, REFERENCE_RECORD, TABLE)
 from fudgeo.enumeration import MetadataReferenceScope, MetadataScope
 from fudgeo.sql import (
     CREATE_METADATA, CREATE_METADATA_REFERENCE, HAS_METADATA, INSERT_EXTENSION,
     INSERT_METADATA, INSERT_METADATA_REFERENCE, METADATA_RECORDS,
-    SELECT_METADATA_ID)
+    SELECT_MAX_METADATA_ID, SELECT_METADATA,
+    SELECT_METADATA_REFERENCE_BY_TABLE_NAME, SELECT_TABLE_METADATA_ID)
 from fudgeo.util import now
 
 
@@ -394,7 +396,7 @@ class Metadata:
             return None
         with self._geopackage.connection as conn:
             conn.execute(INSERT_METADATA, (scope, uri, mime_type, metadata))
-        cursor = conn.execute(SELECT_METADATA_ID)
+        cursor = conn.execute(SELECT_MAX_METADATA_ID)
         id_, = cursor.fetchone()
         return id_
     # End add_metadata method
