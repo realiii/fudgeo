@@ -841,18 +841,18 @@ class BaseTable:
         """
         if not (fields := self._validate_fields(fields)):
             return False
-        table_name = self.escaped_name
         with self.geopackage.connection as conn:
             for field in fields:
-                conn.execute(DROP_COLUMN.format(table_name, field.escaped_name))
+                conn.execute(DROP_COLUMN.format(
+                    self.escaped_name, field.escaped_name))
         if self.geopackage.is_metadata_enabled:
             for field in fields:
                 conn.execute(
-                    DELETE_COLUMN_METADATA_REFERENCE, (table_name, field.name))
+                    DELETE_COLUMN_METADATA_REFERENCE, (self.name, field.name))
         if self.geopackage.is_schema_enabled:
             for field in fields:
                 conn.execute(
-                    DELETE_COLUMN_DATA_COLUMNS, (table_name, field.name))
+                    DELETE_COLUMN_DATA_COLUMNS, (self.name, field.name))
         return True
     # End drop_fields method
 
