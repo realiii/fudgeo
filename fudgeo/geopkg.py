@@ -1395,9 +1395,9 @@ class FeatureClass(BaseTable):
     def explode(self, name: str, overwrite: bool = False,
                 geopackage: Optional[GPKG] = None, **kwargs) -> 'FeatureClass':
         """
-        Explode feature class containing MultiPart geometry in a new feature
+        Explode a feature class containing MultiPart geometry in a new feature
         class in the same or a different GeoPackage.  If the feature class
-        does not contain a MultiPart geometry then a copy of the feature
+        does not contain MultiPart geometry, then a copy of the feature
         class is made.
 
         When a feature class has a custom SRS and copying / exploding from one
