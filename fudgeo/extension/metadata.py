@@ -419,6 +419,109 @@ class Metadata:
 # End Metadata class
 
 
+def copy_metadata(source: TABLE, target: TABLE, exclude_row: bool = False) -> None:
+    """
+    Copy Metadata for a Table or Feature Class
+    """
+    if not source.geopackage.is_metadata_enabled:
+        return
+    # noinspection PyProtectedMember
+    is_same = source._check_same_geopackage(
+        source.geopackage, target.geopackage)
+    with source.geopackage.connection as conn:
+        if not has_metadata(conn, source.name):
+            return
+        target.geopackage.enable_metadata_extension()
+        references, records = fetch_metadata(
+            conn, name=source.name, exclude_row=exclude_row)
+        keepers = []
+        for reference in references:
+            if hasattr(reference, 'table_name'):
+                reference.table_name = target.name
+                keepers.append(reference)
+        if not is_same:
+            lut = {}
+            for record in records:
+                id_, *record = record.as_record()
+                new_id = target.geopackage.metadata.add_metadata(*record)
+                lut[id_] = new_id
+            for reference in keepers:
+                reference.file_id = lut[reference.file_id]
+                if reference.parent_id:
+                    reference.parent_id = lut[reference.parent_id]
+        target.geopackage.metadata.add_references(keepers)
+# End copy_metadata function
+
+
+def fetch_metadata(conn: 'Connection', name: str, exclude_row: bool = False) \
+        -> tuple[REFERENCES, list[MetadataRecord]]:
+    """
+    Fetch Metadata and Metadata References
+    """
+    references = []
+    cursor = conn.execute(SELECT_METADATA_REFERENCE_BY_TABLE_NAME, (name,))
+    for record in cursor.fetchall():
+        try:
+            references.append(from_record(record))
+        except ValueError:  # pragma: no cover
+            pass
+    if exclude_row:
+        references = [r for r in references
+                      if not isinstance(r, (RowReference, RowColumnReference))]
+    ids = {ref.file_id for ref in references}
+    ids.update(ref.parent_id for ref in references if ref.parent_id)
+    records = []
+    cursor = conn.execute(SELECT_METADATA)
+    for record in cursor:
+        id_, *_ = record
+        if id_ not in ids:
+            continue
+        records.append(MetadataRecord(*record))
+    return references, records
+# End fetch_metadata function
+
+
+def from_record(record: REFERENCE_RECORD) -> REFERENCE:
+    """
+    From Record to Reference
+    """
+    (scope, table_name, column_name, row_id, timestamp,
+     file_id, parent_id) = record
+    if scope == MetadataReferenceScope.geopackage:
+        return GeoPackageReference(
+            file_id=file_id, parent_id=parent_id, timestamp=timestamp)
+    elif scope == MetadataReferenceScope.table:
+        return TableReference(
+            table_name=table_name, file_id=file_id, parent_id=parent_id,
+            timestamp=timestamp)
+    elif scope == MetadataReferenceScope.column:
+        return ColumnReference(
+            table_name=table_name, column_name=column_name, file_id=file_id,
+            parent_id=parent_id, timestamp=timestamp)
+    elif scope == MetadataReferenceScope.row:
+        return RowReference(
+            table_name=table_name, row_id=row_id, file_id=file_id,
+            parent_id=parent_id, timestamp=timestamp)
+    elif scope == MetadataReferenceScope.row_col:
+        return RowColumnReference(
+            table_name=table_name, column_name=column_name, row_id=row_id,
+            file_id=file_id, parent_id=parent_id, timestamp=timestamp)
+    else:  # pragma: no cover
+        raise ValueError(f'Unknown metadata scope "{scope}"')
+# End from_record function
+
+
+def has_metadata(conn: 'Connection', name: str) -> bool:
+    """
+    Has Metadata on a Table or Feature Class
+    """
+    if not has_metadata_extension(conn):
+        return False
+    cursor = conn.execute(SELECT_TABLE_METADATA_ID, (name,))
+    return bool(cursor.fetchall())
+# End has_metadata function
+
+
 def has_metadata_extension(conn: 'Connection') -> bool:
     """
     Has Metadata Extension Tables
