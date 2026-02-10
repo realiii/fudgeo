@@ -667,17 +667,27 @@ class BaseTable:
     # End _check_index_exists method
 
     @staticmethod
-    def _validate_same(source: 'BaseTable', target: 'BaseTable') -> None:
+    def _check_same_geopackage(source: GPKG, target: GPKG) -> bool:
+        """
+        Check if same geopackage
+        """
+        if not isinstance(source, type(target)):
+            return False
+        if isinstance(path := source.path, Path):
+            if not path.samefile(target.path):
+                return False
+        return source.connection is target.connection
+    # End _check_same_geopackage method
+
+    def _validate_same(self, source: 'BaseTable', target: 'BaseTable') -> None:
         """
         Validate Same Table
         """
         if source.name.casefold() != target.name.casefold():
             return
-        if not isinstance(source.geopackage, type(target.geopackage)):
+        if not self._check_same_geopackage(
+                source.geopackage, target.geopackage):
             return
-        if isinstance(path := source.geopackage.path, Path):
-            if not path.samefile(target.geopackage.path):
-                return
         raise ValueError(f'Cannot copy table {source.name} to itself')
     # End _validate_same method
 
