@@ -429,7 +429,7 @@ def copy_metadata(source: TABLE, target: TABLE, exclude_row: bool = False) -> No
     is_same = source._check_same_geopackage(
         source.geopackage, target.geopackage)
     with source.geopackage.connection as conn:
-        if not has_metadata(conn, source.name):
+        if not has_metadata(conn, name=source.name):
             return
         target.geopackage.enable_metadata_extension()
         references, records = fetch_metadata(
