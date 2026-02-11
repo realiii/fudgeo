@@ -99,18 +99,19 @@ SRS_WKT: str = (
 srs: SpatialReferenceSystem = SpatialReferenceSystem(
     name='WGS_1984_UTM_Zone_23N', organization='EPSG',
     org_coord_sys_id=32623, definition=SRS_WKT)
+# using alias or comment for a Field will automatically enable the schema extension
 fields: tuple[Field, ...] = (
-    Field('road_id', FieldType.integer),
-    Field('name', FieldType.text, size=100),
-    Field('begin_easting', FieldType.double),
-    Field('begin_northing', FieldType.double),
-    Field('end_easting', FieldType.double),
-    Field('end_northing', FieldType.double),
-    Field('begin_longitude', FieldType.double),
-    Field('begin_latitude', FieldType.double),
-    Field('end_longitude', FieldType.double),
-    Field('end_latitude', FieldType.double),
-    Field('is_one_way', FieldType.boolean))
+    Field('road_id', FieldType.integer, alias='Road Identifier', comment='Unique identifier for the road'),
+    Field('name', FieldType.text, size=100, alias='Road Name', comment='Name of the road'),
+    Field('begin_easting', FieldType.double, alias='Begin Easting', comment='Easting in UTM Zone 23N'),
+    Field('begin_northing', FieldType.double, alias='Begin Northing', comment='Northing in UTM Zone 23N'),
+    Field('end_easting', FieldType.double, alias='End Easting', comment='Easting in UTM Zone 23N'),
+    Field('end_northing', FieldType.double, alias='End Northing', comment='Northing in UTM Zone 23N'),
+    Field('begin_longitude', FieldType.double, alias='Begin Longitude', comment='Longitude in WGS84'),
+    Field('begin_latitude', FieldType.double, alias='Begin Latitude', comment='Latitude in WGS84'),
+    Field('end_longitude', FieldType.double, alias='End Longitude', comment='Longitude in WGS84'),
+    Field('end_latitude', FieldType.double, alias='End Latitude', comment='Latitude in WGS84'),
+    Field('is_one_way', FieldType.boolean, alias='Is One Way', comment='True if road is one way'))
 
 gpkg: GeoPackage = GeoPackage.create('../temp/test.gpkg')
 fc: FeatureClass = gpkg.create_feature_class(
