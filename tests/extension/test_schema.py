@@ -70,7 +70,7 @@ def test_add_constraints(tmp_path):
     ('table_name', 'column_name', None, None, None, None, None, 'table name "table_name" not found'),
     ('the_table', 'column_name', None, None, None, None, None, 'column name "column_name" not found'),
     ('the_table', 'bobloblaw', None, None, None, None, None, 'expected mime_type value for blob column'),
-    ('the_table', 'some_field_name', None, None, None, None, 'SELECT', 'constraint name "SELECT" not found'),
+    ('the_table', 'some_field_name', None, None, None, None, 'SELECT', 'constraint "SELECT" not found'),
 ])
 def test_add_column_definition_validation(tmp_path, table_name, column_name, name,
                                           title, description, mime_type,

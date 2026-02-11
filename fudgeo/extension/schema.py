@@ -10,13 +10,14 @@ from sqlite3 import DatabaseError, OperationalError
 from typing import TYPE_CHECKING, Union
 
 from fudgeo.alias import CONSTRAINTS, GPKG, RECORDS, STRING, TABLE
-from fudgeo.enumeration import ConstraintType, FieldType
+from fudgeo.enumeration import ConstraintType, FieldPropertyType, FieldType
 from fudgeo.sql import (
-    CREATE_DATA_COLUMNS, CREATE_DATA_COLUMN_CONSTRAINTS, HAS_SCHEMA,
-    INSERT_COLUMN_CONSTRAINTS, INSERT_COLUMN_DEFINITION, INSERT_EXTENSION,
-    SCHEMA_RECORDS, SELECT_CONSTRAINT_NAME, SELECT_CONSTRAINT_RECORD,
-    SELECT_DATA_COLUMNS_BY_TABLE_NAME, SELECT_DISTINCT_CONSTRAINT_NAMES,
-    SELECT_TABLE_SCHEMA)
+    CREATE_DATA_COLUMNS, CREATE_DATA_COLUMN_CONSTRAINTS, HAS_COLUMN_DEFINITION,
+    HAS_SCHEMA, INSERT_COLUMN_CONSTRAINTS, INSERT_COLUMN_DEFINITION,
+    INSERT_EXTENSION, SCHEMA_RECORDS, SELECT_CONSTRAINT_NAME,
+    SELECT_CONSTRAINT_RECORD, SELECT_DATA_COLUMNS_BY_TABLE_NAME,
+    SELECT_DISTINCT_CONSTRAINT_NAMES, SELECT_TABLE_SCHEMA,
+    UPDATE_COLUMN_DEFINITION)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -262,6 +263,37 @@ class Schema:
         self._geopackage: GPKG = geopackage
     # End init built-in
 
+    def set_field_property(self, table_name: str, column_name: str,
+                           prop_name: str, value: STRING) -> None:
+        """
+        Set Field Property, adds the column definition if it does not exist,
+        updates the column definition otherwise.
+        """
+        names = FieldPropertyType.alias, FieldPropertyType.comment
+        if prop_name not in names:
+            raise ValueError(f'invalid field property name: {prop_name!r}')
+        self._geopackage.enable_schema_extension()
+        element = self._get_element(table_name)
+        self._check_column_name(element, column_name)
+        if self._has_column_definition(table_name, column_name):
+            with self._geopackage.connection as conn:
+                conn.execute(UPDATE_COLUMN_DEFINITION.format(prop_name),
+                             (value, table_name, column_name))
+        else:
+            self.add_column_definition(
+                table_name, column_name=column_name, **{prop_name: value})
+    # End set_field_property method
+
+    def _has_column_definition(self, table_name: str, column_name: str) -> bool:
+        """
+        Has Column Definition
+        """
+        with self._geopackage.connection as conn:
+            cursor = conn.execute(
+                HAS_COLUMN_DEFINITION, (table_name, column_name))
+            return bool(cursor.fetchall())
+    # End _has_column_definition method
+
     def add_column_definition(self, table_name: str, column_name: str,
                               name: STRING = None, title: STRING = None,
                               description: STRING = None,
@@ -272,31 +304,53 @@ class Schema:
         """
         if not self._geopackage.is_schema_enabled:
             return
-        table = self._geopackage.feature_classes.get(
-            table_name, self._geopackage.tables.get(table_name))
-        if table is None:
-            raise ValueError(
-                f'table name "{table_name}" not found in {self._geopackage!r}')
-        if column_name not in table.field_names:
-            raise ValueError(f'column name "{column_name}" '
-                             f'not found in table "{table.name}"')
-        field = table.fields[table.field_names.index(column_name)]
+        element = self._get_element(table_name)
+        self._check_column_name(element, column_name)
+        field = element.fields[element.field_names.index(column_name)]
         if field.data_type == FieldType.blob and not mime_type:
             raise ValueError(
                 f'expected mime_type value for blob column {column_name}')
-        if constraint_name:
-            cursor = self._geopackage.connection.execute(
-                SELECT_CONSTRAINT_NAME, (constraint_name,))
-            if not cursor.fetchone():
-                raise ValueError(
-                    f'constraint name "{constraint_name}" '
-                    f'not found in {self._geopackage!r}')
-            constraint_name = constraint_name.casefold()
+        constraint_name = self._check_constraint(constraint_name)
         with self._geopackage.connection as conn:
             record = (table_name, column_name, name, title,
                       description, mime_type, constraint_name)
             conn.execute(INSERT_COLUMN_DEFINITION, record)
     # End add_column_definition method
+
+    def _check_constraint(self, constraint_name: STRING) -> STRING:
+        """
+        Check if a constraint exists, ensure the constraint name is lower case
+        """
+        if not constraint_name:
+            return constraint_name
+        cursor = self._geopackage.connection.execute(
+            SELECT_CONSTRAINT_NAME, (constraint_name,))
+        if cursor.fetchone():
+            return constraint_name.casefold()
+        raise ValueError(
+            f'constraint "{constraint_name}" not found in {self._geopackage!r}')
+    # End _check_constraint method
+
+    @staticmethod
+    def _check_column_name(element: TABLE, column_name: str) -> None:
+        """
+        Check Column Name
+        """
+        if column_name in element.field_names:
+            return
+        raise ValueError(
+            f'column name "{column_name}" not found in table "{element.name}"')
+    # End _check_column_name method
+
+    def _get_element(self, name: str) -> TABLE:
+        """
+        Get Element based on name
+        """
+        if table := self._geopackage[name]:
+            return table
+        raise ValueError(
+            f'table name "{name}" not found in {self._geopackage!r}')
+    # End _get_element method
 
     def add_constraints(self, constraints: CONSTRAINTS) -> None:
         """

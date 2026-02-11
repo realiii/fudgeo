@@ -20,9 +20,10 @@ from numpy import int16, int32, int64, int8, uint16, uint32, uint64, uint8
 
 from fudgeo.alias import FIELDS, FIELD_NAMES, GPKG, INT, STRING
 from fudgeo.constant import (
-    COMMA_SPACE, FETCH_SIZE, FID, GPKG_EXT, MEMORY, SHAPE, SRS)
+    ADD_PROPERTIES, COMMA_SPACE, FETCH_SIZE, FID, GPKG_EXT, MEMORY, SHAPE, SRS)
 from fudgeo.context import ExecuteMany, ForeignKeys
-from fudgeo.enumeration import DataType, FieldType, GPKGFlavors, ShapeType
+from fudgeo.enumeration import (
+    DataType, FieldPropertyType, FieldType, GPKGFlavors, ShapeType)
 from fudgeo.extension.metadata import (
     Metadata, add_metadata_extension, copy_metadata, has_metadata_extension)
 from fudgeo.extension.ogr import add_ogr_contents, has_ogr_contents
@@ -49,8 +50,8 @@ from fudgeo.sql import (
     RENAME_TABLE, SELECT_COUNT, SELECT_DATA_TYPE_AND_NAME, SELECT_DESCRIPTION,
     SELECT_EXTENT, SELECT_GEOMETRY_DEFINITION, SELECT_HAS_ROWS,
     SELECT_PRIMARY_KEY, SELECT_SPATIAL_REFERENCES, SELECT_SRS,
-    SELECT_TABLES_BY_TYPE, TABLE_EXISTS, UPDATE_EXTENT,
-    UPDATE_GPKG_OGR_CONTENTS)
+    SELECT_TABLES_BY_TYPE, SELECT_TABLE_FIELD_ALIAS_COMMENT, TABLE_EXISTS,
+    UPDATE_EXTENT, UPDATE_GPKG_OGR_CONTENTS)
 from fudgeo.util import (
     check_geometry_name, check_primary_name, convert_datetime, escape_name,
     get_extent, now)
@@ -248,6 +249,7 @@ class AbstractGeoPackage(metaclass=ABCMeta):
             return True
         with self.connection as conn:
             add_schema_extension(conn=conn)
+        delattr(self, 'is_schema_enabled')
         return True
     # End enable_schema_extension method
 
@@ -259,7 +261,7 @@ class AbstractGeoPackage(metaclass=ABCMeta):
         return has_metadata_extension(self.connection)
     # End is_metadata_enabled property
 
-    @property
+    @cached_property
     def is_schema_enabled(self) -> bool:
         """
         Is Schema Extension Enabled
@@ -379,6 +381,23 @@ class AbstractGeoPackage(metaclass=ABCMeta):
                 add_schema_extension(conn)
         return conn
     # End _build_geopackage method
+
+    def add_field_properties(self, table_name: str, fields: FIELDS) -> None:
+        """
+        Add field properties (alias and comment)
+        """
+        has_alias = [(f, f.alias) for f in fields if f.alias]
+        has_comment = [(f, f.comment) for f in fields if f.comment]
+        if not has_alias and not has_comment:
+            return
+        self.enable_schema_extension()
+        names = FieldPropertyType.alias, FieldPropertyType.comment
+        for prop_name, fields in zip(names, (has_alias, has_comment)):
+            for field, value in fields:
+                self.schema.set_field_property(
+                    table_name, column_name=field.name,
+                    prop_name=prop_name, value=value)
+    # End add_field_properties method
 # End AbstractGeoPackage class
 
 
@@ -487,7 +506,7 @@ class MemoryGeoPackage(AbstractGeoPackage):
                ogr_contents: bool = False, enable_metadata: bool = False,
                enable_schema: bool = False) -> 'MemoryGeoPackage':
         """
-        Create a new Memory based GeoPackage
+        Create a new Memory-based GeoPackage
         """
         conn = cls._build_geopackage(
             path=MEMORY, flavor=flavor, ogr_contents=ogr_contents,
@@ -509,7 +528,7 @@ class BaseTable:
         Initialize the BaseTable class
         """
         super().__init__()
-        self.geopackage: GeoPackage = geopackage
+        self.geopackage: GPKG = geopackage
         self.name: str = name
     # End init built-in
 
@@ -804,6 +823,13 @@ class BaseTable:
             fields.append(Field(
                 name=name, data_type=type_, is_nullable=not bool(not_nullable),
                 default=default))
+        if self.geopackage.is_schema_enabled:
+            cursor = self.geopackage.connection.execute(
+                SELECT_TABLE_FIELD_ALIAS_COMMENT, (self.name,))
+            lut = {name: (alias, comment)
+                   for name, alias, comment in cursor.fetchall()}
+            for field in fields:
+                field.alias, field.comment = lut.get(field.name, (None, None))
         return fields
     # End fields property
 
@@ -832,6 +858,7 @@ class BaseTable:
             for field in fields:
                 conn.execute(ADD_COLUMN.format(
                     self.escaped_name, repr(field)))
+        self.geopackage.add_field_properties(self.name, fields=fields)
         return True
     # End add_fields method
 
@@ -933,7 +960,7 @@ class Table(BaseTable):
     @classmethod
     def create(cls, geopackage: GPKG, name: str, fields: FIELDS,
                description: str = '', overwrite: bool = False,
-               pk_name: STRING = FID) -> 'Table':
+               pk_name: STRING = FID, **kwargs) -> 'Table':
         """
         Create a regular non-spatial table in the geopackage
         """
@@ -955,6 +982,8 @@ class Table(BaseTable):
                 name, DataType.attributes, name, description, now(), None))
             if has_ogr:
                 add_ogr_contents(conn, name=name, escaped_name=escaped_name)
+            if kwargs.get(ADD_PROPERTIES, True):
+                geopackage.add_field_properties(name, fields=fields)
         return cls(geopackage=geopackage, name=name)
     # End create method
 
@@ -984,7 +1013,7 @@ class Table(BaseTable):
 
     def copy(self, name: str, description: str = '',
              where_clause: str = '', overwrite: bool = False,
-             geopackage: Optional[GPKG] = None) -> 'Table':
+             geopackage: Optional[GPKG] = None, **kwargs) -> 'Table':
         """
         Copy the structure and content of a table.  Create a new table or
         overwrite an existing.  Use a where clause to limit the records.
@@ -994,10 +1023,12 @@ class Table(BaseTable):
             geopackage = self.geopackage
         self._validate_same(source=self, target=Table(geopackage, name=name))
         self._validate_overwrite(geopackage, name=name, overwrite=overwrite)
+        kwargs[ADD_PROPERTIES] = False
         target = self.create(
             geopackage=geopackage, name=name,
             fields=self._remove_special(self.fields),
-            description=description or self.description, overwrite=overwrite)
+            description=description or self.description,
+            overwrite=overwrite, **kwargs)
         insert_sql, select_sql = self._make_copy_sql(target, where_clause)
         cursor = self.geopackage.connection.execute(select_sql)
         with target.geopackage.connection as conn:
@@ -1117,16 +1148,16 @@ class FeatureClass(BaseTable):
         self._validate_same(
             source=self, target=FeatureClass(geopackage, name=name))
         self._validate_overwrite(geopackage, name=name, overwrite=overwrite)
+        kwargs[ADD_PROPERTIES] = False
         target = self.create(
             geopackage=geopackage, name=name, shape_type=self.shape_type,
-            srs=kwargs.get(SRS) or self.spatial_reference_system,
+            srs=kwargs.pop(SRS, self.spatial_reference_system),
             fields=self._remove_special(self.fields),
             description=description or self.description, overwrite=overwrite,
             z_enabled=self.has_z, m_enabled=self.has_m,
             spatial_index=self.has_spatial_index,
             geom_name=geom_name or self.geometry_column_name,
-            pk_name=pk_name or self.primary_key_field.name
-        )
+            pk_name=pk_name or self.primary_key_field.name, **kwargs)
         insert_sql, select_sql = self._make_copy_sql(target, where_clause)
         return insert_sql, select_sql, target
     # End _shared_create method
@@ -1181,7 +1212,7 @@ class FeatureClass(BaseTable):
                m_enabled: bool = False, fields: FIELDS = (),
                description: str = '', overwrite: bool = False,
                spatial_index: bool = True, geom_name: str = SHAPE,
-               pk_name: STRING = FID) -> 'FeatureClass':
+               pk_name: STRING = FID, **kwargs) -> 'FeatureClass':
         """
         Create Feature Class
         """
@@ -1214,6 +1245,8 @@ class FeatureClass(BaseTable):
             feature_class = cls(geopackage=geopackage, name=name)
             if spatial_index:
                 add_spatial_index(conn=conn, feature_class=feature_class)
+            if kwargs.get(ADD_PROPERTIES, True):
+                geopackage.add_field_properties(name, fields=fields)
         return feature_class
     # End create method
 
@@ -1517,7 +1550,8 @@ class Field:
     Field Object for GeoPackage
     """
     def __init__(self, name: str, data_type: str, size: INT = None,
-                 is_nullable: bool = True, default: Any = None) -> None:
+                 is_nullable: bool = True, default: Any = None, *,
+                 alias: STRING = None, comment: STRING = None) -> None:
         """
         Initialize the Field class
         """
@@ -1527,6 +1561,8 @@ class Field:
         self.size: INT = size
         self.is_nullable: bool = is_nullable
         self.default: Any = default
+        self.alias: STRING = alias
+        self.comment: STRING = comment
     # End init built-in
 
     def __repr__(self) -> str:
