@@ -639,6 +639,30 @@ SELECT_TABLE_SCHEMA: str = """
 """
 
 
+SELECT_TABLE_FIELD_ALIAS_COMMENT: str = """
+    SELECT column_name, name, description
+    FROM gpkg_data_columns
+    WHERE table_name = ?
+    COLLATE NOCASE
+"""
+
+
+HAS_COLUMN_DEFINITION: str = """
+    SELECT column_name
+    FROM gpkg_data_columns
+    WHERE table_name = ? AND column_name = ?
+    COLLATE NOCASE
+"""
+
+
+UPDATE_COLUMN_DEFINITION: str = """
+    UPDATE gpkg_data_columns
+    SET {} = ?
+    WHERE table_name = ? AND column_name = ?
+    COLLATE NOCASE
+"""
+
+
 SELECT_METADATA_REFERENCE_BY_TABLE_NAME: str = """
     SELECT reference_scope, table_name, column_name, row_id_value, 
            timestamp, md_file_id, md_parent_id 
