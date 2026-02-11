@@ -14,7 +14,8 @@ from string import ascii_uppercase, digits
 from pytest import mark, raises
 
 from fudgeo.constant import FID, SHAPE
-from fudgeo.enumeration import ShapeType, MetadataScope, FieldType
+from fudgeo.enumeration import (
+    FieldPropertyType, ShapeType, MetadataScope, FieldType)
 from fudgeo.extension.metadata import TableReference
 from fudgeo.extension.schema import GlobConstraint
 from fudgeo.geometry import (
@@ -146,6 +147,65 @@ def test_create_table(tmp_path, fields, name, ogr_contents, trigger_count):
     if path.exists():
         path.unlink()
 # End test_create_table function
+
+
+def test_create_table_with_field_properties(tmp_path, fields_extended):
+    """
+    Create Table and add field properties
+    """
+    path = tmp_path / 'tbl'
+    geo = GeoPackage.create(path)
+    name = 'easy_table_name'
+    *fields, field = fields_extended
+    table = geo.create_table(name, fields)
+    assert isinstance(table, Table)
+
+    conn = geo.connection
+    sql = """
+          SELECT column_name, name, description
+          FROM gpkg_data_columns
+          ORDER BY 1 
+          """
+    cursor = conn.execute(sql)
+    assert cursor.fetchall() == [
+        ('AAA', 'An Alias for AAA', 'This is a comment for AAA'),
+        ('BBB', ' the bees knees', None),
+        ('CCC', None, 'the quick brown fox jumps over the lazy dog'),
+    ]
+    table.add_fields(field)
+    cursor = conn.execute(sql)
+    assert cursor.fetchall() == [
+        ('AAA', 'An Alias for AAA', 'This is a comment for AAA'),
+        ('BBB', ' the bees knees', None),
+        ('CCC', None, 'the quick brown fox jumps over the lazy dog'),
+        ('SELECT', 'The SELECT Field', 'This is the SELECT Field')
+    ]
+    geo.schema.set_field_property(name, 'SELECT', FieldPropertyType.alias, None)
+    geo.schema.set_field_property(name, 'SELECT', FieldPropertyType.comment, None)
+    cursor = conn.execute(sql)
+    assert cursor.fetchall() == [
+        ('AAA', 'An Alias for AAA', 'This is a comment for AAA'),
+        ('BBB', ' the bees knees', None),
+        ('CCC', None, 'the quick brown fox jumps over the lazy dog'),
+        ('SELECT', None, None)
+    ]
+    assert [f.alias for f in table.fields] == [
+        None, 'An Alias for AAA', ' the bees knees', None, None, None, None]
+    assert [f.comment for f in table.fields] == [
+        None, 'This is a comment for AAA', None,
+        'the quick brown fox jumps over the lazy dog', None, None, None]
+
+    table = table.copy('asdf_qwerty', geopackage=geo)
+
+    assert [f.alias for f in table.fields] == [
+        None, 'An Alias for AAA', ' the bees knees', None, None, None, None]
+    assert [f.comment for f in table.fields] == [
+        None, 'This is a comment for AAA', None,
+        'the quick brown fox jumps over the lazy dog', None, None, None]
+
+    if path.exists():
+        path.unlink()
+# End test_create_table_with_field_properties function
 
 
 @mark.parametrize('name, ogr_contents, has_table, trigger_count', [

@@ -67,6 +67,21 @@ def fields():
 # End fields function
 
 
+@fixture
+def fields_extended():
+    """
+    Fields extended with aliases and comments
+    """
+    return [Field('AAA', FieldType.integer, alias='An Alias for AAA', comment='This is a comment for AAA'),
+            Field('BBB', FieldType.text, size=10, alias=' the bees knees'),
+            Field('CCC', FieldType.text, alias='', comment='the quick brown fox jumps over the lazy dog'),
+            Field('DDD', FieldType.double),
+            Field('EEE', FieldType.datetime),
+            Field('SELECT', FieldType.timestamp, alias='The SELECT Field', comment='This is the SELECT Field')
+            ]
+# End fields_extended function
+
+
 @fixture(scope='session')
 def random_utm_coordinates():
     """
