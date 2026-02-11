@@ -248,6 +248,7 @@ class AbstractGeoPackage(metaclass=ABCMeta):
             return True
         with self.connection as conn:
             add_schema_extension(conn=conn)
+        delattr(self, 'is_schema_enabled')
         return True
     # End enable_schema_extension method
 
@@ -259,7 +260,7 @@ class AbstractGeoPackage(metaclass=ABCMeta):
         return has_metadata_extension(self.connection)
     # End is_metadata_enabled property
 
-    @property
+    @cached_property
     def is_schema_enabled(self) -> bool:
         """
         Is Schema Extension Enabled
