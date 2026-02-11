@@ -488,7 +488,7 @@ class MemoryGeoPackage(AbstractGeoPackage):
                ogr_contents: bool = False, enable_metadata: bool = False,
                enable_schema: bool = False) -> 'MemoryGeoPackage':
         """
-        Create a new Memory based GeoPackage
+        Create a new Memory-based GeoPackage
         """
         conn = cls._build_geopackage(
             path=MEMORY, flavor=flavor, ogr_contents=ogr_contents,
