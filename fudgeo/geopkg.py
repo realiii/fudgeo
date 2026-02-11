@@ -20,9 +20,10 @@ from numpy import int16, int32, int64, int8, uint16, uint32, uint64, uint8
 
 from fudgeo.alias import FIELDS, FIELD_NAMES, GPKG, INT, STRING
 from fudgeo.constant import (
-    COMMA_SPACE, FETCH_SIZE, FID, GPKG_EXT, MEMORY, SHAPE, SRS)
+    ADD_PROPERTIES, COMMA_SPACE, FETCH_SIZE, FID, GPKG_EXT, MEMORY, SHAPE, SRS)
 from fudgeo.context import ExecuteMany, ForeignKeys
-from fudgeo.enumeration import DataType, FieldType, GPKGFlavors, ShapeType
+from fudgeo.enumeration import (
+    DataType, FieldPropertyType, FieldType, GPKGFlavors, ShapeType)
 from fudgeo.extension.metadata import (
     Metadata, add_metadata_extension, copy_metadata, has_metadata_extension)
 from fudgeo.extension.ogr import add_ogr_contents, has_ogr_contents
@@ -49,8 +50,8 @@ from fudgeo.sql import (
     RENAME_TABLE, SELECT_COUNT, SELECT_DATA_TYPE_AND_NAME, SELECT_DESCRIPTION,
     SELECT_EXTENT, SELECT_GEOMETRY_DEFINITION, SELECT_HAS_ROWS,
     SELECT_PRIMARY_KEY, SELECT_SPATIAL_REFERENCES, SELECT_SRS,
-    SELECT_TABLES_BY_TYPE, TABLE_EXISTS, UPDATE_EXTENT,
-    UPDATE_GPKG_OGR_CONTENTS)
+    SELECT_TABLES_BY_TYPE, SELECT_TABLE_FIELD_ALIAS_COMMENT, TABLE_EXISTS,
+    UPDATE_EXTENT, UPDATE_GPKG_OGR_CONTENTS)
 from fudgeo.util import (
     check_geometry_name, check_primary_name, convert_datetime, escape_name,
     get_extent, now)
@@ -380,6 +381,23 @@ class AbstractGeoPackage(metaclass=ABCMeta):
                 add_schema_extension(conn)
         return conn
     # End _build_geopackage method
+
+    def add_field_properties(self, table_name: str, fields: FIELDS) -> None:
+        """
+        Add field properties (alias and comment)
+        """
+        has_alias = [(f, f.alias) for f in fields if f.alias]
+        has_comment = [(f, f.comment) for f in fields if f.comment]
+        if not has_alias and not has_comment:
+            return
+        self.enable_schema_extension()
+        names = FieldPropertyType.alias, FieldPropertyType.comment
+        for prop_name, fields in zip(names, (has_alias, has_comment)):
+            for field, value in fields:
+                self.schema.set_field_property(
+                    table_name, column_name=field.name,
+                    prop_name=prop_name, value=value)
+    # End add_field_properties method
 # End AbstractGeoPackage class
 
 
@@ -1518,7 +1536,8 @@ class Field:
     Field Object for GeoPackage
     """
     def __init__(self, name: str, data_type: str, size: INT = None,
-                 is_nullable: bool = True, default: Any = None) -> None:
+                 is_nullable: bool = True, default: Any = None, *,
+                 alias: STRING = None, comment: STRING = None) -> None:
         """
         Initialize the Field class
         """
@@ -1528,6 +1547,8 @@ class Field:
         self.size: INT = size
         self.is_nullable: bool = is_nullable
         self.default: Any = default
+        self.alias: STRING = alias
+        self.comment: STRING = comment
     # End init built-in
 
     def __repr__(self) -> str:
