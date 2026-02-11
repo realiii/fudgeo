@@ -121,6 +121,15 @@ class ConstraintType:
 # End ConstraintType class
 
 
+class FieldPropertyType:
+    """
+    Field Property Types
+    """
+    alias: ClassVar[str] = 'name'
+    comment: ClassVar[str] = 'description'
+# End FieldPropertyType class
+
+
 # NOTE aliases for backwards compatibility
 GeometryType = ShapeType
 SQLFieldType = FieldType
