@@ -510,7 +510,7 @@ class BaseTable:
         Initialize the BaseTable class
         """
         super().__init__()
-        self.geopackage: GeoPackage = geopackage
+        self.geopackage: GPKG = geopackage
         self.name: str = name
     # End init built-in
 
