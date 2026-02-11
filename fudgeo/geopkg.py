@@ -851,6 +851,7 @@ class BaseTable:
             for field in fields:
                 conn.execute(ADD_COLUMN.format(
                     self.escaped_name, repr(field)))
+        self.geopackage.add_field_properties(self.name, fields=fields)
         return True
     # End add_fields method
 
@@ -952,7 +953,7 @@ class Table(BaseTable):
     @classmethod
     def create(cls, geopackage: GPKG, name: str, fields: FIELDS,
                description: str = '', overwrite: bool = False,
-               pk_name: STRING = FID) -> 'Table':
+               pk_name: STRING = FID, **kwargs) -> 'Table':
         """
         Create a regular non-spatial table in the geopackage
         """
@@ -974,6 +975,8 @@ class Table(BaseTable):
                 name, DataType.attributes, name, description, now(), None))
             if has_ogr:
                 add_ogr_contents(conn, name=name, escaped_name=escaped_name)
+            if kwargs.get(ADD_PROPERTIES, True):
+                geopackage.add_field_properties(name, fields=fields)
         return cls(geopackage=geopackage, name=name)
     # End create method
 
@@ -1003,7 +1006,7 @@ class Table(BaseTable):
 
     def copy(self, name: str, description: str = '',
              where_clause: str = '', overwrite: bool = False,
-             geopackage: Optional[GPKG] = None) -> 'Table':
+             geopackage: Optional[GPKG] = None, **kwargs) -> 'Table':
         """
         Copy the structure and content of a table.  Create a new table or
         overwrite an existing.  Use a where clause to limit the records.
@@ -1013,10 +1016,12 @@ class Table(BaseTable):
             geopackage = self.geopackage
         self._validate_same(source=self, target=Table(geopackage, name=name))
         self._validate_overwrite(geopackage, name=name, overwrite=overwrite)
+        kwargs[ADD_PROPERTIES] = False
         target = self.create(
             geopackage=geopackage, name=name,
             fields=self._remove_special(self.fields),
-            description=description or self.description, overwrite=overwrite)
+            description=description or self.description,
+            overwrite=overwrite, **kwargs)
         insert_sql, select_sql = self._make_copy_sql(target, where_clause)
         cursor = self.geopackage.connection.execute(select_sql)
         with target.geopackage.connection as conn:
@@ -1136,6 +1141,7 @@ class FeatureClass(BaseTable):
         self._validate_same(
             source=self, target=FeatureClass(geopackage, name=name))
         self._validate_overwrite(geopackage, name=name, overwrite=overwrite)
+        kwargs[ADD_PROPERTIES] = False
         target = self.create(
             geopackage=geopackage, name=name, shape_type=self.shape_type,
             srs=kwargs.get(SRS) or self.spatial_reference_system,
@@ -1144,8 +1150,7 @@ class FeatureClass(BaseTable):
             z_enabled=self.has_z, m_enabled=self.has_m,
             spatial_index=self.has_spatial_index,
             geom_name=geom_name or self.geometry_column_name,
-            pk_name=pk_name or self.primary_key_field.name
-        )
+            pk_name=pk_name or self.primary_key_field.name, **kwargs)
         insert_sql, select_sql = self._make_copy_sql(target, where_clause)
         return insert_sql, select_sql, target
     # End _shared_create method
@@ -1200,7 +1205,7 @@ class FeatureClass(BaseTable):
                m_enabled: bool = False, fields: FIELDS = (),
                description: str = '', overwrite: bool = False,
                spatial_index: bool = True, geom_name: str = SHAPE,
-               pk_name: STRING = FID) -> 'FeatureClass':
+               pk_name: STRING = FID, **kwargs) -> 'FeatureClass':
         """
         Create Feature Class
         """
@@ -1233,6 +1238,8 @@ class FeatureClass(BaseTable):
             feature_class = cls(geopackage=geopackage, name=name)
             if spatial_index:
                 add_spatial_index(conn=conn, feature_class=feature_class)
+            if kwargs.get(ADD_PROPERTIES, True):
+                geopackage.add_field_properties(name, fields=fields)
         return feature_class
     # End create method
 
