@@ -1151,7 +1151,7 @@ class FeatureClass(BaseTable):
         kwargs[ADD_PROPERTIES] = False
         target = self.create(
             geopackage=geopackage, name=name, shape_type=self.shape_type,
-            srs=kwargs.get(SRS) or self.spatial_reference_system,
+            srs=kwargs.pop(SRS, self.spatial_reference_system),
             fields=self._remove_special(self.fields),
             description=description or self.description, overwrite=overwrite,
             z_enabled=self.has_z, m_enabled=self.has_m,
