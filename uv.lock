@@ -189,7 +189,7 @@ wheels = [
 
 [[package]]
 name = "fudgeo"
-version = "1.5.2"
+version = "1.5.3"
 source = { virtual = "." }
 dependencies = [
     { name = "bottleneck" },
