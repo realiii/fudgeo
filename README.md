@@ -431,6 +431,13 @@ Support provided for the following constraint types:
 [MIT](https://raw.githubusercontent.com/realiii/fudgeo/refs/heads/develop/LICENSE)
 
 ## Release History
+### 1.5.3
+* extend `Field` class with `alias` and `comment` 
+* add support for `alias` and `comment` field properties during `create` and `add_fields`
+* add `rename_field` method to `Table` and `FeatureClass`
+* ensure cleanup in extensions when dropping fields
+* ensure schema and metadata extension data are handled during `copy`
+
 ### 1.5.2
 * add `drop_spatial_index` method to `FeatureClass`
 * add `add_attribute_index` and `drop_attribute_index` methods to `Table` and `FeatureClass`
