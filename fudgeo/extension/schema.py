@@ -10,13 +10,14 @@ from sqlite3 import DatabaseError, OperationalError
 from typing import TYPE_CHECKING, Union
 
 from fudgeo.alias import CONSTRAINTS, GPKG, RECORDS, STRING, TABLE
-from fudgeo.enumeration import ConstraintType, FieldType
+from fudgeo.enumeration import ConstraintType, FieldPropertyType, FieldType
 from fudgeo.sql import (
-    CREATE_DATA_COLUMNS, CREATE_DATA_COLUMN_CONSTRAINTS, HAS_SCHEMA,
-    INSERT_COLUMN_CONSTRAINTS, INSERT_COLUMN_DEFINITION, INSERT_EXTENSION,
-    SCHEMA_RECORDS, SELECT_CONSTRAINT_NAME, SELECT_CONSTRAINT_RECORD,
-    SELECT_DATA_COLUMNS_BY_TABLE_NAME, SELECT_DISTINCT_CONSTRAINT_NAMES,
-    SELECT_TABLE_SCHEMA)
+    CREATE_DATA_COLUMNS, CREATE_DATA_COLUMN_CONSTRAINTS, HAS_COLUMN_DEFINITION,
+    HAS_SCHEMA, INSERT_COLUMN_CONSTRAINTS, INSERT_COLUMN_DEFINITION,
+    INSERT_EXTENSION, SCHEMA_RECORDS, SELECT_CONSTRAINT_NAME,
+    SELECT_CONSTRAINT_RECORD, SELECT_DATA_COLUMNS_BY_TABLE_NAME,
+    SELECT_DISTINCT_CONSTRAINT_NAMES, SELECT_TABLE_SCHEMA,
+    UPDATE_COLUMN_DEFINITION)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -261,6 +262,37 @@ class Schema:
         super().__init__()
         self._geopackage: GPKG = geopackage
     # End init built-in
+
+    def set_field_property(self, table_name: str, column_name: str,
+                           prop_name: str, value: STRING) -> None:
+        """
+        Set Field Property, adds the column definition if it does not exist,
+        updates the column definition otherwise.
+        """
+        names = FieldPropertyType.alias, FieldPropertyType.comment
+        if prop_name not in names:
+            raise ValueError(f'invalid field property name: {prop_name!r}')
+        self._geopackage.enable_schema_extension()
+        element = self._get_element(table_name)
+        self._check_column_name(element, column_name)
+        if self._has_column_definition(table_name, column_name):
+            with self._geopackage.connection as conn:
+                conn.execute(UPDATE_COLUMN_DEFINITION.format(prop_name),
+                             (value, table_name, column_name))
+        else:
+            self.add_column_definition(
+                table_name, column_name=column_name, **{prop_name: value})
+    # End set_field_property method
+
+    def _has_column_definition(self, table_name: str, column_name: str) -> bool:
+        """
+        Has Column Definition
+        """
+        with self._geopackage.connection as conn:
+            cursor = conn.execute(
+                HAS_COLUMN_DEFINITION, (table_name, column_name))
+            return bool(cursor.fetchall())
+    # End _has_column_definition method
 
     def add_column_definition(self, table_name: str, column_name: str,
                               name: STRING = None, title: STRING = None,
