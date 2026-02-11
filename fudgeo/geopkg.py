@@ -823,6 +823,13 @@ class BaseTable:
             fields.append(Field(
                 name=name, data_type=type_, is_nullable=not bool(not_nullable),
                 default=default))
+        if self.geopackage.is_schema_enabled:
+            cursor = self.geopackage.connection.execute(
+                SELECT_TABLE_FIELD_ALIAS_COMMENT, (self.name,))
+            lut = {name: (alias, comment)
+                   for name, alias, comment in cursor.fetchall()}
+            for field in fields:
+                field.alias, field.comment = lut.get(field.name, (None, None))
         return fields
     # End fields property
 
