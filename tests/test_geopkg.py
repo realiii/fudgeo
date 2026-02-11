@@ -14,7 +14,8 @@ from string import ascii_uppercase, digits
 from pytest import mark, raises
 
 from fudgeo.constant import FID, SHAPE
-from fudgeo.enumeration import ShapeType, MetadataScope, FieldType
+from fudgeo.enumeration import (
+    FieldPropertyType, ShapeType, MetadataScope, FieldType)
 from fudgeo.extension.metadata import TableReference
 from fudgeo.extension.schema import GlobConstraint
 from fudgeo.geometry import (
@@ -146,6 +147,65 @@ def test_create_table(tmp_path, fields, name, ogr_contents, trigger_count):
     if path.exists():
         path.unlink()
 # End test_create_table function
+
+
+def test_create_table_with_field_properties(tmp_path, fields_extended):
+    """
+    Create Table and add field properties
+    """
+    path = tmp_path / 'tbl'
+    geo = GeoPackage.create(path)
+    name = 'easy_table_name'
+    *fields, field = fields_extended
+    table = geo.create_table(name, fields)
+    assert isinstance(table, Table)
+
+    conn = geo.connection
+    sql = """
+          SELECT column_name, name, description
+          FROM gpkg_data_columns
+          ORDER BY 1 
+          """
+    cursor = conn.execute(sql)
+    assert cursor.fetchall() == [
+        ('AAA', 'An Alias for AAA', 'This is a comment for AAA'),
+        ('BBB', ' the bees knees', None),
+        ('CCC', None, 'the quick brown fox jumps over the lazy dog'),
+    ]
+    table.add_fields(field)
+    cursor = conn.execute(sql)
+    assert cursor.fetchall() == [
+        ('AAA', 'An Alias for AAA', 'This is a comment for AAA'),
+        ('BBB', ' the bees knees', None),
+        ('CCC', None, 'the quick brown fox jumps over the lazy dog'),
+        ('SELECT', 'The SELECT Field', 'This is the SELECT Field')
+    ]
+    geo.schema.set_field_property(name, 'SELECT', FieldPropertyType.alias, None)
+    geo.schema.set_field_property(name, 'SELECT', FieldPropertyType.comment, None)
+    cursor = conn.execute(sql)
+    assert cursor.fetchall() == [
+        ('AAA', 'An Alias for AAA', 'This is a comment for AAA'),
+        ('BBB', ' the bees knees', None),
+        ('CCC', None, 'the quick brown fox jumps over the lazy dog'),
+        ('SELECT', None, None)
+    ]
+    assert [f.alias for f in table.fields] == [
+        None, 'An Alias for AAA', ' the bees knees', None, None, None, None]
+    assert [f.comment for f in table.fields] == [
+        None, 'This is a comment for AAA', None,
+        'the quick brown fox jumps over the lazy dog', None, None, None]
+
+    table = table.copy('asdf_qwerty', geopackage=geo)
+
+    assert [f.alias for f in table.fields] == [
+        None, 'An Alias for AAA', ' the bees knees', None, None, None, None]
+    assert [f.comment for f in table.fields] == [
+        None, 'This is a comment for AAA', None,
+        'the quick brown fox jumps over the lazy dog', None, None, None]
+
+    if path.exists():
+        path.unlink()
+# End test_create_table_with_field_properties function
 
 
 @mark.parametrize('name, ogr_contents, has_table, trigger_count', [
@@ -1277,6 +1337,7 @@ def test_table_add_drop_fields(setup_geopackage):
     assert 'a' in tbl.field_names
 
     flds = fld, Field('b', FieldType.text, 20), Field('c', FieldType.real)
+    assert len(set(flds)) == 3
     assert tbl.add_fields(fields=flds)
     assert 'b' in tbl.field_names
     assert 'c' in tbl.field_names
@@ -1388,6 +1449,90 @@ def test_rename_feature_class(setup_geopackage, use_index, use_ogr, use_meta, us
             assert rec_count == 1
 
 # End test_rename_feature_class function
+
+
+@mark.parametrize('use_meta, use_schema', [
+    (False, False),
+    (False, True),
+    (True, False),
+    (True, True),
+])
+def test_rename_table(setup_geopackage, use_meta, use_schema):
+    """
+    Test Rename Table
+    """
+    _, gpkg, srs, flds = setup_geopackage
+    name = 'asdf'
+    tbl = gpkg.create_table(name=name, fields=flds)
+    assert isinstance(tbl, Table)
+    count = 100
+    rows = random_points_and_attrs(count, srs.srs_id)
+    rows = [row[1:] for row in rows]
+    with gpkg.connection as conn:
+        conn.executemany(INSERT_ROWS.format(tbl.escaped_name), rows)
+    if use_meta:
+        gpkg.enable_metadata_extension()
+        assert gpkg.is_metadata_enabled
+        metadata = gpkg.metadata
+        scopes = (MetadataScope.undefined, MetadataScope.undefined,
+                  MetadataScope.undefined, MetadataScope.series)
+        for scope in scopes:
+            metadata.add_metadata(
+                uri='https://schemas.opengis.net/iso/19139/',
+                scope=scope)
+        reference = TableReference(table_name=name, file_id=4, parent_id=1)
+        metadata.add_references(reference)
+    if use_schema:
+        gpkg.enable_schema_extension()
+        assert gpkg.is_schema_enabled
+        schema = gpkg.schema
+        constraint = GlobConstraint(name='numeric', pattern='[0-9]')
+        schema.add_constraints(constraint)
+        schema.add_column_definition(
+            table_name=name, column_name=flds[0].name,
+            constraint_name=constraint.name)
+
+    assert tbl.name == name
+    new_name = f'{name}_renamed'
+    tbl.rename(new_name)
+    assert tbl.name == new_name
+    assert tbl.exists
+    assert tbl.count == count
+
+    sql = f"""SELECT COUNT(1) AS CNT 
+              FROM gpkg_data_columns 
+              WHERE table_name = '{new_name}'"""
+    if use_meta:
+        with tbl.geopackage.connection as conn:
+            cursor = conn.execute(
+                f"""SELECT COUNT(1) AS CNT 
+                    FROM gpkg_metadata_reference 
+                    WHERE table_name = '{new_name}'""")
+            rec_count, = cursor.fetchone()
+            assert rec_count == 1
+    if use_schema:
+        with tbl.geopackage.connection as conn:
+            cursor = conn.execute(sql)
+            rec_count, = cursor.fetchone()
+            assert rec_count == 1
+
+    col_name = 'interstellar'
+    tbl.rename_field(flds[0], col_name)
+
+    if use_schema:
+        with tbl.geopackage.connection as conn:
+            cursor = conn.execute(f"""{sql} AND column_name = '{col_name}'""")
+            rec_count, = cursor.fetchone()
+            assert rec_count == 1
+
+    tbl.drop_fields(col_name)
+
+    if use_schema:
+        with tbl.geopackage.connection as conn:
+            cursor = conn.execute(sql)
+            rec_count, = cursor.fetchone()
+            assert rec_count == 0
+# End test_rename_table function
 
 
 @mark.parametrize('pk_name', [

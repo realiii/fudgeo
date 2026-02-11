@@ -34,6 +34,7 @@ ROOT: str = 'https://www.geopackage.org/spec131/'
 
 ADD_COLUMN: str = """ALTER TABLE {} ADD COLUMN {}"""
 DROP_COLUMN: str = """ALTER TABLE {} DROP COLUMN {}"""
+RENAME_COLUMN: str = """ALTER TABLE {} RENAME COLUMN {} TO {}"""
 
 
 INSERT_GPKG_CONTENTS_SHORT: str = """
@@ -52,6 +53,7 @@ UPDATE_GPKG_OGR_CONTENTS: str = """
     UPDATE gpkg_ogr_contents 
     SET feature_count = ? 
     WHERE table_name = ?
+    COLLATE NOCASE
 """
 
 
@@ -66,50 +68,92 @@ CREATE_OGR_CONTENTS: str = """
 HAS_OGR_CONTENTS: str = """
     SELECT name FROM sqlite_master 
     WHERE type = 'table' AND name = 'gpkg_ogr_contents'
+    COLLATE NOCASE
 """
 
 
 DELETE_OGR_CONTENTS: str = """
     DELETE FROM gpkg_ogr_contents 
-    WHERE lower(table_name) = lower('{0}')
+    WHERE table_name = ?
+    COLLATE NOCASE
 """
 
 
 DELETE_METADATA_REFERENCE: str = """
     DELETE FROM gpkg_metadata_reference 
-    WHERE lower(table_name) = lower('{0}')
+    WHERE table_name = ?
+    COLLATE NOCASE
 """
 
 
 DELETE_DATA_COLUMNS: str = """
     DELETE FROM gpkg_data_columns 
-    WHERE lower(table_name) = lower('{0}')
+    WHERE table_name = ?
+    COLLATE NOCASE
 """
 
 
 # NOTE 0 - new name, 1 - name
 RENAME_METADATA_REFERENCE: str = """
     UPDATE gpkg_metadata_reference
-    SET table_name = '{0}' 
-    WHERE lower(table_name) = lower('{1}')
+    SET table_name = ? 
+    WHERE table_name = ?
+    COLLATE NOCASE
 """
 
 
 # NOTE 0 - new name, 1 - name
 RENAME_DATA_COLUMNS: str = """
     UPDATE gpkg_data_columns
-    SET table_name = '{0}' 
-    WHERE lower(table_name) = lower('{1}')
+    SET table_name = ?
+    WHERE table_name = ?
+    COLLATE NOCASE
+"""
+
+
+DELETE_COLUMN_METADATA_REFERENCE: str = """
+    DELETE FROM gpkg_metadata_reference 
+    WHERE table_name = ? AND column_name = ?
+    COLLATE NOCASE
+"""
+
+
+DELETE_COLUMN_DATA_COLUMNS: str = """
+    DELETE FROM gpkg_data_columns 
+    WHERE table_name = ? AND column_name = ?
+    COLLATE NOCASE
+"""
+
+
+# NOTE 0 - new name, 1 - name, 2 - column name
+RENAME_COLUMN_METADATA_REFERENCE: str = """
+    UPDATE gpkg_metadata_reference 
+    SET column_name = ?
+    WHERE table_name = ? AND column_name = ?
+    COLLATE NOCASE
+"""
+
+
+# NOTE 0 - new name, 1 - name, 2 - column name
+RENAME_COLUMN_DATA_COLUMNS: str = """
+    UPDATE gpkg_data_columns 
+    SET column_name = ? 
+    WHERE table_name = ? AND column_name = ? 
+    COLLATE NOCASE
 """
 
 
 # NOTE 0 - table name, 1 - escaped name, 2 - geometry column name
 REMOVE_FEATURE_CLASS: str = """
-    DELETE FROM gpkg_geometry_columns WHERE lower(table_name) = lower('{0}');
-    DELETE FROM gpkg_contents WHERE lower(table_name) = lower('{0}');
+    DELETE FROM gpkg_geometry_columns 
+    WHERE table_name = '{0}'
+    COLLATE NOCASE;
+    DELETE FROM gpkg_contents 
+    WHERE table_name = '{0}'
+    COLLATE NOCASE;
     DELETE FROM gpkg_extensions 
-    WHERE lower(table_name) = lower('{0}') AND 
-          lower(extension_name) = 'gpkg_rtree_index';
+    WHERE table_name = '{0}' AND extension_name = 'gpkg_rtree_index'
+    COLLATE NOCASE;
     DROP TRIGGER IF EXISTS "trigger_insert_feature_count_{0}";
     DROP TRIGGER IF EXISTS "trigger_delete_feature_count_{0}";
     DROP TRIGGER IF EXISTS "rtree_{0}_{2}_delete";
@@ -129,8 +173,8 @@ REMOVE_FEATURE_CLASS: str = """
 # NOTE 0 - table name, 1 - geometry column name
 DROP_SPATIAL_INDEX: str = """
     DELETE FROM gpkg_extensions 
-    WHERE lower(table_name) = lower('{0}') AND 
-          lower(extension_name) = 'gpkg_rtree_index';
+    WHERE table_name = '{0}' AND extension_name = 'gpkg_rtree_index'
+    COLLATE NOCASE;
     DROP TRIGGER IF EXISTS "rtree_{0}_{1}_delete";
     DROP TRIGGER IF EXISTS "rtree_{0}_{1}_insert";
     DROP TRIGGER IF EXISTS "rtree_{0}_{1}_update1";
@@ -150,14 +194,16 @@ RENAME_FEATURE_CLASS: str = """
     -- update the name in gpkg_geometry_columns and gpkg_contents tables 
     UPDATE gpkg_contents 
     SET table_name = '{3}'
-    WHERE lower(table_name) = lower('{0}');
+    WHERE table_name = '{0}'
+    COLLATE NOCASE;
     UPDATE gpkg_geometry_columns 
     SET table_name = '{3}'
-    WHERE lower(table_name) = lower('{0}');
+    WHERE table_name = '{0}'
+    COLLATE NOCASE;
     -- delete the table name from the gpkg_extensions table for spatial indexes 
     DELETE FROM gpkg_extensions 
-    WHERE lower(table_name) = lower('{0}') AND 
-          lower(extension_name) = 'gpkg_rtree_index';
+    WHERE table_name = '{0}' AND extension_name = 'gpkg_rtree_index'
+    COLLATE NOCASE;
     -- drop triggers and the virtual table, recreate the triggers in code
     DROP TABLE IF EXISTS "rtree_{0}_{2}";
     DROP TRIGGER IF EXISTS "rtree_{0}_{2}_delete";
@@ -175,7 +221,9 @@ RENAME_FEATURE_CLASS: str = """
 
 # NOTE 0 - name, 1 - escaped name
 REMOVE_TABLE: str = """
-    DELETE FROM gpkg_contents WHERE lower(table_name) = lower('{0}');
+    DELETE FROM gpkg_contents 
+    WHERE table_name = '{0}'
+    COLLATE NOCASE;
     DROP TRIGGER IF EXISTS "trigger_insert_feature_count_{0}";
     DROP TRIGGER IF EXISTS "trigger_delete_feature_count_{0}";
     DROP TABLE IF EXISTS {1};
@@ -187,7 +235,8 @@ REMOVE_TABLE: str = """
 RENAME_TABLE: str = """
     UPDATE gpkg_contents 
     SET table_name = '{3}'
-    WHERE lower(table_name) = lower('{0}');
+    WHERE table_name = '{0}'
+    COLLATE NOCASE;
     ALTER TABLE {1} RENAME TO {4};
 """
 
@@ -195,7 +244,9 @@ RENAME_TABLE: str = """
 # NOTE 0 - name
 REMOVE_OGR: str = """
     -- remove OGR table reference and associated triggers, recreate in code
-    DELETE FROM gpkg_ogr_contents WHERE lower(table_name) = lower('{0}');    
+    DELETE FROM gpkg_ogr_contents 
+    WHERE table_name = '{0}'
+    COLLATE NOCASE;
     DROP TRIGGER IF EXISTS "trigger_insert_feature_count_{0}";
     DROP TRIGGER IF EXISTS "trigger_delete_feature_count_{0}";
 """
@@ -206,7 +257,9 @@ GPKG_OGR_CONTENTS_INSERT_TRIGGER: str = """
     CREATE TRIGGER "trigger_insert_feature_count_{0}"
     AFTER INSERT ON {1}
     BEGIN UPDATE gpkg_ogr_contents SET feature_count = feature_count + 1 
-          WHERE lower(table_name) = lower('{0}'); END;
+          WHERE table_name = '{0}'
+          COLLATE NOCASE; 
+    END;
 """
 
 
@@ -215,7 +268,9 @@ GPKG_OGR_CONTENTS_DELETE_TRIGGER: str = """
     CREATE TRIGGER "trigger_delete_feature_count_{0}"
     AFTER DELETE ON {1}
     BEGIN UPDATE gpkg_ogr_contents SET feature_count = feature_count - 1 
-          WHERE lower(table_name) = lower('{0}'); END;
+          WHERE table_name = '{0}'
+          COLLATE NOCASE; 
+    END;
 """
 
 
@@ -562,8 +617,72 @@ INSERT_METADATA: str = """
 """
 
 
-SELECT_METADATA_ID: str = """
+SELECT_MAX_METADATA_ID: str = """
     SELECT MAX(ID) AS MAX_ID 
+    FROM gpkg_metadata
+"""
+
+
+SELECT_TABLE_METADATA_ID: str = """
+    SELECT md_file_id
+    FROM gpkg_metadata_reference
+    WHERE table_name = ?
+    COLLATE NOCASE
+"""
+
+
+SELECT_TABLE_SCHEMA: str = """
+    SELECT table_name
+    FROM gpkg_data_columns
+    WHERE table_name = ?
+    COLLATE NOCASE
+"""
+
+
+SELECT_TABLE_FIELD_ALIAS_COMMENT: str = """
+    SELECT column_name, name, description
+    FROM gpkg_data_columns
+    WHERE table_name = ?
+    COLLATE NOCASE
+"""
+
+
+HAS_COLUMN_DEFINITION: str = """
+    SELECT column_name
+    FROM gpkg_data_columns
+    WHERE table_name = ? AND column_name = ?
+    COLLATE NOCASE
+"""
+
+
+UPDATE_COLUMN_DEFINITION: str = """
+    UPDATE gpkg_data_columns
+    SET {} = ?
+    WHERE table_name = ? AND column_name = ?
+    COLLATE NOCASE
+"""
+
+
+SELECT_METADATA_REFERENCE_BY_TABLE_NAME: str = """
+    SELECT reference_scope, table_name, column_name, row_id_value, 
+           timestamp, md_file_id, md_parent_id 
+    FROM gpkg_metadata_reference 
+    WHERE table_name = ? 
+    COLLATE NOCASE
+"""
+
+
+SELECT_DATA_COLUMNS_BY_TABLE_NAME: str = """
+    SELECT table_name, column_name, name, title, description, mime_type, 
+           constraint_name 
+    FROM gpkg_data_columns 
+    WHERE table_name = ? 
+    COLLATE NOCASE
+"""
+
+
+SELECT_METADATA: str = """
+    SELECT id, md_scope, md_standard_uri, mime_type, metadata
     FROM gpkg_metadata
 """
 
@@ -638,6 +757,22 @@ SELECT_CONSTRAINT_NAME: str = """
     SELECT constraint_name 
     FROM gpkg_data_column_constraints 
     WHERE constraint_name = ?
+    COLLATE NOCASE
+"""
+
+
+SELECT_DISTINCT_CONSTRAINT_NAMES: str = """
+    SELECT DISTINCT lower(constraint_name) AS CN
+    FROM gpkg_data_column_constraints 
+"""
+
+
+SELECT_CONSTRAINT_RECORD: str = """
+    SELECT constraint_type, constraint_name, value, 
+           min, min_is_inclusive, max, max_is_inclusive, description 
+    FROM gpkg_data_column_constraints 
+    WHERE constraint_name = ?
+    COLLATE NOCASE
 """
 
 

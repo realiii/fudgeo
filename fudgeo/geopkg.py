@@ -20,14 +20,15 @@ from numpy import int16, int32, int64, int8, uint16, uint32, uint64, uint8
 
 from fudgeo.alias import FIELDS, FIELD_NAMES, GPKG, INT, STRING
 from fudgeo.constant import (
-    COMMA_SPACE, FETCH_SIZE, FID, GPKG_EXT, MEMORY, SHAPE, SRS)
+    ADD_PROPERTIES, COMMA_SPACE, FETCH_SIZE, FID, GPKG_EXT, MEMORY, SHAPE, SRS)
 from fudgeo.context import ExecuteMany, ForeignKeys
-from fudgeo.enumeration import DataType, FieldType, GPKGFlavors, ShapeType
+from fudgeo.enumeration import (
+    DataType, FieldPropertyType, FieldType, GPKGFlavors, ShapeType)
 from fudgeo.extension.metadata import (
-    Metadata, add_metadata_extension, has_metadata_extension)
+    Metadata, add_metadata_extension, copy_metadata, has_metadata_extension)
 from fudgeo.extension.ogr import add_ogr_contents, has_ogr_contents
 from fudgeo.extension.schema import (
-    Schema, add_schema_extension, has_schema_extension)
+    Schema, add_schema_extension, copy_schema, has_schema_extension)
 from fudgeo.extension.spatial import (
     ST_FUNCS, add_spatial_index, drop_spatial_index)
 from fudgeo.geometry import (
@@ -39,14 +40,17 @@ from fudgeo.geometry import (
 from fudgeo.sql import (
     ADD_COLUMN, CHECK_SRS_EXISTS, CREATE_FEATURE_TABLE, CREATE_INDEX,
     CREATE_OGR_CONTENTS, CREATE_TABLE, CREATE_UNIQUE_INDEX, DEFAULT_EPSG_RECS,
-    DEFAULT_ESRI_RECS, DELETE_DATA_COLUMNS, DELETE_METADATA_REFERENCE,
+    DEFAULT_ESRI_RECS, DELETE_COLUMN_METADATA_REFERENCE,
+    DELETE_COLUMN_DATA_COLUMNS, DELETE_DATA_COLUMNS, DELETE_METADATA_REFERENCE,
     DELETE_OGR_CONTENTS, DROP_COLUMN, DROP_INDEX, INDEX_EXISTS,
     INSERT_GPKG_CONTENTS_SHORT, INSERT_GPKG_GEOM_COL, INSERT_GPKG_SRS,
-    REMOVE_FEATURE_CLASS, REMOVE_OGR, REMOVE_TABLE, RENAME_DATA_COLUMNS,
-    RENAME_FEATURE_CLASS, RENAME_METADATA_REFERENCE, RENAME_TABLE, SELECT_COUNT,
-    SELECT_DATA_TYPE_AND_NAME, SELECT_DESCRIPTION, SELECT_EXTENT,
-    SELECT_GEOMETRY_DEFINITION, SELECT_HAS_ROWS, SELECT_PRIMARY_KEY,
-    SELECT_SPATIAL_REFERENCES, SELECT_SRS, SELECT_TABLES_BY_TYPE, TABLE_EXISTS,
+    REMOVE_FEATURE_CLASS, REMOVE_OGR, REMOVE_TABLE, RENAME_COLUMN,
+    RENAME_COLUMN_DATA_COLUMNS, RENAME_COLUMN_METADATA_REFERENCE,
+    RENAME_DATA_COLUMNS, RENAME_FEATURE_CLASS, RENAME_METADATA_REFERENCE,
+    RENAME_TABLE, SELECT_COUNT, SELECT_DATA_TYPE_AND_NAME, SELECT_DESCRIPTION,
+    SELECT_EXTENT, SELECT_GEOMETRY_DEFINITION, SELECT_HAS_ROWS,
+    SELECT_PRIMARY_KEY, SELECT_SPATIAL_REFERENCES, SELECT_SRS,
+    SELECT_TABLES_BY_TYPE, SELECT_TABLE_FIELD_ALIAS_COMMENT, TABLE_EXISTS,
     UPDATE_EXTENT, UPDATE_GPKG_OGR_CONTENTS)
 from fudgeo.util import (
     check_geometry_name, check_primary_name, convert_datetime, escape_name,
@@ -119,16 +123,17 @@ class AbstractGeoPackage(metaclass=ABCMeta):
         Get Item
         """
         cursor = self.connection.execute(SELECT_DATA_TYPE_AND_NAME, (item,))
-        if not (result := cursor.fetchone()):
+        if not (result := cursor.fetchone()):  # pragma: no cover
             return None
-        if None in result:
+        if None in result:  # pragma: no cover
             return None
         data_type, name = result
         if data_type == DataType.attributes:
             return Table(geopackage=self, name=name)
         elif data_type == DataType.features:
             return FeatureClass(geopackage=self, name=name)
-        return None
+        else:  # pragma: no cover
+            return None
     # End get_item built-in
 
     def _check_table_exists(self, table_name: str) -> bool:
@@ -187,7 +192,7 @@ class AbstractGeoPackage(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def path(self) -> Union[Path, str]:
+    def path(self) -> Union[Path, str]:  # pragma: no cover
         """
         Path
         """
@@ -244,6 +249,7 @@ class AbstractGeoPackage(metaclass=ABCMeta):
             return True
         with self.connection as conn:
             add_schema_extension(conn=conn)
+        delattr(self, 'is_schema_enabled')
         return True
     # End enable_schema_extension method
 
@@ -255,7 +261,7 @@ class AbstractGeoPackage(metaclass=ABCMeta):
         return has_metadata_extension(self.connection)
     # End is_metadata_enabled property
 
-    @property
+    @cached_property
     def is_schema_enabled(self) -> bool:
         """
         Is Schema Extension Enabled
@@ -264,7 +270,7 @@ class AbstractGeoPackage(metaclass=ABCMeta):
     # End is_schema_enabled property
 
     @abstractmethod
-    def exists(self, table_name: str) -> bool:
+    def exists(self, table_name: str) -> bool:  # pragma: no cover
         """
         Check if the table exists in the GeoPackage
         """
@@ -375,6 +381,23 @@ class AbstractGeoPackage(metaclass=ABCMeta):
                 add_schema_extension(conn)
         return conn
     # End _build_geopackage method
+
+    def add_field_properties(self, table_name: str, fields: FIELDS) -> None:
+        """
+        Add field properties (alias and comment)
+        """
+        has_alias = [(f, f.alias) for f in fields if f.alias]
+        has_comment = [(f, f.comment) for f in fields if f.comment]
+        if not has_alias and not has_comment:
+            return
+        self.enable_schema_extension()
+        names = FieldPropertyType.alias, FieldPropertyType.comment
+        for prop_name, fields in zip(names, (has_alias, has_comment)):
+            for field, value in fields:
+                self.schema.set_field_property(
+                    table_name, column_name=field.name,
+                    prop_name=prop_name, value=value)
+    # End add_field_properties method
 # End AbstractGeoPackage class
 
 
@@ -483,7 +506,7 @@ class MemoryGeoPackage(AbstractGeoPackage):
                ogr_contents: bool = False, enable_metadata: bool = False,
                enable_schema: bool = False) -> 'MemoryGeoPackage':
         """
-        Create a new Memory based GeoPackage
+        Create a new Memory-based GeoPackage
         """
         conn = cls._build_geopackage(
             path=MEMORY, flavor=flavor, ogr_contents=ogr_contents,
@@ -505,7 +528,7 @@ class BaseTable:
         Initialize the BaseTable class
         """
         super().__init__()
-        self.geopackage: GeoPackage = geopackage
+        self.geopackage: GPKG = geopackage
         self.name: str = name
     # End init built-in
 
@@ -544,15 +567,15 @@ class BaseTable:
         """
         conn.executescript(sql.format(name, escaped_name, geom_name))
         if has_ogr:
-            conn.execute(DELETE_OGR_CONTENTS.format(name))
+            conn.execute(DELETE_OGR_CONTENTS, (name,))
         if has_meta:
-            conn.execute(DELETE_METADATA_REFERENCE.format(name))
+            conn.execute(DELETE_METADATA_REFERENCE, (name,))
         if has_schema:
-            conn.execute(DELETE_DATA_COLUMNS.format(name))
+            conn.execute(DELETE_DATA_COLUMNS, (name,))
     # End _drop method
 
     def _rename(self, conn: 'Connection', sql: str, new_name: str,
-                escaped_new_name, has_ogr: bool) -> None:
+                escaped_new_name: str, has_ogr: bool) -> None:
         """
         Rename Table or Feature Class
         """
@@ -570,9 +593,9 @@ class BaseTable:
                 conn=conn, name=new_name, escaped_name=escaped_new_name)
             conn.execute(UPDATE_GPKG_OGR_CONTENTS, (count, new_name))
         if self.geopackage.is_metadata_enabled:
-            conn.execute(RENAME_METADATA_REFERENCE.format(new_name, self.name))
+            conn.execute(RENAME_METADATA_REFERENCE, (new_name, self.name))
         if self.geopackage.is_schema_enabled:
-            conn.execute(RENAME_DATA_COLUMNS.format(new_name, self.name))
+            conn.execute(RENAME_DATA_COLUMNS, (new_name, self.name))
         self.name = new_name
     # End _rename method
 
@@ -581,9 +604,9 @@ class BaseTable:
         """
         Check Result
         """
-        if not (result := cursor.fetchone()):
+        if not (result := cursor.fetchone()):  # pragma: no cover
             return None
-        if None in result:
+        if None in result:  # pragma: no cover
             return None
         value, = result
         return value
@@ -600,7 +623,7 @@ class BaseTable:
         return fields
     # End _remove_special method
 
-    def _validate_fields(self, fields: Union[FIELDS, FIELD_NAMES]) -> list['Field']:
+    def _validate_fields(self, fields: Union['Field', str, FIELDS, FIELD_NAMES]) -> list['Field']:
         """
         Validate Input Fields
         """
@@ -656,25 +679,34 @@ class BaseTable:
 
     def _check_index_exists(self, index_name: str) -> bool:
         """
-        Check existence of index
+        Check the existence of an index
         """
-        cursor = self.geopackage.connection.execute(
-            INDEX_EXISTS, (index_name,))
+        cursor = self.geopackage.connection.execute(INDEX_EXISTS, (index_name,))
         return bool(cursor.fetchone())
     # End _check_index_exists method
 
     @staticmethod
-    def _validate_same(source: 'BaseTable', target: 'BaseTable') -> None:
+    def _check_same_geopackage(source: GPKG, target: GPKG) -> bool:
+        """
+        Check if same geopackage
+        """
+        if not isinstance(source, type(target)):
+            return False
+        if isinstance(path := source.path, Path):
+            if not path.samefile(target.path):
+                return False
+        return source.connection is target.connection
+    # End _check_same_geopackage method
+
+    def _validate_same(self, source: 'BaseTable', target: 'BaseTable') -> None:
         """
         Validate Same Table
         """
         if source.name.casefold() != target.name.casefold():
             return
-        if not isinstance(source.geopackage, type(target.geopackage)):
+        if not self._check_same_geopackage(
+                source.geopackage, target.geopackage):
             return
-        if isinstance(path := source.geopackage.path, Path):
-            if not path.samefile(target.geopackage.path):
-                return
         raise ValueError(f'Cannot copy table {source.name} to itself')
     # End _validate_same method
 
@@ -791,6 +823,13 @@ class BaseTable:
             fields.append(Field(
                 name=name, data_type=type_, is_nullable=not bool(not_nullable),
                 default=default))
+        if self.geopackage.is_schema_enabled:
+            cursor = self.geopackage.connection.execute(
+                SELECT_TABLE_FIELD_ALIAS_COMMENT, (self.name,))
+            lut = {name: (alias, comment)
+                   for name, alias, comment in cursor.fetchall()}
+            for field in fields:
+                field.alias, field.comment = lut.get(field.name, (None, None))
         return fields
     # End fields property
 
@@ -809,8 +848,7 @@ class BaseTable:
         """
         if not isinstance(fields, (list, tuple)):
             fields = [fields]
-        names = {n.casefold() for n in self.field_names}
-        names.update([f.escaped_name.casefold() for f in self.fields])
+        names = self._get_field_names()
         fields = [f for f in fields if
                   f.name.casefold() not in names and
                   f.escaped_name.casefold() not in names]
@@ -820,8 +858,18 @@ class BaseTable:
             for field in fields:
                 conn.execute(ADD_COLUMN.format(
                     self.escaped_name, repr(field)))
+        self.geopackage.add_field_properties(self.name, fields=fields)
         return True
     # End add_fields method
+
+    def _get_field_names(self) -> set[str]:
+        """
+        Get Field Names including special fields and Escaped Names
+        """
+        names = {n.casefold() for n in self.field_names}
+        names.update([f.escaped_name.casefold() for f in self.fields])
+        return names
+    # End _get_field_names method
 
     def drop_fields(self, fields: Union[FIELDS, FIELD_NAMES]) -> bool:
         """
@@ -835,8 +883,39 @@ class BaseTable:
             for field in fields:
                 conn.execute(DROP_COLUMN.format(
                     self.escaped_name, field.escaped_name))
+        if self.geopackage.is_metadata_enabled:
+            for field in fields:
+                conn.execute(
+                    DELETE_COLUMN_METADATA_REFERENCE, (self.name, field.name))
+        if self.geopackage.is_schema_enabled:
+            for field in fields:
+                conn.execute(
+                    DELETE_COLUMN_DATA_COLUMNS, (self.name, field.name))
         return True
     # End drop_fields method
+
+    def rename_field(self, field: Union['Field', str], name: str) -> bool:
+        """
+        Rename a specified field to a new name, special fields are not renamed.
+        """
+        if not (fields := self._validate_fields(field)):
+            return False
+        field, *_ = fields
+        new_name = escape_name(str(name))
+        names = self._get_field_names()
+        if name.casefold() in names or new_name.casefold() in names:
+            return False
+        with self.geopackage.connection as conn:
+            conn.execute(RENAME_COLUMN.format(
+                self.escaped_name, field.escaped_name, new_name))
+        if self.geopackage.is_metadata_enabled:
+            conn.execute(RENAME_COLUMN_METADATA_REFERENCE,
+                         (new_name, self.name, field.name))
+        if self.geopackage.is_schema_enabled:
+            conn.execute(RENAME_COLUMN_DATA_COLUMNS,
+                         (new_name, self.name, field.name))
+        return True
+    # End rename_field method
 
     @cached_property
     def description(self) -> STRING:
@@ -881,7 +960,7 @@ class Table(BaseTable):
     @classmethod
     def create(cls, geopackage: GPKG, name: str, fields: FIELDS,
                description: str = '', overwrite: bool = False,
-               pk_name: STRING = FID) -> 'Table':
+               pk_name: STRING = FID, **kwargs) -> 'Table':
         """
         Create a regular non-spatial table in the geopackage
         """
@@ -903,6 +982,8 @@ class Table(BaseTable):
                 name, DataType.attributes, name, description, now(), None))
             if has_ogr:
                 add_ogr_contents(conn, name=name, escaped_name=escaped_name)
+            if kwargs.get(ADD_PROPERTIES, True):
+                geopackage.add_field_properties(name, fields=fields)
         return cls(geopackage=geopackage, name=name)
     # End create method
 
@@ -932,7 +1013,7 @@ class Table(BaseTable):
 
     def copy(self, name: str, description: str = '',
              where_clause: str = '', overwrite: bool = False,
-             geopackage: Optional[GPKG] = None) -> 'Table':
+             geopackage: Optional[GPKG] = None, **kwargs) -> 'Table':
         """
         Copy the structure and content of a table.  Create a new table or
         overwrite an existing.  Use a where clause to limit the records.
@@ -942,15 +1023,19 @@ class Table(BaseTable):
             geopackage = self.geopackage
         self._validate_same(source=self, target=Table(geopackage, name=name))
         self._validate_overwrite(geopackage, name=name, overwrite=overwrite)
+        kwargs[ADD_PROPERTIES] = False
         target = self.create(
             geopackage=geopackage, name=name,
             fields=self._remove_special(self.fields),
-            description=description or self.description, overwrite=overwrite)
+            description=description or self.description,
+            overwrite=overwrite, **kwargs)
         insert_sql, select_sql = self._make_copy_sql(target, where_clause)
         cursor = self.geopackage.connection.execute(select_sql)
-        with target.geopackage.connection as connection:
+        with target.geopackage.connection as conn:
             while records := cursor.fetchmany(FETCH_SIZE):
-                connection.executemany(insert_sql, records)
+                conn.executemany(insert_sql, records)
+        copy_metadata(self, target)
+        copy_schema(self, target)
         return target
     # End copy method
 
@@ -998,7 +1083,7 @@ class FeatureClass(BaseTable):
         sans_case = {k.casefold(): v
                      for k, v in geopackage.feature_classes.items()}
         existing = sans_case.get(name.casefold())
-        if existing is None:
+        if existing is None:  # pragma: no cover
             return ''
         return existing.geometry_column_name
     # End _find_geometry_column_name method
@@ -1063,16 +1148,16 @@ class FeatureClass(BaseTable):
         self._validate_same(
             source=self, target=FeatureClass(geopackage, name=name))
         self._validate_overwrite(geopackage, name=name, overwrite=overwrite)
+        kwargs[ADD_PROPERTIES] = False
         target = self.create(
             geopackage=geopackage, name=name, shape_type=self.shape_type,
-            srs=kwargs.get(SRS) or self.spatial_reference_system,
+            srs=kwargs.pop(SRS, self.spatial_reference_system),
             fields=self._remove_special(self.fields),
             description=description or self.description, overwrite=overwrite,
             z_enabled=self.has_z, m_enabled=self.has_m,
             spatial_index=self.has_spatial_index,
             geom_name=geom_name or self.geometry_column_name,
-            pk_name=pk_name or self.primary_key_field.name
-        )
+            pk_name=pk_name or self.primary_key_field.name, **kwargs)
         insert_sql, select_sql = self._make_copy_sql(target, where_clause)
         return insert_sql, select_sql, target
     # End _shared_create method
@@ -1127,7 +1212,7 @@ class FeatureClass(BaseTable):
                m_enabled: bool = False, fields: FIELDS = (),
                description: str = '', overwrite: bool = False,
                spatial_index: bool = True, geom_name: str = SHAPE,
-               pk_name: STRING = FID) -> 'FeatureClass':
+               pk_name: STRING = FID, **kwargs) -> 'FeatureClass':
         """
         Create Feature Class
         """
@@ -1160,6 +1245,8 @@ class FeatureClass(BaseTable):
             feature_class = cls(geopackage=geopackage, name=name)
             if spatial_index:
                 add_spatial_index(conn=conn, feature_class=feature_class)
+            if kwargs.get(ADD_PROPERTIES, True):
+                geopackage.add_field_properties(name, fields=fields)
         return feature_class
     # End create method
 
@@ -1199,7 +1286,7 @@ class FeatureClass(BaseTable):
         cursor = self.geopackage.connection.execute(
             SELECT_GEOMETRY_DEFINITION, (self.name,))
         result = cursor.fetchone()
-        if not result:
+        if not result:  # pragma: no cover
             return '', False, False, ''
         geom_name, has_z, has_m, geom_type = result
         return geom_name, bool(has_z), bool(has_m), geom_type
@@ -1330,22 +1417,24 @@ class FeatureClass(BaseTable):
             overwrite=overwrite, geopackage=geopackage, geom_name=geom_name,
             pk_name=pk_name, **kwargs)
         cursor = self.geopackage.connection.execute(select_sql)
-        with (target.geopackage.connection as connection,
-              ExecuteMany(connection=connection, table=target) as executor):
+        with (target.geopackage.connection as conn,
+              ExecuteMany(connection=conn, table=target) as executor):
             srs_id = target.spatial_reference_system.srs_id
             while features := cursor.fetchmany(FETCH_SIZE):
                 self._update_srs_id(features, srs_id=srs_id, parts=False)
                 executor(sql=insert_sql, data=features)
             target.extent = get_extent(target)
+        copy_metadata(self, target)
+        copy_schema(self, target)
         return target
     # End copy method
 
     def explode(self, name: str, overwrite: bool = False,
                 geopackage: Optional[GPKG] = None, **kwargs) -> 'FeatureClass':
         """
-        Explode feature class containing MultiPart geometry in a new feature
+        Explode a feature class containing MultiPart geometry in a new feature
         class in the same or a different GeoPackage.  If the feature class
-        does not contain a MultiPart geometry then a copy of the feature
+        does not contain MultiPart geometry, then a copy of the feature
         class is made.
 
         When a feature class has a custom SRS and copying / exploding from one
@@ -1359,8 +1448,8 @@ class FeatureClass(BaseTable):
         insert_sql, select_sql, target = self._shared_create(
             name=name, overwrite=overwrite, geopackage=geopackage, **kwargs)
         cursor = self.geopackage.connection.execute(select_sql)
-        with (target.geopackage.connection as connection,
-              ExecuteMany(connection=connection, table=target) as executor):
+        with (target.geopackage.connection as conn,
+              ExecuteMany(connection=conn, table=target) as executor):
             srs_id = target.spatial_reference_system.srs_id
             while features := cursor.fetchmany(FETCH_SIZE):
                 self._update_srs_id(features, srs_id=srs_id, parts=True)
@@ -1369,6 +1458,8 @@ class FeatureClass(BaseTable):
                     rows.extend((geom, *values) for geom in geoms)
                 executor(sql=insert_sql, data=rows)
             target.extent = self.extent
+        copy_metadata(self, target, exclude_row=True)
+        copy_schema(self, target)
         return target
     # End explode method
 
@@ -1426,7 +1517,7 @@ class SpatialReferenceSystem:
         """
         Equals
         """
-        if not isinstance(other, SpatialReferenceSystem):
+        if not isinstance(other, SpatialReferenceSystem):  # pragma: no cover
             return NotImplemented
         getter = itemgetter(*(1, 2, 3, 4))
         return getter(self.as_record()) == getter(other.as_record())
@@ -1459,7 +1550,8 @@ class Field:
     Field Object for GeoPackage
     """
     def __init__(self, name: str, data_type: str, size: INT = None,
-                 is_nullable: bool = True, default: Any = None) -> None:
+                 is_nullable: bool = True, default: Any = None, *,
+                 alias: STRING = None, comment: STRING = None) -> None:
         """
         Initialize the Field class
         """
@@ -1469,6 +1561,8 @@ class Field:
         self.size: INT = size
         self.is_nullable: bool = is_nullable
         self.default: Any = default
+        self.alias: STRING = alias
+        self.comment: STRING = comment
     # End init built-in
 
     def __repr__(self) -> str:
@@ -1492,7 +1586,7 @@ class Field:
         """
         Equality Implementation
         """
-        if not isinstance(other, self.__class__):
+        if not isinstance(other, self.__class__):  # pragma: no cover
             return NotImplemented
         return repr(self).casefold() == repr(other).casefold()
     # End eq built-int

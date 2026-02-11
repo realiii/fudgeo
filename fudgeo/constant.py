@@ -8,13 +8,16 @@ from struct import pack
 
 from fudgeo.enumeration import EnvelopeCode
 
-SRS: str = 'srs'
 COMMA_SPACE: str = ', '
 GPKG_EXT: str = '.gpkg'
 SHAPE: str = 'SHAPE'
 FID: str = 'fid'
 FETCH_SIZE: int = 100_000
 MEMORY: str = ':memory:'
+
+SRS: str = 'srs'
+TABLE_NAME: str = 'table_name'
+ADD_PROPERTIES: str = 'add_properties'
 
 WGS84: int = 4326
 
