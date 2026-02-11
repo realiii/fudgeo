@@ -432,17 +432,17 @@ Support provided for the following constraint types:
 
 ## Release History
 ### 1.5.2
-* Add `drop_spatial_index` method to `FeatureClass`
-* Add `add_attribute_index` and `drop_attribute_index` methods to `Table` and `FeatureClass`
-* Add `delete` method to `Table` and `FeatureClass` to delete records / features
-* Change default to `True` for `spatial_index` parameter on `create_feature_class` and `FeatureClass.create` methods
+* add `drop_spatial_index` method to `FeatureClass`
+* add `add_attribute_index` and `drop_attribute_index` methods to `Table` and `FeatureClass`
+* add `delete` method to `Table` and `FeatureClass` to delete records / features
+* change default to `True` for `spatial_index` parameter on `create_feature_class` and `FeatureClass.create` methods
 
 ### 1.5.1
-* Rename `GeometryType` to `ShapeType`, add alias for backwards compatibility
-* Rename `SQLFieldType` to `FieldType`, add alias for backwards compatibility
-* Add alias `is_multpart` for `is_multi_part` property on `FeatureClass`
-* Improve type hinting for `GeoPackage` and `MemoryGeoPackage`
-* Improve tests when running on Windows
+* rename `GeometryType` to `ShapeType`, add alias for backwards compatibility
+* rename `SQLFieldType` to `FieldType`, add alias for backwards compatibility
+* add alias `is_multpart` for `is_multi_part` property on `FeatureClass`
+* improve type hinting for `GeoPackage` and `MemoryGeoPackage`
+* improve tests when running on Windows
 
 ### 1.5.0
 * add caching to function `has_ogr_contents`
