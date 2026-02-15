@@ -20,7 +20,8 @@ from numpy import int16, int32, int64, int8, uint16, uint32, uint64, uint8
 
 from fudgeo.alias import FIELDS, FIELD_NAMES, GPKG, INT, STRING
 from fudgeo.constant import (
-    ADD_PROPERTIES, COMMA_SPACE, FETCH_SIZE, FID, GPKG_EXT, MEMORY, SHAPE, SRS)
+    ADD_PROPERTIES, COMMA_SPACE, FETCH_SIZE, FID, GPKG_EXT, MEMORY, MULTI,
+    SHAPE, SHAPE_TYPE, SRS)
 from fudgeo.context import ExecuteMany, ForeignKeys
 from fudgeo.enumeration import (
     DataType, FieldPropertyType, FieldType, GPKGFlavors, ShapeType)
@@ -1150,7 +1151,8 @@ class FeatureClass(BaseTable):
         self._validate_overwrite(geopackage, name=name, overwrite=overwrite)
         kwargs[ADD_PROPERTIES] = False
         target = self.create(
-            geopackage=geopackage, name=name, shape_type=self.shape_type,
+            geopackage=geopackage, name=name,
+            shape_type=kwargs.pop(SHAPE_TYPE, self.shape_type),
             srs=kwargs.pop(SRS, self.spatial_reference_system),
             fields=self._remove_special(self.fields),
             description=description or self.description, overwrite=overwrite,
@@ -1445,6 +1447,7 @@ class FeatureClass(BaseTable):
         if not self.is_multi_part:
             return self.copy(
                 name, overwrite=overwrite, geopackage=geopackage, **kwargs)
+        kwargs[SHAPE_TYPE] = self.shape_type.replace(MULTI, '')
         insert_sql, select_sql, target = self._shared_create(
             name=name, overwrite=overwrite, geopackage=geopackage, **kwargs)
         cursor = self.geopackage.connection.execute(select_sql)

@@ -16,6 +16,8 @@ FETCH_SIZE: int = 100_000
 MEMORY: str = ':memory:'
 
 SRS: str = 'srs'
+SHAPE_TYPE: str = 'shape_type'
+MULTI: str = 'MULTI'
 TABLE_NAME: str = 'table_name'
 ADD_PROPERTIES: str = 'add_properties'
 
