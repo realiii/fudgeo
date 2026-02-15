@@ -431,6 +431,9 @@ Support provided for the following constraint types:
 [MIT](https://raw.githubusercontent.com/realiii/fudgeo/refs/heads/develop/LICENSE)
 
 ## Release History
+### 1.5.4
+* fix shape type for output of `explode` method
+
 ### 1.5.3
 * extend `Field` class with `alias` and `comment` 
 * add support for `alias` and `comment` field properties during `create` and `add_fields`
