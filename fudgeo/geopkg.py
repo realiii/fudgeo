@@ -16,7 +16,9 @@ from sqlite3 import (
 from typing import Any, Callable, Optional, TYPE_CHECKING, Type, Union
 
 # noinspection PyPackageRequirements
-from numpy import int16, int32, int64, int8, uint16, uint32, uint64, uint8
+from numpy import (
+    int8, int16, int32, int64, short, intc, intp, int_, long, longlong, uint8,
+    uint16, uint32, uint64, ushort, uintc, uintp, uint, ulong, ulonglong)
 
 from fudgeo.alias import FIELDS, FIELD_NAMES, GPKG, INT, STRING
 from fudgeo.constant import (
@@ -91,8 +93,13 @@ def _register_numpy_integers() -> None:
     """
     Register numpy integers
     """
-    for int_type in (int8, int16, int32, int64,
-                     uint8, uint16, uint32, uint64):
+    for int_type in (
+            int8, int16, int32, int64,
+            intc, intp, int_,
+            short, long, longlong,
+            uint8, uint16, uint32, uint64,
+            uintc, uintp, uint,
+            ushort, ulong, ulonglong):
         register_adapter(int_type, int)
 # End _register_numpy_integers function
 
