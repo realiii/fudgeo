@@ -431,6 +431,9 @@ Support provided for the following constraint types:
 [MIT](https://raw.githubusercontent.com/realiii/fudgeo/refs/heads/develop/LICENSE)
 
 ## Release History
+### 1.5.5
+* include support for more `numpy` integer types
+
 ### 1.5.4
 * fix shape type for output of `explode` method
 
