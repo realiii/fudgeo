@@ -431,6 +431,11 @@ Support provided for the following constraint types:
 [MIT](https://raw.githubusercontent.com/realiii/fudgeo/refs/heads/develop/LICENSE)
 
 ## Release History
+### 1.5.6
+* update `is_empty` for `Polygon[ZM]` to check exterior ring only
+* update `is_empty` for `MultiPolygon[ZM]` to check emptiness of parts
+* update `is_empty` for `MultiLineString[ZM]` to check emptiness of parts
+
 ### 1.5.5
 * include support for more `numpy` integer types
 
