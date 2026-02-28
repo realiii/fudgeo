@@ -290,7 +290,11 @@ class BaseMultiLineString(AbstractGeometry):
         """
         if self._is_empty is not None:
             return self._is_empty
-        return not (bool(self._args) or bool(self.lines))
+        is_empty = not self._args and not self.lines
+        if not is_empty:
+            is_empty = all(line.is_empty for line in self.lines)
+        self._is_empty = is_empty
+        return is_empty
     # End is_empty property
 
     def _to_wkb(self, ary: bytearray) -> bytearray:
