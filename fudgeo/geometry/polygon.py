@@ -242,7 +242,12 @@ class BasePolygon(AbstractGeometry):
         """
         if self._is_empty is not None:
             return self._is_empty
-        return not (bool(self._args) or bool(self.rings))
+        # NOTE only looking at the exterior ring
+        is_empty = not self._args and not self.rings[:1]
+        if not is_empty:
+            is_empty = all(ring.is_empty for ring in self.rings[:1])
+        self._is_empty = is_empty
+        return is_empty
     # End is_empty property
 
     @property
@@ -419,7 +424,11 @@ class BaseMultiPolygon(AbstractGeometry):
         """
         if self._is_empty is not None:
             return self._is_empty
-        return not (bool(self._args) or bool(self.polygons))
+        is_empty = not self._args and not self.polygons
+        if not is_empty:
+            is_empty = all(poly.is_empty for poly in self.polygons)
+        self._is_empty = is_empty
+        return is_empty
     # End is_empty property
 
     @property
