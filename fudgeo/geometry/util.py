@@ -249,8 +249,8 @@ def lazy_unpack(cls: Any, value: Union[bytes, bytearray],
     (srs_id, env_code, offset,
      is_empty) = unpack_header(bytes(value[:HEADER_OFFSET]))
     obj = cls([], srs_id=srs_id)
-    obj._is_empty = is_empty
     if is_empty:
+        obj._is_empty = is_empty
         return obj
     view = memoryview(value)
     obj._env = unpack_envelope(code=env_code, srs_id=srs_id, view=view[:offset])

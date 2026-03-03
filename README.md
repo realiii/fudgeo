@@ -431,6 +431,9 @@ Support provided for the following constraint types:
 [MIT](https://raw.githubusercontent.com/realiii/fudgeo/refs/heads/develop/LICENSE)
 
 ## Release History
+### 1.5.7
+* during unpacking, only assign `is_empty` if geometry is empty
+
 ### 1.5.6
 * update `is_empty` for `Polygon[ZM]` to check exterior ring only
 * update `is_empty` for `MultiPolygon[ZM]` to check emptiness of parts
