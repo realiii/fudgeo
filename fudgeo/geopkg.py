@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Geopackage
+GeoPackage
 """
 
 
@@ -8,10 +8,9 @@ from abc import ABCMeta, abstractmethod
 from functools import cached_property
 from math import isnan, nan
 from operator import itemgetter
-from os import PathLike
 from pathlib import Path
 from sqlite3 import (
-    PARSE_COLNAMES, PARSE_DECLTYPES, connect, register_adapter,
+    DatabaseError, PARSE_COLNAMES, PARSE_DECLTYPES, connect, register_adapter,
     register_converter)
 from typing import Any, Callable, Optional, TYPE_CHECKING, Type, Union
 
@@ -117,7 +116,7 @@ class AbstractGeoPackage(metaclass=ABCMeta):
     """
     Abstract GeoPackage
     """
-    def __init__(self, path: Union[PathLike, str]) -> None:
+    def __init__(self, path: Union[Path, str]) -> None:
         """
         Initialize the AbstractGeoPackage class
         """
@@ -214,6 +213,7 @@ class AbstractGeoPackage(metaclass=ABCMeta):
         """
         if self._conn is None:
             self._configure_connection(str(self.path))
+        # noinspection PyTypeChecker
         return self._conn
     # End connection property
 
@@ -406,6 +406,20 @@ class AbstractGeoPackage(metaclass=ABCMeta):
                     table_name, column_name=field.name,
                     prop_name=prop_name, value=value)
     # End add_field_properties method
+
+    def compact(self) -> bool:
+        """
+        Compact the GeoPackage
+        """
+        return False
+    # End compact method
+
+    def analyze(self) -> bool:
+        """
+        Analyze the GeoPackage
+        """
+        return False
+    # End analyze method
 # End AbstractGeoPackage class
 
 
@@ -413,7 +427,7 @@ class GeoPackage(AbstractGeoPackage):
     """
     GeoPackage
     """
-    def __init__(self, path: Union[PathLike, str]) -> None:
+    def __init__(self, path: Union[Path, str]) -> None:
         """
         Initialize the GeoPackage class
         """
@@ -432,6 +446,7 @@ class GeoPackage(AbstractGeoPackage):
         """
         Path
         """
+        # noinspection PyTypeChecker
         return self._path
     # End path property
 
@@ -447,13 +462,13 @@ class GeoPackage(AbstractGeoPackage):
     # End exists method
 
     @classmethod
-    def create(cls, path: Union[PathLike, str], flavor: str = GPKGFlavors.esri,
+    def create(cls, path: Union[Path, str], flavor: str = GPKGFlavors.esri,
                ogr_contents: bool = False, enable_metadata: bool = False,
                enable_schema: bool = False) -> 'GeoPackage':
         """
         Create a new GeoPackage
         """
-        path = Path(path).with_suffix(GPKG_EXT)
+        path: Path = Path(path).with_suffix(GPKG_EXT)
         if path.is_file():
             raise ValueError(f'GeoPackage already exists: {path}')
         if not path.parent.is_dir():
@@ -463,6 +478,32 @@ class GeoPackage(AbstractGeoPackage):
             enable_metadata=enable_metadata, enable_schema=enable_schema)
         return cls(path)
     # End create method
+
+    def _run_optimize_statement(self, sql: str) -> bool:
+        """
+        Run Optimize Statement
+        """
+        try:
+            self.connection.commit()
+            self.connection.execute(sql)
+        except DatabaseError:  # pragma: no cover
+            return False
+        return True
+    # End _run_optimize_statement method
+
+    def compact(self) -> bool:
+        """
+        Compact the GeoPackage
+        """
+        return self._run_optimize_statement('VACUUM')
+    # End compact method
+
+    def analyze(self) -> bool:
+        """
+        Analyze the GeoPackage
+        """
+        return self._run_optimize_statement('ANALYZE main')
+    # End analyze method
 # End GeoPackage class
 
 
@@ -562,7 +603,8 @@ class BaseTable:
         if not fields:
             return ''
         if not isinstance(fields, (list, tuple)):
-            fields = [fields]
+            # noinspection PyTypeChecker
+            fields: list['Field'] = [fields]
         return f'{COMMA_SPACE}{COMMA_SPACE.join(repr(f) for f in fields)}'
     # End _column_names_types method
 
@@ -638,7 +680,8 @@ class BaseTable:
         keepers = []
         field_lookup = {f.name.casefold(): f for f in self.fields}
         if not isinstance(fields, (list, tuple)):
-            fields = [fields]
+            # noinspection PyTypeChecker
+            fields: list['Field'] = [fields]
         for f in fields:
             if not isinstance(f, (Field, str)):
                 continue
@@ -675,7 +718,7 @@ class BaseTable:
     # End _include_primary method
 
     @staticmethod
-    def _validate_overwrite(geopackage: GeoPackage, name: str,
+    def _validate_overwrite(geopackage: GPKG, name: str,
                             overwrite: bool) -> None:
         """
         Validate Overwrite
@@ -722,7 +765,7 @@ class BaseTable:
         """
         Delete records
         """
-        # noinspection SqlNoDataSourceInspection
+        # noinspection SqlNoDataSourceInspection,SqlWithoutWhere
         sql = f"""DELETE FROM {self.escaped_name}"""
         if where_clause:
             sql = f"""{sql} WHERE {where_clause}"""
@@ -855,7 +898,8 @@ class BaseTable:
         support overwrite of existing fields.
         """
         if not isinstance(fields, (list, tuple)):
-            fields = [fields]
+            # noinspection PyTypeChecker
+            fields: list['Field'] = [fields]
         names = self._get_field_names()
         fields = [f for f in fields if
                   f.name.casefold() not in names and
@@ -908,6 +952,7 @@ class BaseTable:
         """
         if not (fields := self._validate_fields(field)):
             return False
+        field: 'Field'
         field, *_ = fields
         new_name = escape_name(str(name))
         names = self._get_field_names()
@@ -934,6 +979,16 @@ class BaseTable:
             SELECT_DESCRIPTION, (self.name,))
         return self._check_result(cursor)
     # End description property
+
+    def analyze(self) -> bool:
+        """
+        Analyze the GeoPackage
+        """
+        method = getattr(self.geopackage, '_run_optimize_statement', None)
+        if not method:
+            return False
+        return method(f'ANALYZE main.{self.escaped_name}')
+    # End analyze method
 # End BaseTable class
 
 
@@ -967,7 +1022,7 @@ class Table(BaseTable):
 
     @classmethod
     def create(cls, geopackage: GPKG, name: str, fields: FIELDS,
-               description: str = '', overwrite: bool = False,
+               description: STRING = '', overwrite: bool = False,
                pk_name: STRING = FID, **kwargs) -> 'Table':
         """
         Create a regular non-spatial table in the geopackage
@@ -1028,7 +1083,8 @@ class Table(BaseTable):
         Output table can be in a different geopackage.
         """
         if not geopackage:
-            geopackage = self.geopackage
+            # noinspection PyTypeChecker
+            geopackage: GPKG = self.geopackage
         self._validate_same(source=self, target=Table(geopackage, name=name))
         self._validate_overwrite(geopackage, name=name, overwrite=overwrite)
         kwargs[ADD_PROPERTIES] = False
@@ -1058,7 +1114,7 @@ class Table(BaseTable):
         no (valid) fields / field names provided and no primary key included
         or there is no primary key.
         """
-        fields = self._validate_fields(fields)
+        fields: list['Field'] = self._validate_fields(fields)
         if include_primary:
             fields = self._include_primary(fields)
         if not fields:
@@ -1152,7 +1208,8 @@ class FeatureClass(BaseTable):
         Shared Steps for Creating a Feature Class during Copy / Explode
         """
         if not geopackage:
-            geopackage = self.geopackage
+            # noinspection PyTypeChecker
+            geopackage: GPKG = self.geopackage
         self._validate_same(
             source=self, target=FeatureClass(geopackage, name=name))
         self._validate_overwrite(geopackage, name=name, overwrite=overwrite)
@@ -1302,7 +1359,7 @@ class FeatureClass(BaseTable):
     # End _geometry_definition property
 
     @property
-    def geometry_column_name(self) -> STRING:
+    def geometry_column_name(self) -> str:
         """
         Geometry Column Name
         """
@@ -1310,7 +1367,7 @@ class FeatureClass(BaseTable):
     # End geometry_column_name property
 
     @property
-    def geometry_type(self) -> STRING:
+    def geometry_type(self) -> str:
         """
         Geometry Type
         """
@@ -1484,7 +1541,7 @@ class FeatureClass(BaseTable):
         no (valid) fields / field names provided, no primary key included
         or there is no primary key, and no geometry included.
         """
-        fields = self._validate_fields(fields)
+        fields: list['Field'] = self._validate_fields(fields)
         if include_primary:
             fields = self._include_primary(fields)
         field_names = COMMA_SPACE.join(f.escaped_name for f in fields)
@@ -1517,7 +1574,7 @@ class SpatialReferenceSystem:
         self.organization: str = organization
         self.org_coord_sys_id: int = org_coord_sys_id
         if srs_id is None:
-            srs_id = org_coord_sys_id
+            srs_id: int = org_coord_sys_id
         self._srs_id: int = srs_id
         self.definition: str = definition
         self.description: str = description
