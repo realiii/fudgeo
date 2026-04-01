@@ -563,7 +563,8 @@ class BaseTable:
         if not fields:
             return ''
         if not isinstance(fields, (list, tuple)):
-            fields = [fields]
+            # noinspection PyTypeChecker
+            fields: list['Field'] = [fields]
         return f'{COMMA_SPACE}{COMMA_SPACE.join(repr(f) for f in fields)}'
     # End _column_names_types method
 
@@ -639,7 +640,8 @@ class BaseTable:
         keepers = []
         field_lookup = {f.name.casefold(): f for f in self.fields}
         if not isinstance(fields, (list, tuple)):
-            fields = [fields]
+            # noinspection PyTypeChecker
+            fields: list['Field'] = [fields]
         for f in fields:
             if not isinstance(f, (Field, str)):
                 continue
@@ -856,7 +858,8 @@ class BaseTable:
         support overwrite of existing fields.
         """
         if not isinstance(fields, (list, tuple)):
-            fields = [fields]
+            # noinspection PyTypeChecker
+            fields: list['Field'] = [fields]
         names = self._get_field_names()
         fields = [f for f in fields if
                   f.name.casefold() not in names and
@@ -909,6 +912,7 @@ class BaseTable:
         """
         if not (fields := self._validate_fields(field)):
             return False
+        field: 'Field'
         field, *_ = fields
         new_name = escape_name(str(name))
         names = self._get_field_names()
@@ -1029,7 +1033,8 @@ class Table(BaseTable):
         Output table can be in a different geopackage.
         """
         if not geopackage:
-            geopackage = self.geopackage
+            # noinspection PyTypeChecker
+            geopackage: GPKG = self.geopackage
         self._validate_same(source=self, target=Table(geopackage, name=name))
         self._validate_overwrite(geopackage, name=name, overwrite=overwrite)
         kwargs[ADD_PROPERTIES] = False
@@ -1059,7 +1064,7 @@ class Table(BaseTable):
         no (valid) fields / field names provided and no primary key included
         or there is no primary key.
         """
-        fields = self._validate_fields(fields)
+        fields: list['Field'] = self._validate_fields(fields)
         if include_primary:
             fields = self._include_primary(fields)
         if not fields:
@@ -1153,7 +1158,8 @@ class FeatureClass(BaseTable):
         Shared Steps for Creating a Feature Class during Copy / Explode
         """
         if not geopackage:
-            geopackage = self.geopackage
+            # noinspection PyTypeChecker
+            geopackage: GPKG = self.geopackage
         self._validate_same(
             source=self, target=FeatureClass(geopackage, name=name))
         self._validate_overwrite(geopackage, name=name, overwrite=overwrite)
@@ -1485,7 +1491,7 @@ class FeatureClass(BaseTable):
         no (valid) fields / field names provided, no primary key included
         or there is no primary key, and no geometry included.
         """
-        fields = self._validate_fields(fields)
+        fields: list['Field'] = self._validate_fields(fields)
         if include_primary:
             fields = self._include_primary(fields)
         field_names = COMMA_SPACE.join(f.escaped_name for f in fields)
@@ -1518,7 +1524,7 @@ class SpatialReferenceSystem:
         self.organization: str = organization
         self.org_coord_sys_id: int = org_coord_sys_id
         if srs_id is None:
-            srs_id = org_coord_sys_id
+            srs_id: int = org_coord_sys_id
         self._srs_id: int = srs_id
         self.definition: str = definition
         self.description: str = description
