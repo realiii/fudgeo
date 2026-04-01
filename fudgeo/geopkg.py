@@ -10,7 +10,7 @@ from math import isnan, nan
 from operator import itemgetter
 from pathlib import Path
 from sqlite3 import (
-    PARSE_COLNAMES, PARSE_DECLTYPES, connect, register_adapter,
+    DatabaseError, PARSE_COLNAMES, PARSE_DECLTYPES, connect, register_adapter,
     register_converter)
 from typing import Any, Callable, Optional, TYPE_CHECKING, Type, Union
 
@@ -406,6 +406,20 @@ class AbstractGeoPackage(metaclass=ABCMeta):
                     table_name, column_name=field.name,
                     prop_name=prop_name, value=value)
     # End add_field_properties method
+
+    def compact(self) -> bool:
+        """
+        Compact the GeoPackage
+        """
+        return False
+    # End compact method
+
+    def analyze(self) -> bool:
+        """
+        Analyze the GeoPackage
+        """
+        return False
+    # End analyze method
 # End AbstractGeoPackage class
 
 
@@ -464,6 +478,32 @@ class GeoPackage(AbstractGeoPackage):
             enable_metadata=enable_metadata, enable_schema=enable_schema)
         return cls(path)
     # End create method
+
+    def _run_optimize_statement(self, sql: str) -> bool:
+        """
+        Run Optimize Statement
+        """
+        try:
+            self.connection.commit()
+            self.connection.execute(sql)
+        except DatabaseError:  # pragma: no cover
+            return False
+        return True
+    # End _run_optimize_statement method
+
+    def compact(self) -> bool:
+        """
+        Compact the GeoPackage
+        """
+        return self._run_optimize_statement('VACUUM')
+    # End compact method
+
+    def analyze(self) -> bool:
+        """
+        Analyze the GeoPackage
+        """
+        return self._run_optimize_statement('ANALYZE main')
+    # End analyze method
 # End GeoPackage class
 
 
@@ -939,6 +979,16 @@ class BaseTable:
             SELECT_DESCRIPTION, (self.name,))
         return self._check_result(cursor)
     # End description property
+
+    def analyze(self) -> bool:
+        """
+        Analyze the GeoPackage
+        """
+        method = getattr(self.geopackage, '_run_optimize_statement', None)
+        if not method:
+            return False
+        return method(f'ANALYZE main.{self.escaped_name}')
+    # End analyze method
 # End BaseTable class
 
 

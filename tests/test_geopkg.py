@@ -149,6 +149,22 @@ def test_create_table(tmp_path, fields, name, ogr_contents, trigger_count):
 # End test_create_table function
 
 
+def test_optimize_methods(tmp_path, fields_extended):
+    """
+    Create Table and add field properties
+    """
+    path = tmp_path / 'tbl'
+    geo = GeoPackage.create(path)
+    name = 'easy_table_name'
+    *fields, _ = fields_extended
+    table = geo.create_table(name, fields)
+    assert isinstance(table, Table)
+    assert geo.compact()
+    assert geo.analyze()
+    assert table.analyze()
+# End test_optimize_methods function
+
+
 def test_create_table_with_field_properties(tmp_path, fields_extended):
     """
     Create Table and add field properties
