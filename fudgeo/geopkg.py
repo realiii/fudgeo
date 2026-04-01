@@ -8,7 +8,6 @@ from abc import ABCMeta, abstractmethod
 from functools import cached_property
 from math import isnan, nan
 from operator import itemgetter
-from os import PathLike
 from pathlib import Path
 from sqlite3 import (
     PARSE_COLNAMES, PARSE_DECLTYPES, connect, register_adapter,
@@ -117,7 +116,7 @@ class AbstractGeoPackage(metaclass=ABCMeta):
     """
     Abstract GeoPackage
     """
-    def __init__(self, path: Union[PathLike, str]) -> None:
+    def __init__(self, path: Union[Path, str]) -> None:
         """
         Initialize the AbstractGeoPackage class
         """
@@ -413,7 +412,7 @@ class GeoPackage(AbstractGeoPackage):
     """
     GeoPackage
     """
-    def __init__(self, path: Union[PathLike, str]) -> None:
+    def __init__(self, path: Union[Path, str]) -> None:
         """
         Initialize the GeoPackage class
         """
@@ -432,6 +431,7 @@ class GeoPackage(AbstractGeoPackage):
         """
         Path
         """
+        # noinspection PyTypeChecker
         return self._path
     # End path property
 
@@ -447,13 +447,13 @@ class GeoPackage(AbstractGeoPackage):
     # End exists method
 
     @classmethod
-    def create(cls, path: Union[PathLike, str], flavor: str = GPKGFlavors.esri,
+    def create(cls, path: Union[Path, str], flavor: str = GPKGFlavors.esri,
                ogr_contents: bool = False, enable_metadata: bool = False,
                enable_schema: bool = False) -> 'GeoPackage':
         """
         Create a new GeoPackage
         """
-        path = Path(path).with_suffix(GPKG_EXT)
+        path: Path = Path(path).with_suffix(GPKG_EXT)
         if path.is_file():
             raise ValueError(f'GeoPackage already exists: {path}')
         if not path.parent.is_dir():
