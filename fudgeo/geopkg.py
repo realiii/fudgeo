@@ -972,7 +972,7 @@ class Table(BaseTable):
 
     @classmethod
     def create(cls, geopackage: GPKG, name: str, fields: FIELDS,
-               description: str = '', overwrite: bool = False,
+               description: STRING = '', overwrite: bool = False,
                pk_name: STRING = FID, **kwargs) -> 'Table':
         """
         Create a regular non-spatial table in the geopackage
@@ -1309,7 +1309,7 @@ class FeatureClass(BaseTable):
     # End _geometry_definition property
 
     @property
-    def geometry_column_name(self) -> STRING:
+    def geometry_column_name(self) -> str:
         """
         Geometry Column Name
         """
@@ -1317,7 +1317,7 @@ class FeatureClass(BaseTable):
     # End geometry_column_name property
 
     @property
-    def geometry_type(self) -> STRING:
+    def geometry_type(self) -> str:
         """
         Geometry Type
         """
