@@ -675,7 +675,7 @@ class BaseTable:
     # End _include_primary method
 
     @staticmethod
-    def _validate_overwrite(geopackage: GeoPackage, name: str,
+    def _validate_overwrite(geopackage: GPKG, name: str,
                             overwrite: bool) -> None:
         """
         Validate Overwrite
