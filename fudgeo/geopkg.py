@@ -213,6 +213,7 @@ class AbstractGeoPackage(metaclass=ABCMeta):
         """
         if self._conn is None:
             self._configure_connection(str(self.path))
+        # noinspection PyTypeChecker
         return self._conn
     # End connection property
 
@@ -722,7 +723,7 @@ class BaseTable:
         """
         Delete records
         """
-        # noinspection SqlNoDataSourceInspection
+        # noinspection SqlNoDataSourceInspection,SqlWithoutWhere
         sql = f"""DELETE FROM {self.escaped_name}"""
         if where_clause:
             sql = f"""{sql} WHERE {where_clause}"""
