@@ -72,6 +72,13 @@ HAS_OGR_CONTENTS: str = """
 """
 
 
+HAS_EXTENSIONS: str = """
+    SELECT name FROM sqlite_master 
+    WHERE type = 'table' AND name = 'gpkg_extensions'
+    COLLATE NOCASE
+"""
+
+
 DELETE_OGR_CONTENTS: str = """
     DELETE FROM gpkg_ogr_contents 
     WHERE table_name = ?
