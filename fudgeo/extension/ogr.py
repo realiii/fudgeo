@@ -37,10 +37,10 @@ def add_ogr_contents(conn: 'Connection', name: str, escaped_name: str) -> None:
     """
     if not has_ogr_contents(conn):
         conn.execute(CREATE_OGR_CONTENTS)
+        has_ogr_contents.cache_clear()
     conn.execute(INSERT_GPKG_OGR_CONTENTS, (name, 0))
     conn.execute(GPKG_OGR_CONTENTS_INSERT_TRIGGER.format(name, escaped_name))
     conn.execute(GPKG_OGR_CONTENTS_DELETE_TRIGGER.format(name, escaped_name))
-    has_ogr_contents.cache_clear()
 # End add_ogr_contents function
 
 
