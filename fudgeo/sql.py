@@ -302,6 +302,18 @@ CREATE_TABLE: str = """
 """
 
 
+CREATE_EXTENSIONS_TABLE: str = """
+    CREATE TABLE gpkg_extensions (
+        table_name     TEXT,
+        column_name    TEXT,
+        extension_name TEXT NOT NULL,
+        definition     TEXT NOT NULL,
+        scope          TEXT NOT NULL,
+        CONSTRAINT ge_tce UNIQUE (table_name, column_name, extension_name)
+    )
+"""
+
+
 INSERT_GPKG_SRS: str = """
     INSERT INTO gpkg_spatial_ref_sys (
         srs_name, srs_id, organization, organization_coordsys_id, 
