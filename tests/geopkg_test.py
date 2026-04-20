@@ -8,6 +8,7 @@ import sys
 from datetime import datetime, timedelta
 from math import isnan
 from random import randint, choice
+from shutil import copyfile
 from sqlite3 import IntegrityError
 from string import ascii_uppercase, digits
 
@@ -398,6 +399,27 @@ def test_create_feature_drop_feature(tmp_path, fields, name, ogr_contents, has_t
     if path.exists():
         path.unlink()
 # End test_create_feature_drop_feature function
+
+
+def test_create_feature_with_spatial_index_empty_qgis(data_path, tmp_path):
+    """
+    Create Feature Class with Spatial Index in empty QGIS geopackage
+    """
+    name = 'empty_qgis.gpkg'
+    path = data_path / name
+    assert path.is_file()
+    copy_path = tmp_path / name
+    copyfile(path, copy_path)
+    assert copy_path.is_file()
+    gpkg = GeoPackage(copy_path)
+    srs = SpatialReferenceSystem(
+        'WGS_1984_UTM_Zone_23N', organization='EPSG', org_coord_sys_id=32623,
+        definition=WGS_1984_UTM_Zone_23N)
+    fc = gpkg.create_feature_class('test', srs=srs, spatial_index=True)
+    assert fc.has_spatial_index
+    fc2 = gpkg.create_feature_class('test2', srs=srs, spatial_index=True)
+    assert fc2.has_spatial_index
+# End test_create_feature_with_spatial_index_empty_qgis function
 
 
 def test_tables_and_feature_classes(tmp_path, fields):

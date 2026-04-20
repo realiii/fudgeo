@@ -72,6 +72,13 @@ HAS_OGR_CONTENTS: str = """
 """
 
 
+HAS_EXTENSIONS: str = """
+    SELECT name FROM sqlite_master 
+    WHERE type = 'table' AND name = 'gpkg_extensions'
+    COLLATE NOCASE
+"""
+
+
 DELETE_OGR_CONTENTS: str = """
     DELETE FROM gpkg_ogr_contents 
     WHERE table_name = ?
@@ -292,6 +299,18 @@ CREATE_TABLE: str = """
     CREATE TABLE {name} (
         {pk_name} INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT  
         {other_fields})
+"""
+
+
+CREATE_EXTENSIONS_TABLE: str = """
+    CREATE TABLE gpkg_extensions (
+        table_name     TEXT,
+        column_name    TEXT,
+        extension_name TEXT NOT NULL,
+        definition     TEXT NOT NULL,
+        scope          TEXT NOT NULL,
+        CONSTRAINT ge_tce UNIQUE (table_name, column_name, extension_name)
+    )
 """
 
 

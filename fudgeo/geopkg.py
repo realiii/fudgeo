@@ -1375,13 +1375,11 @@ class FeatureClass(BaseTable):
     # End geometry_type property
 
     @property
-    def shape_type(self) -> STRING:
+    def shape_type(self) -> str:
         """
         Shape Type
         """
-        if not (geom_type := self.geometry_type):
-            return None
-        return geom_type.upper().rstrip('ZM')
+        return self.geometry_type.upper().rstrip('ZM')
     # End shape_type property
 
     @property

@@ -6,13 +6,13 @@ Metadata Extension
 
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
-from sqlite3 import DatabaseError, OperationalError
 from typing import TYPE_CHECKING
 
 from fudgeo.alias import (
     DATE, GPKG, INT, REFERENCE, REFERENCES, REFERENCE_RECORD, TABLE)
 from fudgeo.constant import TABLE_NAME
 from fudgeo.enumeration import MetadataReferenceScope, MetadataScope
+from fudgeo.extension.util import add_extensions, has_table_checker
 from fudgeo.sql import (
     CREATE_METADATA, CREATE_METADATA_REFERENCE, HAS_METADATA, INSERT_EXTENSION,
     INSERT_METADATA, INSERT_METADATA_REFERENCE, METADATA_RECORDS,
@@ -527,11 +527,7 @@ def has_metadata_extension(conn: 'Connection') -> bool:
     """
     Has Metadata Extension Tables
     """
-    try:
-        cursor = conn.execute(HAS_METADATA)
-    except (DatabaseError, OperationalError):  # pragma: no cover
-        return False
-    return bool(cursor.fetchone())
+    return has_table_checker(conn, HAS_METADATA)
 # End has_metadata_extension function
 
 
@@ -539,6 +535,7 @@ def add_metadata_extension(conn: 'Connection') -> None:
     """
     Add Metadata Extension Tables and Entries
     """
+    add_extensions(conn)
     conn.executemany(INSERT_EXTENSION, METADATA_RECORDS)
     conn.execute(CREATE_METADATA)
     conn.execute(CREATE_METADATA_REFERENCE)
