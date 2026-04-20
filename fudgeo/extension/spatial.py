@@ -21,6 +21,7 @@ from fudgeo.constant import (
     WKB_MULTI_POLYGON_ZM_PRE, WKB_MULTI_POLYGON_Z_PRE, WKB_POINT_M_PRE,
     WKB_POINT_PRE, WKB_POINT_ZM_PRE, WKB_POINT_Z_PRE, WKB_POLYGON_M_PRE,
     WKB_POLYGON_PRE, WKB_POLYGON_ZM_PRE, WKB_POLYGON_Z_PRE)
+from fudgeo.extension.util import add_extensions
 from fudgeo.geometry.linestring import (
     LineString, LineStringZ, LineStringM, LineStringZM,
     MultiLineString, MultiLineStringZ, MultiLineStringM, MultiLineStringZM)
@@ -46,6 +47,7 @@ def add_spatial_index(conn: 'Connection', feature_class: 'FeatureClass') -> None
     Add Spatial Index Table, Table Entry, and Triggers.  Load Spatial Index
     Table if Feature Class has features.
     """
+    add_extensions(conn)
     name = feature_class.name
     geom_name = feature_class.geometry_column_name
     pk_name = feature_class.primary_key_field.escaped_name
