@@ -5,9 +5,9 @@ OGR Extension (unofficial) for tracking row counts
 
 
 from functools import lru_cache
-from sqlite3 import DatabaseError, OperationalError
 from typing import TYPE_CHECKING
 
+from fudgeo.extension.util import has_table_checker
 from fudgeo.sql import (
     CREATE_OGR_CONTENTS, GPKG_OGR_CONTENTS_DELETE_TRIGGER,
     GPKG_OGR_CONTENTS_INSERT_TRIGGER, HAS_OGR_CONTENTS,
@@ -26,11 +26,7 @@ def has_ogr_contents(conn: 'Connection') -> bool:
     """
     Has gpkg_ogr_contents table
     """
-    try:
-        cursor = conn.execute(HAS_OGR_CONTENTS)
-    except (DatabaseError, OperationalError):  # pragma: no cover
-        return False
-    return bool(cursor.fetchone())
+    return has_table_checker(conn, HAS_OGR_CONTENTS)
 # End has_ogr_contents function
 
 
@@ -41,10 +37,10 @@ def add_ogr_contents(conn: 'Connection', name: str, escaped_name: str) -> None:
     """
     if not has_ogr_contents(conn):
         conn.execute(CREATE_OGR_CONTENTS)
+        has_ogr_contents.cache_clear()
     conn.execute(INSERT_GPKG_OGR_CONTENTS, (name, 0))
     conn.execute(GPKG_OGR_CONTENTS_INSERT_TRIGGER.format(name, escaped_name))
     conn.execute(GPKG_OGR_CONTENTS_DELETE_TRIGGER.format(name, escaped_name))
-    has_ogr_contents.cache_clear()
 # End add_ogr_contents function
 
 

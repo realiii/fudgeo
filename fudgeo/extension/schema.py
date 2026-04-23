@@ -6,11 +6,11 @@ Schema Extension
 
 from abc import ABCMeta, abstractmethod
 from numbers import Number
-from sqlite3 import DatabaseError, OperationalError
 from typing import TYPE_CHECKING, Union
 
 from fudgeo.alias import CONSTRAINTS, GPKG, RECORDS, STRING, TABLE
 from fudgeo.enumeration import ConstraintType, FieldPropertyType, FieldType
+from fudgeo.extension.util import add_extensions, has_table_checker
 from fudgeo.sql import (
     CREATE_DATA_COLUMNS, CREATE_DATA_COLUMN_CONSTRAINTS, HAS_COLUMN_DEFINITION,
     HAS_SCHEMA, INSERT_COLUMN_CONSTRAINTS, INSERT_COLUMN_DEFINITION,
@@ -451,11 +451,7 @@ def has_schema_extension(conn: 'Connection') -> bool:
     """
     Has Schema Extension Tables
     """
-    try:
-        cursor = conn.execute(HAS_SCHEMA)
-    except (DatabaseError, OperationalError):  # pragma: no cover
-        return False
-    return bool(cursor.fetchone())
+    return has_table_checker(conn, HAS_SCHEMA)
 # End has_schema_extension function
 
 
@@ -463,6 +459,7 @@ def add_schema_extension(conn: 'Connection') -> None:
     """
     Add Schema Extension Tables and Entries
     """
+    add_extensions(conn)
     conn.executemany(INSERT_EXTENSION, SCHEMA_RECORDS)
     conn.execute(CREATE_DATA_COLUMNS)
     conn.execute(CREATE_DATA_COLUMN_CONSTRAINTS)
