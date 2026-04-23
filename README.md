@@ -431,6 +431,11 @@ Support provided for the following constraint types:
 [MIT](https://raw.githubusercontent.com/realiii/fudgeo/refs/heads/develop/LICENSE)
 
 ## Release History
+### 1.5.8
+* Add database optimization methods `analyze` and `compact`
+* Add optimization method `analyze` on `Table` and `FeatureClass`
+* Ensure `gpkg_extensions` table is present when setting spatial index, metadata, or schema extensions.
+
 ### 1.5.7
 * during unpacking, only assign `is_empty` if geometry is empty
 
