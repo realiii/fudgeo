@@ -6,6 +6,7 @@ Schema Extension
 
 from abc import ABCMeta, abstractmethod
 from numbers import Number
+from sqlite3 import IntegrityError
 from typing import TYPE_CHECKING, Union
 
 from fudgeo.alias import CONSTRAINTS, GPKG, RECORDS, STRING, TABLE
@@ -314,10 +315,23 @@ class Schema:
             raise ValueError(
                 f'expected mime_type value for blob column {column_name}')
         constraint_name = self._check_constraint(constraint_name)
-        with self._geopackage.connection as conn:
+        if self._has_column_definition(table_name, column_name):
+            values = name, title, description, mime_type, constraint_name
+            prop_names = ('name', 'title', 'description', 'mime_type',
+                          'constraint_name')
+            sql = UPDATE_COLUMN_DEFINITION
+            with self._geopackage.connection as conn:
+                for prop_name, value in zip(prop_names, values):
+                    if value is None:
+                        continue
+                    record = value, table_name, column_name
+                    conn.execute(sql.format(prop_name), record)
+        else:
             record = (table_name, column_name, name, title,
                       description, mime_type, constraint_name)
-            conn.execute(INSERT_COLUMN_DEFINITION, record)
+            sql = INSERT_COLUMN_DEFINITION
+            with self._geopackage.connection as conn:
+                conn.execute(sql, record)
     # End add_column_definition method
 
     def _check_constraint(self, constraint_name: STRING) -> STRING:
