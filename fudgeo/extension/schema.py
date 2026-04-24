@@ -6,6 +6,7 @@ Schema Extension
 
 from abc import ABCMeta, abstractmethod
 from numbers import Number
+from sqlite3 import IntegrityError
 from typing import TYPE_CHECKING, Union
 
 from fudgeo.alias import CONSTRAINTS, GPKG, RECORDS, STRING, TABLE
@@ -70,13 +71,16 @@ class EnumerationConstraint(AbstractConstraint):
     Enumeration Constraint
     """
     def __init__(self, name: str, values: Union[list, tuple],
-                 description: STRING = None) -> None:
+                 descriptions: Union[list[str], tuple[str, ...]] = ()) -> None:
         """
         Initialize the EnumerationConstraint class
         """
         super().__init__(
-            type_=ConstraintType.enum, name=name, description=description)
-        self._values: list = sorted(set(values))
+            type_=ConstraintType.enum, name=name, description=None)
+        if not descriptions:
+            descriptions = [str(value) for value in values]
+        data = dict(zip(values, descriptions))
+        self._values: list = sorted(data.items())
     # End init built-in
 
     def validate(self) -> None:
@@ -93,8 +97,8 @@ class EnumerationConstraint(AbstractConstraint):
         """
         As Records
         """
-        return [(self._type, self.name, value, None, None, None, None,
-                 self._description) for value in self._values]
+        return [(self._type, self.name, value, None, None, None, None, desc)
+                for value, desc in self._values]
     # End as_records method
 # End EnumerationConstraint class
 
@@ -311,10 +315,23 @@ class Schema:
             raise ValueError(
                 f'expected mime_type value for blob column {column_name}')
         constraint_name = self._check_constraint(constraint_name)
-        with self._geopackage.connection as conn:
+        if self._has_column_definition(table_name, column_name):
+            values = name, title, description, mime_type, constraint_name
+            prop_names = ('name', 'title', 'description', 'mime_type',
+                          'constraint_name')
+            sql = UPDATE_COLUMN_DEFINITION
+            with self._geopackage.connection as conn:
+                for prop_name, value in zip(prop_names, values):
+                    if value is None:
+                        continue
+                    record = value, table_name, column_name
+                    conn.execute(sql.format(prop_name), record)
+        else:
             record = (table_name, column_name, name, title,
                       description, mime_type, constraint_name)
-            conn.execute(INSERT_COLUMN_DEFINITION, record)
+            sql = INSERT_COLUMN_DEFINITION
+            with self._geopackage.connection as conn:
+                conn.execute(sql, record)
     # End add_column_definition method
 
     def _check_constraint(self, constraint_name: STRING) -> STRING:
@@ -365,7 +382,14 @@ class Schema:
             constraint.validate()
             records.extend(constraint.as_records())
         with self._geopackage.connection as conn:
-            conn.executemany(INSERT_COLUMN_CONSTRAINTS, records)
+            try:
+                conn.executemany(INSERT_COLUMN_CONSTRAINTS, records)
+            except IntegrityError:
+                for record in records:
+                    try:
+                        conn.execute(INSERT_COLUMN_CONSTRAINTS, record)
+                    except IntegrityError:
+                        pass
     # End add_constraints method
 # End Schema class
 
