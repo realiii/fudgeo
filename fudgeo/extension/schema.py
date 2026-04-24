@@ -382,7 +382,14 @@ class Schema:
             constraint.validate()
             records.extend(constraint.as_records())
         with self._geopackage.connection as conn:
-            conn.executemany(INSERT_COLUMN_CONSTRAINTS, records)
+            try:
+                conn.executemany(INSERT_COLUMN_CONSTRAINTS, records)
+            except IntegrityError:
+                for record in records:
+                    try:
+                        conn.execute(INSERT_COLUMN_CONSTRAINTS, record)
+                    except IntegrityError:
+                        pass
     # End add_constraints method
 # End Schema class
 
