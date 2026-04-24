@@ -66,6 +66,45 @@ def test_add_constraints(tmp_path):
 # End test_add_constraints function
 
 
+def test_add_enumeration(tmp_path):
+    """
+    Add Enumeration Constraints
+    """
+    path = tmp_path / 'test.gpkg'
+    pkg = GeoPackage.create(path, enable_schema=True)
+    constraints = (
+        EnumerationConstraint(name='sampleEnum1', values=[7, 9, 11]),
+        EnumerationConstraint(name='sampleEnum2', values=[1, 3, 5], descriptions=['one', 'three', 'five']),
+        EnumerationConstraint(name='sampleEnum3', values=['A', 'B', 'C'], descriptions=['Ehh', 'Bee', 'See']),
+    )
+    pkg.schema.add_constraints(constraints)
+    cursor = pkg.connection.execute(
+        """SELECT constraint_name, constraint_type, value, description 
+           FROM gpkg_data_column_constraints""")
+    data = cursor.fetchall()
+    assert len(data) == 9
+    assert data == [
+        ('sampleenum1', 'enum', '7', '7'),
+        ('sampleenum1', 'enum', '9', '9'),
+        ('sampleenum1', 'enum', '11', '11'),
+        ('sampleenum2', 'enum', '1', 'one'),
+        ('sampleenum2', 'enum', '3', 'three'),
+        ('sampleenum2', 'enum', '5', 'five'),
+        ('sampleenum3', 'enum', 'A', 'Ehh'),
+        ('sampleenum3', 'enum', 'B', 'Bee'),
+        ('sampleenum3', 'enum', 'C', 'See')]
+    pkg.create_table(name='the_table', fields=[Field(name='the_field', data_type=FieldType.text)])
+    pkg.schema.add_column_definition(
+        table_name='the_table', column_name='the_field',
+        constraint_name='sampleEnum2')
+    pkg.schema.add_column_definition(
+        table_name='the_table', column_name='the_field',
+        constraint_name='sampleEnum3')
+    cursor = pkg.connection.execute("""SELECT * FROM gpkg_data_columns""")
+    assert cursor.fetchall() == [('the_table', 'the_field', None, None, None, None, 'sampleenum3')]
+# End test_add_enumeration function
+
+
 @mark.parametrize('table_name, column_name, name, title, description, mime_type, constraint_name, msg', [
     ('table_name', 'column_name', None, None, None, None, None, 'table name "table_name" not found'),
     ('the_table', 'column_name', None, None, None, None, None, 'column name "column_name" not found'),
