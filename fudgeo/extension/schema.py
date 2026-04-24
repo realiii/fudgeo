@@ -70,13 +70,16 @@ class EnumerationConstraint(AbstractConstraint):
     Enumeration Constraint
     """
     def __init__(self, name: str, values: Union[list, tuple],
-                 description: STRING = None) -> None:
+                 descriptions: Union[list[str], tuple[str, ...]] = ()) -> None:
         """
         Initialize the EnumerationConstraint class
         """
         super().__init__(
-            type_=ConstraintType.enum, name=name, description=description)
-        self._values: list = sorted(set(values))
+            type_=ConstraintType.enum, name=name, description=None)
+        if not descriptions:
+            descriptions = [str(value) for value in values]
+        data = dict(zip(values, descriptions))
+        self._values: list = sorted(data.items())
     # End init built-in
 
     def validate(self) -> None:
@@ -93,8 +96,8 @@ class EnumerationConstraint(AbstractConstraint):
         """
         As Records
         """
-        return [(self._type, self.name, value, None, None, None, None,
-                 self._description) for value in self._values]
+        return [(self._type, self.name, value, None, None, None, None, desc)
+                for value, desc in self._values]
     # End as_records method
 # End EnumerationConstraint class
 
