@@ -393,7 +393,7 @@ gpkg: GeoPackage = GeoPackage('../data/example.gpkg')
 # add constraints for use with column definitions
 constraints = [
     EnumerationConstraint(name='odds', values=[1, 3, 5, 7, 9]),
-    EnumerationConstraint(name='colors', values=['red', 'yellow', 'blue']),
+    EnumerationConstraint(name='colors', values=[0, 1, 2], descriptions=['red', 'yellow', 'blue']),
     GlobConstraint(name='pin', pattern='[0-9][0-9][0-9][0-9]'),
     RangeConstraint(name='exertion', min_value=6, max_value=20),
     RangeConstraint(name='longitude', min_value=-180, max_value=180),
@@ -431,10 +431,15 @@ Support provided for the following constraint types:
 [MIT](https://raw.githubusercontent.com/realiii/fudgeo/refs/heads/develop/LICENSE)
 
 ## Release History
+### 1.5.9
+* fix `EnumerationConstraint` implementation, need to allow `descriptions` per enumeration value
+* catch the situation where an attempt is made to add the same constraint more than once
+* handle updates to an existing column definition
+
 ### 1.5.8
-* Add database optimization methods `analyze` and `compact`
-* Add optimization method `analyze` on `Table` and `FeatureClass`
-* Ensure `gpkg_extensions` table is present when setting spatial index, metadata, or schema extensions.
+* add database optimization methods `analyze` and `compact`
+* add optimization method `analyze` on `Table` and `FeatureClass`
+* ensure `gpkg_extensions` table is present when setting spatial index, metadata, or schema extensions.
 
 ### 1.5.7
 * during unpacking, only assign `is_empty` if geometry is empty
