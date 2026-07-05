@@ -189,7 +189,6 @@ class PointZ(AbstractGeometry):
         Geo Interface
         """
         return {'type': 'Point', 'coordinates': self.as_tuple()}
-
     # End geo_interface property
 
     def as_tuple(self) -> TRIPLE:

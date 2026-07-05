@@ -431,6 +431,9 @@ Support provided for the following constraint types:
 [MIT](https://raw.githubusercontent.com/realiii/fudgeo/refs/heads/develop/LICENSE)
 
 ## Release History
+### 1.5.10
+* add converters and adapters for `datetime` and `date` to account for pending deprecations in `sqlite3`
+
 ### 1.5.9
 * fix `EnumerationConstraint` implementation, need to allow `descriptions` per enumeration value
 * catch the situation where an attempt is made to add the same constraint more than once
@@ -439,7 +442,7 @@ Support provided for the following constraint types:
 ### 1.5.8
 * add database optimization methods `analyze` and `compact`
 * add optimization method `analyze` on `Table` and `FeatureClass`
-* ensure `gpkg_extensions` table is present when setting spatial index, metadata, or schema extensions.
+* ensure `gpkg_extensions` table is present when setting spatial index, metadata, or schema extensions
 
 ### 1.5.7
 * during unpacking, only assign `is_empty` if geometry is empty

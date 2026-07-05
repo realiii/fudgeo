@@ -5,7 +5,7 @@ Test GeoPackage
 
 
 import sys
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from math import isnan
 from random import randint, choice
 from shutil import copyfile
@@ -30,13 +30,13 @@ from tests.crs import WGS_1984_UTM_Zone_23N
 
 # noinspection SqlNoDataSourceInspection
 INSERT_POINTS = """
-    INSERT INTO {} ({}, "int.fld", text_fld, test_fld_size, test_bool) 
-    VALUES (?, ?, ?, ?, ?)
+    INSERT INTO {} ({}, "int.fld", text_fld, test_fld_size, test_bool, test_timestamp) 
+    VALUES (?, ?, ?, ?, ?, ?)
 """
 # noinspection SqlNoDataSourceInspection
 INSERT_ROWS = """
-    INSERT INTO {} ("int.fld", text_fld, test_fld_size, test_bool) 
-    VALUES (?, ?, ?, ?)
+    INSERT INTO {} ("int.fld", text_fld, test_fld_size, test_bool, test_timestamp) 
+    VALUES (?, ?, ?, ?, ?)
 """
 # noinspection SqlNoDataSourceInspection
 SELECT_ST_FUNCS = """SELECT ST_IsEmpty({0}), ST_MinX({0}), ST_MaxX({0}), ST_MinY({0}), ST_MaxY({0}) FROM {1}"""
@@ -56,7 +56,7 @@ def random_points_and_attrs(count, srs_id):
         rand_str = ''.join(choice(ascii_uppercase + digits) for _ in range(10))
         rand_bool = bool(randint(0, 1))
         rand_int = randint(0, 1000)
-        rows.append((p, rand_int, rand_str, rand_str, rand_bool))
+        rows.append((p, rand_int, rand_str, rand_str, rand_bool, datetime.now()))
     return rows
 # End random_points_and_attrs function
 
@@ -531,9 +531,10 @@ def test_insert_point_rows(setup_geopackage, name, add_index):
     with gpkg.connection as conn:
         conn.executemany(INSERT_POINTS.format(fc.escaped_name, fc.geometry_column_name), rows)
     assert fc.count == count
-    # noinspection SqlNoDataSourceInspection
-    cursor = fc.select(limit=10)
-    points = [rec[0] for rec in cursor.fetchall()]
+    rows = fc.select(fields=flds, limit=10).fetchall()
+    stamps = [row[-1] for row in rows]
+    assert all([isinstance(s, datetime) for s in stamps])
+    points = [row[0] for row in rows]
     assert all([isinstance(pt, Point) for pt in points])
     assert all(pt.srs_id == srs.srs_id for pt in points)
     assert all(isnan(v) for v in fc.extent)
@@ -546,6 +547,39 @@ def test_insert_point_rows(setup_geopackage, name, add_index):
     """)
     assert cursor.fetchone() == (count,)
 # End test_insert_point_rows function
+
+
+def test_insert_point_rows_dates(setup_geopackage):
+    """
+    Test Insert Point Rows (dates instead of datetimes)
+    """
+    name = 'lmnop'
+    _, gpkg, srs, flds = setup_geopackage
+    flds = *flds[:-1], Field('test_timestamp', FieldType.date)
+    fc = gpkg.create_feature_class(
+        name, srs, fields=flds, shape_type=ShapeType.point,
+        spatial_index=True)
+    assert fc.has_spatial_index
+    assert isinstance(fc, FeatureClass)
+    count = 10000
+    rows = random_points_and_attrs(count, srs.srs_id)
+    with gpkg.connection as conn:
+        conn.executemany(INSERT_POINTS.format(fc.escaped_name, fc.geometry_column_name), rows)
+    assert fc.count == count
+    rows = fc.select(fields=flds, limit=10).fetchall()
+    stamps = [row[-1] for row in rows]
+    assert all([isinstance(s, date) for s in stamps])
+    points = [row[0] for row in rows]
+    assert all([isinstance(pt, Point) for pt in points])
+    assert all(pt.srs_id == srs.srs_id for pt in points)
+    assert all(isnan(v) for v in fc.extent)
+    fc.extent = (300000, 1, 700000, 4000000)
+    assert (300000, 1, 700000, 4000000) == fc.extent
+    cursor = gpkg.connection.execute(f"""
+        SELECT COUNT(1) AS C FROM "rtree_{name}_{fc.geometry_column_name}"
+    """)
+    assert cursor.fetchone() == (count,)
+# End test_insert_point_rows_dates function
 
 
 def _insert_shape_and_fetch(gpkg, geom, fc):
