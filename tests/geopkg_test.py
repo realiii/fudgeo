@@ -549,6 +549,39 @@ def test_insert_point_rows(setup_geopackage, name, add_index):
 # End test_insert_point_rows function
 
 
+def test_insert_point_rows_dates(setup_geopackage):
+    """
+    Test Insert Point Rows (dates instead of datetimes)
+    """
+    name = 'lmnop'
+    _, gpkg, srs, flds = setup_geopackage
+    flds = *flds[:-1], Field('test_timestamp', FieldType.date)
+    fc = gpkg.create_feature_class(
+        name, srs, fields=flds, shape_type=ShapeType.point,
+        spatial_index=True)
+    assert fc.has_spatial_index
+    assert isinstance(fc, FeatureClass)
+    count = 10000
+    rows = random_points_and_attrs(count, srs.srs_id)
+    with gpkg.connection as conn:
+        conn.executemany(INSERT_POINTS.format(fc.escaped_name, fc.geometry_column_name), rows)
+    assert fc.count == count
+    rows = fc.select(fields=flds, limit=10).fetchall()
+    stamps = [row[-1] for row in rows]
+    assert all([isinstance(s, date) for s in stamps])
+    points = [row[0] for row in rows]
+    assert all([isinstance(pt, Point) for pt in points])
+    assert all(pt.srs_id == srs.srs_id for pt in points)
+    assert all(isnan(v) for v in fc.extent)
+    fc.extent = (300000, 1, 700000, 4000000)
+    assert (300000, 1, 700000, 4000000) == fc.extent
+    cursor = gpkg.connection.execute(f"""
+        SELECT COUNT(1) AS C FROM "rtree_{name}_{fc.geometry_column_name}"
+    """)
+    assert cursor.fetchone() == (count,)
+# End test_insert_point_rows_dates function
+
+
 def _insert_shape_and_fetch(gpkg, geom, fc):
     with gpkg.connection as conn:
         conn.execute(INSERT_SHAPE.format(fc.escaped_name, fc.geometry_column_name), (geom,))
