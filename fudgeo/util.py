@@ -16,7 +16,7 @@ except ModuleNotFoundError:  # pragma: no cover
     # noinspection PyPackageRequirements
     from numpy import nanmax, nanmin
 
-from fudgeo.constant import FETCH_SIZE
+from fudgeo.constant import EMPTY, FETCH_SIZE
 from fudgeo.enumeration import ShapeType
 from fudgeo.sql import KEYWORDS
 
@@ -89,9 +89,9 @@ def convert_datetime(val: bytes) -> datetime:
     Added in support for timezone handling although the practice should
     be to resolve to UTC.
     """
-    colon = b':'
-    dash = b'-'
     z = b'Z'
+    dash = b'-'
+    colon = b':'
     is_utc = val.endswith(z)
     val = val.rstrip(z)
     # NOTE split timestamps like b'2022-09-06T13:50:33'
@@ -102,7 +102,10 @@ def convert_datetime(val: bytes) -> datetime:
         except ValueError:
             pass
     else:  # pragma: no cover
-        raise Exception(f"Could not split datetime: '{val}'")
+        if dash not in val:
+            raise Exception(f"Could not split datetime: '{val}'")
+        else:
+            dt, tm = val, EMPTY
     year, month, day = map(int, dt.split(dash))
     tm, *micro = tm.split(b'.')
     tz = []
@@ -112,7 +115,10 @@ def convert_datetime(val: bytes) -> datetime:
             tm, *tz = tm.split(token)
             factor = scale
             break
-    hours, minutes, seconds = map(int, tm.split(colon))
+    try:
+        hours, minutes, seconds = map(int, tm.split(colon))
+    except ValueError:
+        hours = minutes = seconds = 0
     try:
         if micro:
             micro = int('{:0<6.6}'.format(micro[0].decode()))
