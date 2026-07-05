@@ -4,7 +4,7 @@ Utility Functions
 """
 
 
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from math import nan
 from re import IGNORECASE, compile as recompile
 from typing import Callable, Match, Optional, TYPE_CHECKING
@@ -16,7 +16,7 @@ except ModuleNotFoundError:  # pragma: no cover
     # noinspection PyPackageRequirements
     from numpy import nanmax, nanmin
 
-from fudgeo.constant import FETCH_SIZE
+from fudgeo.constant import EMPTY, FETCH_SIZE
 from fudgeo.enumeration import ShapeType
 from fudgeo.sql import KEYWORDS
 
@@ -83,15 +83,23 @@ def now() -> str:
 # End now method
 
 
+def convert_date(val: bytes) -> date:
+    """
+    Convert Date
+    """
+    return convert_datetime(val).date()
+# End convert_date function
+
+
 def convert_datetime(val: bytes) -> datetime:
     """
     Heavily Influenced by convert_timestamp from ../sqlite3/dbapi2.py,
     Added in support for timezone handling although the practice should
     be to resolve to UTC.
     """
-    colon = b':'
-    dash = b'-'
     z = b'Z'
+    dash = b'-'
+    colon = b':'
     is_utc = val.endswith(z)
     val = val.rstrip(z)
     # NOTE split timestamps like b'2022-09-06T13:50:33'
@@ -102,7 +110,10 @@ def convert_datetime(val: bytes) -> datetime:
         except ValueError:
             pass
     else:  # pragma: no cover
-        raise Exception(f"Could not split datetime: '{val}'")
+        if dash not in val:
+            raise Exception(f"Could not split datetime: '{val}'")
+        else:
+            dt, tm = val, EMPTY
     year, month, day = map(int, dt.split(dash))
     tm, *micro = tm.split(b'.')
     tz = []
@@ -112,7 +123,10 @@ def convert_datetime(val: bytes) -> datetime:
             tm, *tz = tm.split(token)
             factor = scale
             break
-    hours, minutes, seconds = map(int, tm.split(colon))
+    try:
+        hours, minutes, seconds = map(int, tm.split(colon))
+    except ValueError:
+        hours = minutes = seconds = 0
     try:
         if micro:
             micro = int('{:0<6.6}'.format(micro[0].decode()))
@@ -136,6 +150,24 @@ def convert_datetime(val: bytes) -> datetime:
     return datetime(year, month, day, hours, minutes, seconds,
                     micro, tzinfo=tz_info)
 # End convert_datetime function
+
+
+def adapt_date(val: date) -> str:
+    """
+    Adapt Date
+    """
+    if isinstance(val, datetime):
+        val = val.date()
+    return val.isoformat()
+# End adapt_date function
+
+
+def adapt_datetime(val: datetime) -> str:
+    """
+    Adapt Datetime
+    """
+    return val.isoformat(' ')
+# End adapt_datetime function
 
 
 def get_extent(fc: 'FeatureClass') -> tuple[float, float, float, float]:

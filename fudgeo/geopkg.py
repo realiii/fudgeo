@@ -5,6 +5,7 @@ GeoPackage
 
 
 from abc import ABCMeta, abstractmethod
+from datetime import date, datetime
 from functools import cached_property
 from math import isnan, nan
 from operator import itemgetter
@@ -55,8 +56,8 @@ from fudgeo.sql import (
     SELECT_TABLES_BY_TYPE, SELECT_TABLE_FIELD_ALIAS_COMMENT, TABLE_EXISTS,
     UPDATE_EXTENT, UPDATE_GPKG_OGR_CONTENTS)
 from fudgeo.util import (
-    check_geometry_name, check_primary_name, convert_datetime, escape_name,
-    get_extent, now)
+    adapt_date, adapt_datetime, check_geometry_name, check_primary_name,
+    convert_date, convert_datetime, escape_name, get_extent, now)
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -195,6 +196,9 @@ class AbstractGeoPackage(metaclass=ABCMeta):
         _add_st_functions(connection)
         register_converter('timestamp', convert_datetime)
         register_converter('datetime', convert_datetime)
+        register_converter('date', convert_date)
+        register_adapter(date, adapt_date)
+        register_adapter(datetime, adapt_datetime)
     # End _register_functions method
 
     @property
