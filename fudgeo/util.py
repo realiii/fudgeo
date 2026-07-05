@@ -4,7 +4,7 @@ Utility Functions
 """
 
 
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from math import nan
 from re import IGNORECASE, compile as recompile
 from typing import Callable, Match, Optional, TYPE_CHECKING
@@ -83,6 +83,14 @@ def now() -> str:
 # End now method
 
 
+def convert_date(val: bytes) -> date:
+    """
+    Convert Date
+    """
+    return convert_datetime(val).date()
+# End convert_date function
+
+
 def convert_datetime(val: bytes) -> datetime:
     """
     Heavily Influenced by convert_timestamp from ../sqlite3/dbapi2.py,
@@ -142,6 +150,24 @@ def convert_datetime(val: bytes) -> datetime:
     return datetime(year, month, day, hours, minutes, seconds,
                     micro, tzinfo=tz_info)
 # End convert_datetime function
+
+
+def adapt_date(val: date) -> str:
+    """
+    Adapt Date
+    """
+    if isinstance(val, datetime):
+        val = val.date()
+    return val.isoformat()
+# End adapt_date function
+
+
+def adapt_datetime(val: datetime) -> str:
+    """
+    Adapt Datetime
+    """
+    return val.isoformat(' ')
+# End adapt_datetime function
 
 
 def get_extent(fc: 'FeatureClass') -> tuple[float, float, float, float]:
