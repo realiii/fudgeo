@@ -1602,7 +1602,7 @@ class SpatialReferenceSystem:
         """
         Initialize the SpatialReferenceSystem class
         """
-        super(SpatialReferenceSystem, self).__init__()
+        super().__init__()
         self.name: str = name
         self.organization: str = organization
         self.org_coord_sys_id: int = org_coord_sys_id
