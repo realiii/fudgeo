@@ -431,6 +431,9 @@ Support provided for the following constraint types:
 [MIT](https://raw.githubusercontent.com/realiii/fudgeo/refs/heads/develop/LICENSE)
 
 ## Release History
+### 1.6.0
+* add context manager protocol to `GeoPackage` and `MemoryGeoPackage`, closes connection on exit
+
 ### 1.5.10
 * add converters and adapters for `datetime` and `date` to account for pending deprecations in `sqlite3`
 
