@@ -144,6 +144,23 @@ class AbstractGeoPackage(metaclass=ABCMeta):
             return None
     # End get_item built-in
 
+    def __enter__(self) -> 'AbstractGeoPackage':
+        """
+        Context Manager Enter
+        """
+        return self
+    # End enter built-in
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
+        """
+        Context Manager Exit
+        """
+        if self._conn:
+            self._conn.close()
+            self._conn = None
+        return False
+    # End exit built-in
+
     def _check_table_exists(self, table_name: str) -> bool:
         """
         Check existence of table
@@ -445,6 +462,13 @@ class GeoPackage(AbstractGeoPackage):
         return f'GeoPackage(path={self.path!r})'
     # End repr built-in
 
+    def __enter__(self) -> 'GeoPackage':
+        """
+        Context Manager Enter
+        """
+        return self
+    # End enter built-in
+
     @property
     def path(self) -> Path:
         """
@@ -521,6 +545,13 @@ class MemoryGeoPackage(AbstractGeoPackage):
         """
         super().__init__(MEMORY)
     # End init built-in
+
+    def __enter__(self) -> 'MemoryGeoPackage':
+        """
+        Context Manager Enter
+        """
+        return self
+    # End enter built-in
 
     @property
     def connection(self) -> Optional['Connection']:
@@ -1571,7 +1602,7 @@ class SpatialReferenceSystem:
         """
         Initialize the SpatialReferenceSystem class
         """
-        super(SpatialReferenceSystem, self).__init__()
+        super().__init__()
         self.name: str = name
         self.organization: str = organization
         self.org_coord_sys_id: int = org_coord_sys_id
