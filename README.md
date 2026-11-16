@@ -15,7 +15,7 @@ For details on OGC GeoPackages, please see the [OGC web page](http://www.geopack
 
 ## Python Compatibility
 
-The `fudgeo` library is compatible with Python 3.10 to 3.14.  Developed and 
+The `fudgeo` library is compatible with Python 3.10 to 3.15.  Developed and 
 tested on **macOS** and **Windows**, should be fine on **Linux** too.
 
 
@@ -433,6 +433,7 @@ Support provided for the following constraint types:
 ## Release History
 ### 1.6.0
 * add context manager protocol to `GeoPackage` and `MemoryGeoPackage`, closes connection on exit
+* add support for Python 3.15
 
 ### 1.5.10
 * add converters and adapters for `datetime` and `date` to account for pending deprecations in `sqlite3`
