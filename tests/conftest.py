@@ -44,7 +44,8 @@ def setup_geopackage(tmp_path):
         Field('test_fld_size', FieldType.text, 100),
         Field('test_bool', FieldType.boolean),
         Field('test_timestamp', FieldType.timestamp))
-    yield path, pkg, srs, fields
+    with pkg:
+        yield path, pkg, srs, fields
     if path.exists():
         try:
             path.unlink()
@@ -108,9 +109,8 @@ def mem_gpkg(tmp_path) -> Generator[MemoryGeoPackage, None, None]:
     """
     Fresh MemoryGeoPackage
     """
-    gpkg = MemoryGeoPackage.create()
-    yield gpkg
-    gpkg.connection.close()
+    with MemoryGeoPackage.create() as gpkg:
+        yield gpkg
 # End mem_gpkg function
 
 
