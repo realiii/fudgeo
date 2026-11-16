@@ -15,7 +15,7 @@ For details on OGC GeoPackages, please see the [OGC web page](http://www.geopack
 
 ## Python Compatibility
 
-The `fudgeo` library is compatible with Python 3.10 to 3.14.  Developed and 
+The `fudgeo` library is compatible with Python 3.10 to 3.15.  Developed and 
 tested on **macOS** and **Windows**, should be fine on **Linux** too.
 
 
@@ -43,7 +43,7 @@ from fudgeo import GeoPackage
 # Creates an empty geopackage
 gpkg: GeoPackage = GeoPackage.create('../data/example.gpkg')
 
-# Opens an existing Geopackage (no validation)
+# Opens an existing GeoPackage (no validation)
 gpkg: GeoPackage = GeoPackage('../data/example.gpkg')
 ```
 
@@ -336,7 +336,7 @@ from fudgeo.extension.metadata import TableReference
 # open GeoPackage with metadata extension enabled
 gpkg: GeoPackage = GeoPackage('../data/example.gpkg')
 
-# open a metadata xml file and add it to the GeoPackage
+# open a metadata XML file and add it to the GeoPackage
 with open(...) as fin:
     id_ = gpkg.metadata.add_metadata(
         uri='https://www.isotc211.org/2005/gmd',
@@ -431,6 +431,10 @@ Support provided for the following constraint types:
 [MIT](https://raw.githubusercontent.com/realiii/fudgeo/refs/heads/develop/LICENSE)
 
 ## Release History
+### 1.6.0
+* add context manager protocol to `GeoPackage` and `MemoryGeoPackage`, closes connection on exit
+* add support for Python 3.15
+
 ### 1.5.10
 * add converters and adapters for `datetime` and `date` to account for pending deprecations in `sqlite3`
 
@@ -629,7 +633,7 @@ Support provided for the following constraint types:
 * add `fields` property to `BaseTable`, applies to `Table` and `FeatureClass`
 * add `field_names` property to `BaseTable`, applies to `Table` and `FeatureClass`
 * add `escaped_name` property to `Field` to return name valid for use in queries
-* add type hinting to embedded sql statements and supporting values
+* add type hinting to embedded SQL statements and supporting values
 
 ### v0.3.7
 * add `is_empty` property to geometries, improved handling for empty geometries
