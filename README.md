@@ -633,7 +633,7 @@ Support provided for the following constraint types:
 * add `fields` property to `BaseTable`, applies to `Table` and `FeatureClass`
 * add `field_names` property to `BaseTable`, applies to `Table` and `FeatureClass`
 * add `escaped_name` property to `Field` to return name valid for use in queries
-* add type hinting to embedded sql statements and supporting values
+* add type hinting to embedded SQL statements and supporting values
 
 ### v0.3.7
 * add `is_empty` property to geometries, improved handling for empty geometries
