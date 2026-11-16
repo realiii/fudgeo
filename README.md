@@ -336,7 +336,7 @@ from fudgeo.extension.metadata import TableReference
 # open GeoPackage with metadata extension enabled
 gpkg: GeoPackage = GeoPackage('../data/example.gpkg')
 
-# open a metadata xml file and add it to the GeoPackage
+# open a metadata XML file and add it to the GeoPackage
 with open(...) as fin:
     id_ = gpkg.metadata.add_metadata(
         uri='https://www.isotc211.org/2005/gmd',
