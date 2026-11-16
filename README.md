@@ -43,7 +43,7 @@ from fudgeo import GeoPackage
 # Creates an empty geopackage
 gpkg: GeoPackage = GeoPackage.create('../data/example.gpkg')
 
-# Opens an existing Geopackage (no validation)
+# Opens an existing GeoPackage (no validation)
 gpkg: GeoPackage = GeoPackage('../data/example.gpkg')
 ```
 
