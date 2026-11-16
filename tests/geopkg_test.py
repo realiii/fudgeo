@@ -14,6 +14,7 @@ from string import ascii_uppercase, digits
 
 from pytest import mark, raises
 
+from fudgeo import MemoryGeoPackage
 from fudgeo.constant import FID, SHAPE
 from fudgeo.enumeration import (
     FieldPropertyType, ShapeType, MetadataScope, FieldType)
@@ -1642,6 +1643,32 @@ def test_create_elements_pk_name(tmp_path, fields, pk_name):
     if path.exists():
         path.unlink()
 # End test_create_elements_pk_name function
+
+
+def test_context_manager_disk(tmp_path):
+    """
+    Test context manager on disk based geopackage
+    """
+    path = tmp_path.joinpath('context.gpkg')
+    with GeoPackage.create(path) as gpkg:
+        assert gpkg.connection is not None
+        assert gpkg._conn is not None
+    assert gpkg._conn is None
+    if path.exists():
+        path.unlink()
+# End test_context_manager_disk function
+
+
+def test_context_manager_memory():
+    """
+    Test context manager on memory based geopackage
+    """
+    with MemoryGeoPackage.create() as gpkg:
+        assert gpkg.connection is not None
+        assert gpkg._conn is not None
+    assert gpkg.connection is None
+    assert gpkg._conn is None
+# End test_context_manager_memory function
 
 
 if __name__ == '__main__':  # pragma: no cover
